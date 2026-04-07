@@ -14,7 +14,7 @@ const PlaceholderPage = ({ title, description }: { title: string; description: s
 export const ContratosPage = () => <PlaceholderPage title="Contratos" description="Gerencie contratos de eventos" />;
 export const DocumentosPage = () => <PlaceholderPage title="Documentos" description="Documentos da empresa" />;
 export const FornecedoresPage = () => <PlaceholderPage title="Fornecedores" description="Cadastro de fornecedores" />;
-export const ClientesPage = () => <PlaceholderPage title="Meus Clientes" description="Gestão de clientes" />;
+
 export const CRMPage = () => <PlaceholderPage title="Gestão de Clientes" description="Pipeline comercial" />;
 export const EventosPage = () => <PlaceholderPage title="Eventos" description="Gestão de eventos" />;
 export const AgendaPage = () => <PlaceholderPage title="Agenda" description="Calendário de eventos" />;
