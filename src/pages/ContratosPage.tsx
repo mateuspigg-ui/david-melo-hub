@@ -156,18 +156,15 @@ export default function ContratosPage() {
 
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Gestão de Contratos</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Jurídico & Compliance David Melo Hub</p>
-        </div>
-        <Button 
-          onClick={() => { setEditingContract(null); resetForm(); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em]"
-        >
-          <Plus size={20} className="mr-3" /> Novo Contrato
-        </Button>
-      </div>
+      <div className="flex items-center justify-between mb-12">
+            <div>
+              <h1 className="text-5xl font-display text-red-600 tracking-tighter uppercase">Gestão de Contratos</h1>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.3em] mt-2 ml-1">Archive Executivo David Melo</p>
+            </div>
+            <Button onClick={() => { setEditingContract(null); setForm({ title: '', client_id: '', event_id: '', signed_status: 'draft', file_url: '' }); setDialogOpen(true); }} className="bg-gold hover:bg-gold-light text-white px-8 h-14 rounded-full font-bold text-xs uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg shadow-gold/20">
+              <Plus className="mr-2 h-4 w-4" /> Novo Contrato
+            </Button>
+          </div>
 
       <div className="relative max-w-md">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
