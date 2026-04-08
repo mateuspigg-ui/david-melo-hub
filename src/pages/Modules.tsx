@@ -1,3 +1,7 @@
+import FornecedoresPage from './FornecedoresPage';
+import ContratosPage from './ContratosPage';
+import DocumentosPage from './DocumentosPage';
+
 const PlaceholderPage = ({ title, description }: { title: string; description: string }) => (
   <div className="space-y-4 animate-fade-in">
     <div>
@@ -11,10 +15,7 @@ const PlaceholderPage = ({ title, description }: { title: string; description: s
   </div>
 );
 
-export const ContratosPage = () => <PlaceholderPage title="Contratos" description="Gerencie contratos de eventos" />;
-export const DocumentosPage = () => <PlaceholderPage title="Documentos" description="Documentos da empresa" />;
-export const FornecedoresPage = () => <PlaceholderPage title="Fornecedores" description="Cadastro de fornecedores" />;
-
+export { ContratosPage, DocumentosPage, FornecedoresPage };
 
 export const AgendaPage = () => <PlaceholderPage title="Agenda" description="Calendário de eventos" />;
 export const EquipePage = () => <PlaceholderPage title="Equipe" description="Gestão da equipe" />;
