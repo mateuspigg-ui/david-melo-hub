@@ -45,30 +45,38 @@ export default function ContratosPage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const bucketName = 'contratos';
+      const bucketsToTry = ['contratos', 'Contratos', 'contracts', 'contrato', 'documents', 'storage'];
+      let uploadSuccess = false;
+      let finalPublicUrl = '';
+      let lastError = null;
 
-      console.log(`Enviando arquivo para o bucket: ${bucketName}...`);
-      const { error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(fileName, file, {
-          upsert: true
-        });
+      const currentProjectId = import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0];
 
-      if (!uploadError) {
-        const { data: { publicUrl } } = supabase.storage
+      for (const bucketName of bucketsToTry) {
+        console.log(`Tentando upload no bucket: ${bucketName}...`);
+        const { error: uploadError } = await supabase.storage
           .from(bucketName)
-          .getPublicUrl(fileName);
-        
-        setForm(prev => ({ ...prev, file_url: publicUrl }));
-        toast({ title: 'Arquivo carregado!', description: 'Sucesso!' });
+          .upload(fileName, file, { upsert: true });
+
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(fileName);
+          
+          finalPublicUrl = publicUrl;
+          uploadSuccess = true;
+          break;
+        } else {
+          lastError = uploadError;
+        }
+      }
+
+      if (uploadSuccess) {
+        setForm(prev => ({ ...prev, file_url: finalPublicUrl }));
+        toast({ title: 'Upload concluído!', description: 'Arquivo salvo com sucesso.' });
       } else {
-        console.error('ERRO COMPLETO:', uploadError);
-        alert(`FALHA NO UPLOAD:\n\nMensagem: ${uploadError.message}\nErro: ${JSON.stringify(uploadError)}\n\nPor favor, copie esta mensagem para o chat.`);
-        toast({ 
-          title: 'Erro de Storage', 
-          description: uploadError.message,
-          variant: 'destructive' 
-        });
+        console.error('ERRO FINAL:', lastError);
+        alert(`FALHA NO UPLOAD:\n\nProjeto ID Conectado: ${currentProjectId}\n\nErro do Supabase: ${(lastError as any)?.message}\nBuckets tentados: ${bucketsToTry.join(', ')}\n\nPor favor, confirme se o balde no seu Supabase tem um destes nomes exatamente.`);
       }
     } catch (error: any) {
       console.error('Erro no processo de upload:', error);
