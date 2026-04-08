@@ -9,10 +9,12 @@ import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 import {
   ContratosPage, DocumentosPage, FornecedoresPage,
-  EventosPage, AgendaPage,
-  PagamentosPage, ConciliacaoPage, ContasPagarPage,
-  RecebimentosPage, EquipePage
+  EventosPage, AgendaPage, EquipePage
 } from "@/pages/Modules";
+import PagamentosPage from "@/pages/PagamentosPage";
+import ContasPagarPage from "@/pages/ContasPagarPage";
+import RecebimentosPage from "@/pages/RecebimentosPage";
+import ConciliacaoPage from "@/pages/ConciliacaoPage";
 import CRMPage from "@/pages/CRMPage";
 import ClientesPage from "@/pages/ClientesPage";
 

@@ -18,8 +18,4 @@ export const FornecedoresPage = () => <PlaceholderPage title="Fornecedores" desc
 
 export const EventosPage = () => <PlaceholderPage title="Eventos" description="Gestão de eventos" />;
 export const AgendaPage = () => <PlaceholderPage title="Agenda" description="Calendário de eventos" />;
-export const PagamentosPage = () => <PlaceholderPage title="Pagamentos" description="Controle de pagamentos" />;
-export const ConciliacaoPage = () => <PlaceholderPage title="Conciliação Bancária" description="Reconciliação financeira" />;
-export const ContasPagarPage = () => <PlaceholderPage title="Contas a Pagar" description="Controle de despesas" />;
-export const RecebimentosPage = () => <PlaceholderPage title="Recebimentos" description="Valores a receber" />;
 export const EquipePage = () => <PlaceholderPage title="Equipe" description="Gestão da equipe" />;
