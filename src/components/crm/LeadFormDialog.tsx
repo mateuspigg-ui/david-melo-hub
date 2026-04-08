@@ -122,22 +122,24 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Cliente Vinculado</Label>
-                <Select value={watch('client_id') || ""} onValueChange={v => setValue('client_id', v)}>
-                  <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
-                    <SelectValue placeholder="Selecionar Cliente" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
-                    <SelectItem value="none" className="font-bold text-[10px] uppercase tracking-widest opacity-40">-- Sem Vínculo --</SelectItem>
-                    {clients?.map(c => (
-                      <SelectItem key={c.id} value={c.id} className="font-bold text-[10px] uppercase tracking-widest py-3">
-                        {c.first_name} {c.last_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {lead && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Cliente Vinculado</Label>
+                  <Select value={watch('client_id') || ""} onValueChange={v => setValue('client_id', v)}>
+                    <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
+                      <SelectValue placeholder="Selecionar Cliente" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
+                      <SelectItem value="none" className="font-bold text-[10px] uppercase tracking-widest opacity-40">-- Sem Vínculo --</SelectItem>
+                      {clients?.map(c => (
+                        <SelectItem key={c.id} value={c.id} className="font-bold text-[10px] uppercase tracking-widest py-3">
+                          {c.first_name} {c.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Estágio do Pipeline</Label>

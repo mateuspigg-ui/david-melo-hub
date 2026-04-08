@@ -84,67 +84,69 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
   const eventTypeLabel = eventTypes.find(t => t.value === lead.event_type)?.label;
   const clientName = lead.clients ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim() : null;
 
-  return (
-    <Dialog open={!!lead} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body">
-        <div className="bg-gradient-gold p-8 text-white relative">
+  return (    <Dialog open={!!lead} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
+        {/* Header - Fixed */}
+        <div className="bg-gradient-gold p-8 text-white flex-none relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
           <DialogHeader>
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70 mb-1">Detalhes da Oportunidade</p>
-                <DialogTitle className="text-3xl font-display text-white tracking-tight">{lead.title}</DialogTitle>
-                {clientName && <p className="text-lg font-bold text-white/90 mt-1 capitalize">{clientName}</p>}
+              <div className="relative z-10">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 mb-2">Dossiê da Oportunidade</p>
+                <DialogTitle className="text-3xl font-display text-white tracking-tight leading-none mb-1">{lead.title}</DialogTitle>
+                {clientName && <p className="text-lg font-bold text-white/90 mt-1 capitalize tracking-tight">{clientName}</p>}
               </div>
             </div>
           </DialogHeader>
-          <div className="flex items-center gap-2 mt-6 flex-wrap">
+          <div className="flex items-center gap-2 mt-6 flex-wrap relative z-10">
             {stageInfo && (
-              <Badge className="bg-white/20 text-white border-white/30 font-bold uppercase text-[9px] tracking-wider px-3 py-1">
+              <Badge className="bg-white/20 text-white border-white/30 font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full">
                 {stageInfo.label}
               </Badge>
             )}
             {eventTypeLabel && (
-              <Badge className="bg-black/20 text-white border-none font-bold uppercase text-[9px] tracking-wider px-3 py-1">
+              <Badge className="bg-black/20 text-white border-none font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full">
                 {eventTypeLabel}
               </Badge>
             )}
           </div>
         </div>
 
-        <div className="p-8 space-y-8">
+        {/* Body - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white/50 backdrop-blur-sm">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
               {lead.event_date && (
-                <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-                  <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold">
-                    <Calendar className="w-4 h-4" />
+                <div className="flex items-center gap-4 text-sm font-bold text-foreground/80">
+                  <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold shadow-sm">
+                    <Calendar className="w-5 h-5" />
                   </div>
                   <span>{format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
                 </div>
               )}
               {lead.event_time && (
-                <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-                  <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold">
-                    <Clock className="w-4 h-4" />
+                <div className="flex items-center gap-4 text-sm font-bold text-foreground/80">
+                  <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold shadow-sm">
+                    <Clock className="w-5 h-5" />
                   </div>
-                  <span>{lead.event_time}</span>
+                  <span>{lead.event_time}h</span>
                 </div>
               )}
             </div>
 
             <div className="space-y-4">
               {lead.total_budget && (
-                <div className="flex items-center gap-3 text-sm font-bold text-gold">
-                   <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
-                    <DollarSign className="w-4 h-4" />
+                <div className="flex items-center gap-4 text-sm font-black text-gold">
+                   <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center shadow-sm">
+                    <DollarSign className="w-5 h-5" />
                   </div>
-                  <span>{Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                  <span className="text-lg font-display">{Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                 </div>
               )}
               {lead.guest_count && (
-                <div className="flex items-center gap-3 text-sm font-medium text-foreground">
-                  <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold">
-                    <Users className="w-4 h-4" />
+                <div className="flex items-center gap-4 text-sm font-bold text-foreground/80">
+                  <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold shadow-sm">
+                    <Users className="w-5 h-5" />
                   </div>
                   <span>{lead.guest_count} Convidados</span>
                 </div>
@@ -152,7 +154,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
             </div>
 
             {lead.event_location && (
-              <div className="flex items-center gap-3 text-sm font-medium text-foreground col-span-2 bg-secondary/30 p-4 rounded-xl border border-border/20">
+              <div className="flex items-center gap-3 text-sm font-bold text-foreground/70 col-span-2 bg-secondary/20 p-5 rounded-2xl border border-border/10">
                 <MapPin className="w-5 h-5 text-gold shrink-0" />
                 <span className="leading-tight">{lead.event_location}</span>
               </div>
@@ -161,29 +163,30 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
 
           {lead.notes && (
             <div className="space-y-3">
-              <h4 className="text-[10px] font-bold text-gold uppercase tracking-[0.2em]">Resumo Estratégico</h4>
-              <div className="p-4 bg-secondary/20 rounded-xl border border-border/10">
-                <p className="text-sm text-foreground/80 leading-relaxed font-body whitespace-pre-wrap italic">"{lead.notes}"</p>
+              <h4 className="text-[10px] font-black text-gold/80 uppercase tracking-[0.25em] ml-1">Resumo comercial</h4>
+              <div className="p-5 bg-white rounded-2xl border border-border/10 shadow-sm italic">
+                <p className="text-sm text-foreground/80 leading-relaxed font-medium whitespace-pre-wrap">"{lead.notes}"</p>
               </div>
             </div>
           )}
 
-          <div className="space-y-4 bg-secondary/10 p-6 rounded-2xl border border-border/10 shadow-inner">
-            <h4 className="text-[10px] font-bold text-foreground/60 uppercase tracking-[0.2em] flex items-center justify-between">
-              Tarefas Pendentes 
-              <span className="bg-foreground/10 text-foreground px-2 py-0.5 rounded-full text-[9px]">{tasks.length}</span>
+          <div className="space-y-5 bg-secondary/10 p-6 rounded-[28px] border border-border/10 shadow-inner">
+            <h4 className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.25em] flex items-center justify-between ml-1">
+              Plano de Ação / Tarefas 
+              <Badge variant="secondary" className="bg-foreground/5 text-foreground/60 rounded-full font-black text-[9px]">{tasks.length}</Badge>
             </h4>
             
-            <div className="space-y-2.5 max-h-[200px] overflow-y-auto no-scrollbar">
+            <div className="space-y-3 max-h-[250px] overflow-y-auto no-scrollbar">
+              {tasks.length === 0 && <p className="text-center py-6 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">Nenhuma tarefa agendada</p>}
               {tasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 group bg-white p-3 rounded-lg border border-border/20 hover:shadow-sm transition-all">
+                <div key={task.id} className="flex items-center gap-3 group bg-white p-4 rounded-xl border border-border/10 hover:shadow-md transition-all duration-300">
                   <button 
                     onClick={() => toggleTaskMutation.mutate({ id: task.id, status: task.status })} 
                     className="shrink-0 transition-transform active:scale-90"
                   >
-                    <CheckCircle2 className={`w-5 h-5 ${task.status === 'done' ? 'text-green-500 bg-green-500/10 rounded-full' : 'text-muted-foreground/30 hover:text-gold'}`} />
+                    <CheckCircle2 className={`w-5 h-5 ${task.status === 'done' ? 'text-green-500 bg-green-500/5 rounded-full' : 'text-muted-foreground/20 hover:text-gold'}`} />
                   </button>
-                  <span className={`text-sm font-medium flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground/60' : 'text-foreground'}`}>
+                  <span className={`text-sm font-bold flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground/40' : 'text-foreground/80'}`}>
                     {task.title}
                   </span>
                 </div>
@@ -194,39 +197,40 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
               <Input 
                 value={newTask} 
                 onChange={e => setNewTask(e.target.value)} 
-                placeholder="Próximo passo..." 
-                className="text-xs h-10 bg-white border-border/40 focus:border-gold rounded-lg" 
+                placeholder="Qual o próximo passo com este lead?" 
+                className="text-xs h-12 bg-white border-border/10 focus:border-gold rounded-xl font-medium shadow-sm" 
               />
-              <Button type="submit" size="icon" className="h-10 w-10 shrink-0 bg-gold text-white hover:bg-gold-light rounded-lg">
-                <Plus className="w-4 h-4" />
+              <Button type="submit" size="icon" className="h-12 w-12 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold">
+                <Plus className="w-5 h-5" />
               </Button>
             </form>
           </div>
+        </div>
 
-          <div className="flex justify-between items-center pt-6 border-t border-border/10">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-destructive/60 hover:text-white hover:bg-destructive font-bold uppercase text-[9px] tracking-widest px-4">
-                  <Trash2 className="w-3.5 h-3.5 mr-2" /> Excluir Oportunidade
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-2xl border-destructive/20 shadow-2xl">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="font-display">Encerrar e Excluir?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-muted-foreground">Esta ação é irreversível e removerá todos os registros deste lead.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="rounded-lg font-bold">Voltar</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => deleteLeadMutation.mutate()} className="bg-destructive hover:bg-destructive/90 rounded-lg font-bold">
-                    Sim, Excluir
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button size="lg" onClick={() => onEdit(lead)} className="bg-gold hover:bg-gold-light text-white font-bold px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-widest h-12">
-              <Edit className="w-4 h-4 mr-2" /> Editar Dados
-            </Button>
-          </div>
+        {/* Footer - Fixed */}
+        <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-12 px-6 text-destructive/40 hover:text-white hover:bg-destructive font-black uppercase text-[10px] tracking-widest rounded-xl transition-all">
+                <Trash2 className="w-4 h-4 mr-2" /> Excluir Oportunidade
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-[32px] border-destructive/20 shadow-2xl p-8">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-display text-2xl">Confirmar Exclusão?</AlertDialogTitle>
+                <AlertDialogDescription className="text-muted-foreground font-medium">Esta ação é definitiva. Todos os dados históricos e tarefas deste lead serão removidos permanentemente.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="mt-8 gap-3">
+                <AlertDialogCancel className="rounded-xl h-12 font-black uppercase text-[10px] tracking-widest border-none hover:bg-secondary">Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => deleteLeadMutation.mutate()} className="bg-destructive hover:bg-destructive/90 rounded-xl h-12 px-8 font-black uppercase text-[10px] tracking-widest text-white border-none">
+                  Sim, Excluir Registro
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button size="lg" onClick={() => onEdit(lead)} className="bg-gradient-gold hover:opacity-90 text-white font-black px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] h-12 transition-all">
+            <Edit className="w-4 h-4 mr-2" /> Editar Dados
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
