@@ -9,8 +9,9 @@ import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 import {
   ContratosPage, DocumentosPage, FornecedoresPage,
-  EventosPage, AgendaPage, EquipePage
+  AgendaPage, EquipePage
 } from "@/pages/Modules";
+import EventosPage from "@/pages/EventosPage";
 import PagamentosPage from "@/pages/PagamentosPage";
 import ContasPagarPage from "@/pages/ContasPagarPage";
 import RecebimentosPage from "@/pages/RecebimentosPage";

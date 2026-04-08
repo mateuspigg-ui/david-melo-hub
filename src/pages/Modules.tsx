@@ -16,6 +16,5 @@ export const DocumentosPage = () => <PlaceholderPage title="Documentos" descript
 export const FornecedoresPage = () => <PlaceholderPage title="Fornecedores" description="Cadastro de fornecedores" />;
 
 
-export const EventosPage = () => <PlaceholderPage title="Eventos" description="Gestão de eventos" />;
 export const AgendaPage = () => <PlaceholderPage title="Agenda" description="Calendário de eventos" />;
 export const EquipePage = () => <PlaceholderPage title="Equipe" description="Gestão da equipe" />;
