@@ -45,25 +45,38 @@ export default function ContratosPage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = fileName; // Upload directly to bucket root for simplicity
+      const filePath = fileName; // Upload diretamente na raiz do bucket
 
-      const { error: uploadError } = await supabase.storage
+      console.log('Iniciando upload para o bucket "contracts"...');
+      const { error: uploadError, data } = await supabase.storage
         .from('contracts')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
-        console.error('Erro detalhado do Supabase Storage:', uploadError);
+        console.error('Erro retornado pelo Supabase Storage:', uploadError);
+        // Se o erro for 404, o bucket 'contracts' não existe.
+        // Se for 403, falta política de RLS (SELECT/INSERT).
+        toast({ 
+          title: 'Falha no Upload', 
+          description: `Erro: ${uploadError.message}. Verifique se o bucket "contracts" existe e tem políticas de RLS configuradas.`,
+          variant: 'destructive' 
+        });
         throw uploadError;
       }
+
+      console.log('Upload concluído com sucesso:', data);
 
       const { data: { publicUrl } } = supabase.storage
         .from('contracts')
         .getPublicUrl(filePath);
 
       setForm(prev => ({ ...prev, file_url: publicUrl }));
-      toast({ title: 'Arquivo carregado!', description: 'Link gerado com sucesso.' });
+      toast({ title: 'Arquivo carregado!', description: 'O link do contrato foi gerated com sucesso no servidor.' });
     } catch (error: any) {
-      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
+      console.error('Erro crítico na função handleFileUpload:', error);
     } finally {
       setIsUploading(false);
     }
