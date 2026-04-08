@@ -9,10 +9,11 @@ import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 import {
   ContratosPage, DocumentosPage, FornecedoresPage,
-  CRMPage, EventosPage, AgendaPage,
+  EventosPage, AgendaPage,
   PagamentosPage, ConciliacaoPage, ContasPagarPage,
   RecebimentosPage, EquipePage
 } from "@/pages/Modules";
+import CRMPage from "@/pages/CRMPage";
 import ClientesPage from "@/pages/ClientesPage";
 
 const queryClient = new QueryClient();
