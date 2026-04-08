@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, FileText, User, Calendar, CheckCircle2, Clock, Trash2, Upload, Loader2 } from 'lucide-react';
+import { Plus, Search, FileText, User, Calendar, CheckCircle2, Clock, Trash2, Upload, Loader2, Eye, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,18 @@ export default function ContratosPage() {
     file_url: ''
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handleDownload = (url: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = title;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,6 +213,28 @@ export default function ContratosPage() {
                     </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {c.file_url && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => { setPreviewUrl(c.file_url); setIsPreviewOpen(true); }}
+                              className="h-8 w-8 text-gold hover:bg-gold/10"
+                              title="Visualizar"
+                            >
+                              <Eye size={16} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleDownload(c.file_url, c.title)}
+                              className="h-8 w-8 text-emerald-500 hover:bg-emerald-50"
+                              title="Baixar"
+                            >
+                              <Download size={16} />
+                            </Button>
+                          </>
+                        )}
                         <Button variant="ghost" size="sm" onClick={() => { setEditingContract(c); setForm({ ...c }); setDialogOpen(true); }} className="text-[10px] font-black uppercase text-gold">Editar</Button>
                         <Button variant="ghost" size="icon" onClick={() => { if(window.confirm('Excluir contrato?')) deleteMutation.mutate(c.id); }} className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 size={14} /></Button>
                       </div>
@@ -309,6 +343,38 @@ export default function ContratosPage() {
             <div className="flex justify-between items-center pt-8 border-t border-border/10">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[10px] font-black uppercase tracking-widest">Descartar</Button>
               <Button onClick={() => saveMutation.mutate()} className="bg-gradient-gold text-white font-black h-12 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em]">Salvar Contrato</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 bg-slate-900 border-none overflow-hidden rounded-[32px] shadow-2xl">
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-6 bg-slate-800 text-white">
+              <div>
+                <h3 className="text-xl font-display uppercase tracking-tight">Visualização do Contrato</h3>
+                <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mt-1">Conferência David Melo Hub</p>
+              </div>
+              <Button variant="ghost" onClick={() => setIsPreviewOpen(false)} className="text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest">Fechar</Button>
+            </div>
+            <div className="flex-1 bg-slate-950 p-4 relative">
+              {previewUrl && (
+                previewUrl.toLowerCase().endsWith('.png') || 
+                previewUrl.toLowerCase().endsWith('.jpg') || 
+                previewUrl.toLowerCase().endsWith('.jpeg') ||
+                previewUrl.includes('image')
+              ) ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <img src={previewUrl} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg" />
+                </div>
+              ) : (
+                <iframe 
+                  src={previewUrl?.includes('?') ? `${previewUrl}&view=fit` : previewUrl || ''} 
+                  className="w-full h-full rounded-lg border-none bg-white"
+                  title="PDF Preview"
+                />
+              )}
             </div>
           </div>
         </DialogContent>
