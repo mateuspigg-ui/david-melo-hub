@@ -227,78 +227,85 @@ const ClientesPage = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
-        <DialogContent className="max-w-md p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden">
-          <div className="bg-gradient-gold p-8 text-white">
+        <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
+          {/* Header - Fixed */}
+          <div className="bg-gradient-gold p-6 text-white flex-none relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
             <DialogHeader>
-              <DialogTitle className="text-2xl font-display text-white">
-                {editingClient ? 'Ajustar Cadastro' : 'Novo Cliente David Melo'}
+              <DialogTitle className="text-2xl font-display text-white tracking-tight">
+                {editingClient ? 'Ajustar Perfil' : 'Novo Cliente Premium'}
               </DialogTitle>
-              <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Preencha os dados do cliente abaixo.</p>
+              <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic">
+                David Melo Hub • Gestão de Base
+              </p>
             </DialogHeader>
           </div>
-          <form
-            onSubmit={(e) => { e.preventDefault(); upsert.mutate(); }}
-            className="p-8 space-y-6"
-          >
-            <div className="grid grid-cols-2 gap-4">
+
+          {/* Body - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-8 bg-white/50 backdrop-blur-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
                 <Input
-                  required
                   value={form.first_name}
                   onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                  placeholder="Ex: David"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
                 <Input
                   value={form.last_name}
                   onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                  placeholder="Ex: Melo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Telefone / WhatsApp</Label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço de E-mail</Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                  placeholder="cliente@email.com"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Username)</Label>
+                <Input
+                  value={form.instagram}
+                  onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                  placeholder="@usuario"
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Telefone Principal</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">E-mail Corporativo</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Perfil Instagram</Label>
-              <Input
-                value={form.instagram}
-                onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-                className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
-                placeholder="@usuario_premium"
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
-              <DialogClose asChild>
-                <Button type="button" variant="ghost" className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-              </DialogClose>
-              <Button
-                type="submit"
-                disabled={upsert.isPending}
-                className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
-              >
-                {upsert.isPending ? 'Salvando...' : editingClient ? 'Confirmar Ajustes' : 'Registrar Cliente'}
-              </Button>
-            </div>
-          </form>
+          </div>
+
+          {/* Footer - Fixed */}
+          <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">
+            <Button variant="ghost" onClick={closeDialog} className="h-12 px-8 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50 transition-all">
+              Descartar
+            </Button>
+            <Button 
+              onClick={() => upsert.mutate()}
+              disabled={upsert.isPending}
+              className="bg-gradient-gold hover:opacity-90 text-white font-black h-12 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
+            >
+              {upsert.isPending ? 'Sincronizando...' : (editingClient ? 'Salvar Alterações' : 'Registrar Cliente')}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

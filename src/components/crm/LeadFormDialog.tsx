@@ -95,130 +95,152 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden">
-        <div className="bg-gradient-gold p-8 text-white">
+      <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
+        {/* Header - Fixed */}
+        <div className="bg-gradient-gold p-6 text-white flex-none relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
           <DialogHeader>
-            <DialogTitle className="text-2xl font-display text-white">{lead ? 'Editar Oportunidade' : 'Nova Oportunidade'}</DialogTitle>
-            <p className="text-white/80 text-sm mt-1">Insira as informações do lead para alimentar seu pipeline comercial.</p>
+            <DialogTitle className="text-2xl font-display text-white tracking-tight">
+              {lead ? 'Refinar Oportunidade' : 'Novo Registro de Lead'}
+            </DialogTitle>
+            <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic">
+              David Melo Hub • Gestão Comercial
+            </p>
           </DialogHeader>
         </div>
 
-        <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="p-8 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="sm:col-span-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Título da Oportunidade *</Label>
-              <Input 
-                {...register('title', { required: true })} 
-                placeholder="Ex: Casamento João & Maria" 
-                className="bg-secondary/30 border-border/40 focus:border-gold h-11"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Cliente Vinculado</Label>
-              <Select value={watch('client_id')} onValueChange={v => setValue('client_id', v)}>
-                <SelectTrigger className="h-11 bg-secondary/30 border-border/40 focus:ring-gold font-medium">
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-border/40 shadow-2xl capitalize">
-                  {clients.map(c => (
-                    <SelectItem key={c.id} value={c.id} className="font-medium text-xs font-bold">{c.first_name} {c.last_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Body - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-white/50 backdrop-blur-sm">
+          <form id="lead-form" onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div className="sm:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Título da Oportunidade *</Label>
+                <Input 
+                  {...register('title', { required: true })} 
+                  placeholder="Ex: Casamento João & Maria" 
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Cliente Vinculado</Label>
+                <Select value={watch('client_id')} onValueChange={v => setValue('client_id', v)}>
+                  <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
+                    <SelectValue placeholder="Selecionar Cliente" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
+                    <SelectItem value="" className="font-bold text-[10px] uppercase tracking-widest opacity-40">-- Sem Vínculo --</SelectItem>
+                    {clients.map(c => (
+                      <SelectItem key={c.id} value={c.id} className="font-bold text-[10px] uppercase tracking-widest py-3">
+                        {c.first_name} {c.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Estágio do Pipeline</Label>
-              <Select value={watch('stage')} onValueChange={v => setValue('stage', v)}>
-                <SelectTrigger className="h-11 bg-secondary/30 border-border/40 focus:ring-gold font-medium">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-border/40 shadow-2xl">
-                  {stages.map(s => (
-                    <SelectItem key={s.id} value={s.id} className="font-medium text-xs font-bold">{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Estágio do Pipeline</Label>
+                <Select value={watch('stage')} onValueChange={v => setValue('stage', v)}>
+                  <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
+                    {stages.map(s => (
+                      <SelectItem key={s.id} value={s.id} className="font-bold text-[10px] uppercase tracking-widest py-3">
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Tipo de Evento</Label>
-              <Select value={watch('event_type') || ''} onValueChange={v => setValue('event_type', v)}>
-                <SelectTrigger className="h-11 bg-secondary/30 border-border/40 focus:ring-gold font-medium">
-                  <SelectValue placeholder="Tipo de projeto" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-border/40 shadow-2xl">
-                  {eventTypes.map(t => (
-                    <SelectItem key={t.value} value={t.value} className="font-medium text-xs font-bold">{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Tipo de Evento</Label>
+                <Select value={watch('event_type') || ''} onValueChange={v => setValue('event_type', v)}>
+                  <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
+                    <SelectValue placeholder="Tipo de projeto" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
+                    {eventTypes.map(t => (
+                      <SelectItem key={t.value} value={t.value} className="font-bold text-[10px] uppercase tracking-widest py-3">
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Local Previsto</Label>
-              <Input 
-                {...register('event_location')} 
-                placeholder="Salão, Buffet ou Cidade" 
-                className="bg-secondary/30 border-border/40 focus:border-gold h-11"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Local Previsto</Label>
+                <Input 
+                  {...register('event_location')} 
+                  placeholder="Salão, Buffet ou Cidade" 
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Data do Evento</Label>
-              <Input type="date" {...register('event_date')} className="h-11 bg-secondary/30 border-border/40 focus:border-gold" />
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Data do Evento</Label>
+                <Input type="date" {...register('event_date')} className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold shadow-sm" />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Horário</Label>
-              <Input type="time" {...register('event_time')} className="h-11 bg-secondary/30 border-border/40 focus:border-gold" />
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Horário</Label>
+                <Input type="time" {...register('event_time')} className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold shadow-sm" />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Nº de Convidados</Label>
-              <Input type="number" {...register('guest_count')} placeholder="Qtd" className="h-11 bg-secondary/30 border-border/40 focus:border-gold" />
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Nº de Convidados</Label>
+                <Input type="number" {...register('guest_count')} placeholder="Qtd" className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold shadow-sm" />
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Budget Estimado (R$)</Label>
-              <Input type="number" step="0.01" {...register('total_budget')} placeholder="0,00" className="h-11 bg-secondary/30 border-border/40 focus:border-gold font-bold text-gold" />
-            </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Budget Estimado (R$)</Label>
+                <Input type="number" step="0.01" {...register('total_budget')} placeholder="0,00" className="h-11 bg-gold/5 border-gold/20 focus:border-gold font-display text-lg text-gold rounded-xl text-center shadow-sm" />
+              </div>
 
-            <div className="sm:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Consultor Responsável</Label>
-              <Select value={watch('assigned_to') || ''} onValueChange={v => setValue('assigned_to', v)}>
-                <SelectTrigger className="h-11 bg-secondary/30 border-border/40 focus:ring-gold font-medium">
-                  <SelectValue placeholder="Selecione um membro do time" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-border/40 shadow-2xl">
-                  {teamMembers.map(m => (
-                    <SelectItem key={m.id} value={m.id} className="font-medium text-xs font-bold">{m.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Consultor Responsável</Label>
+                <Select value={watch('assigned_to') || ''} onValueChange={v => setValue('assigned_to', v)}>
+                  <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
+                    <SelectValue placeholder="Selecionar Membro do Time" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
+                    {teamMembers.map(m => (
+                      <SelectItem key={m.id} value={m.id} className="font-bold text-[10px] uppercase tracking-widest py-3">{m.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="sm:col-span-2 space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-gold/80 mb-2 block">Breve Resumo / Notas</Label>
-              <Textarea 
-                {...register('notes')} 
-                rows={3} 
-                placeholder="Expectativas do cliente, detalhes técnicos essenciais..." 
-                className="bg-secondary/30 border-border/40 focus:border-gold resize-none"
-              />
+              <div className="sm:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Notas e Observações</Label>
+                <Textarea 
+                  {...register('notes')} 
+                  rows={3} 
+                  placeholder="Expectativas do cliente, detalhes técnicos essenciais..." 
+                  className="bg-secondary/20 border-border/10 focus:border-gold rounded-xl resize-none text-sm font-medium p-4 shadow-sm min-h-[100px]"
+                />
+              </div>
             </div>
-          </div>
+          </form>
+        </div>
 
-          <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground font-bold uppercase text-[11px] tracking-widest">
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={mutation.isPending} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
-              {mutation.isPending ? 'Salvando...' : lead ? 'Salvar Edição' : 'Criar Oportunidade'}
-            </Button>
-          </div>
-        </form>
+        {/* Footer - Fixed */}
+        <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="h-11 px-8 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50 transition-all">
+            Descartar
+          </Button>
+          <Button 
+            form="lead-form"
+            type="submit" 
+            disabled={mutation.isPending} 
+            className="bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
+          >
+            {mutation.isPending ? 'Sincronizando...' : lead ? 'Atualizar Lead' : 'Publicar Lead'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
