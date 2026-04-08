@@ -98,7 +98,11 @@ export default function CRMPage() {
       const { error } = await supabase.from('leads').update({ stage }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_pipeline'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+    },
     onError: () => toast({ title: 'Erro ao mover lead', variant: 'destructive' }),
   });
 

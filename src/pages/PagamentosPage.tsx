@@ -107,7 +107,7 @@ export default function PagamentosPage() {
       const entryAmount = hasEntry ? parseFloat(form.entry_amount) : null;
 
       const { data: payment, error } = await supabase
-        .from("payments")
+        .from('payments')
         .insert({
           total_event_value: totalValue,
           installment_count: count,
@@ -137,14 +137,18 @@ export default function PagamentosPage() {
         };
       });
 
-      const { error: instError } = await supabase.from("payment_installments").insert(installmentsData);
+      const { error: instError } = await supabase.from('payment_installments').insert(installmentsData);
       if (instError) throw instError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
+      // Sync Dashboard
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      
       setDialogOpen(false);
       resetForm();
-      toast({ title: "Pagamento criado com sucesso" });
+      toast({ title: "Pagamento criado com sucesso", style: { backgroundColor: '#C5A059', color: '#fff' } });
     },
     onError: () => toast({ title: "Erro ao criar pagamento", variant: "destructive" }),
   });
@@ -159,7 +163,8 @@ export default function PagamentosPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["installments"] });
-      toast({ title: "Parcela marcada como paga" });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      toast({ title: "Mês auditado e baixado com sucesso!", style: { backgroundColor: '#10b981', color: '#fff' } });
     },
   });
 
@@ -171,8 +176,10 @@ export default function PagamentosPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setExpandedId(null);
-      toast({ title: "Pagamento excluído" });
+      toast({ title: "Contrato removido do ecossistema.", variant: "destructive" });
     },
   });
 

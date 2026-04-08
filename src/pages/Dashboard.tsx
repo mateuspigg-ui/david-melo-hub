@@ -1,29 +1,129 @@
-import { DollarSign, TrendingUp, Clock } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
-
-const kpiCards = [
-  { label: 'Faturamento Anual', value: 'R$ 0,00', icon: DollarSign, color: 'text-success' },
-  { label: 'Vendas do Mês', value: 'R$ 0,00', icon: TrendingUp, color: 'text-primary' },
-  { label: 'A Receber no Mês', value: 'R$ 0,00', icon: Clock, color: 'text-warning' },
-];
-
-const pipelineData = [
-  { name: 'Novo Contato', value: 0 },
-  { name: 'Orçamento Enviado', value: 0 },
-  { name: 'Em Negociação', value: 0 },
-  { name: 'Fechados', value: 0 },
-  { name: 'Perdidos', value: 0 },
-];
+import { DollarSign, TrendingUp, Clock, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { format, startOfYear, startOfMonth, endOfMonth } from 'date-fns';
 
 const GOLD_COLORS = ['#C5A059', '#B89451', '#D4AF37', '#997F3D', '#E5C185'];
 
-const monthlyData = Array.from({ length: 12 }, (_, i) => ({
-  month: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][i],
-  receitas: 0,
-  despesas: 0,
-}));
-
 const Dashboard = () => {
+  const currentYear = new Date().getFullYear();
+  const currentMonthStart = startOfMonth(new Date());
+  
+  // 1. Fetch KPI Totals
+  const { data: kpis, isLoading: isLoadingKPIs } = useQuery({
+    queryKey: ['dashboard_kpis'],
+    queryFn: async () => {
+      // Annual Revenue
+      const { data: yearEvents } = await supabase
+        .from('events')
+        .select('budget_value')
+        .gte('event_date', format(startOfYear(new Date()), 'yyyy-MM-dd'));
+      
+      const annualTotal = yearEvents?.reduce((acc, curr) => acc + Number(curr.budget_value || 0), 0) || 0;
+
+      // Monthly Revenue
+      const { data: monthEvents } = await supabase
+        .from('events')
+        .select('budget_value')
+        .gte('event_date', format(currentMonthStart, 'yyyy-MM-dd'))
+        .lte('event_date', format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+      
+      const monthlyTotal = monthEvents?.reduce((acc, curr) => acc + Number(curr.budget_value || 0), 0) || 0;
+
+      // Accounts Receivable (Pending installments)
+      const { data: pendingInstallments } = await supabase
+        .from('payment_installments')
+        .select('amount')
+        .eq('status', 'pending');
+      
+      const receivableTotal = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+
+      return {
+        annual: annualTotal,
+        monthly: monthlyTotal,
+        receivable: receivableTotal
+      };
+    }
+  });
+
+  // 2. Fetch CRM Pipeline
+  const { data: pipelineData, isLoading: isLoadingCRM } = useQuery({
+    queryKey: ['dashboard_pipeline'],
+    queryFn: async () => {
+      const { data: leads } = await supabase.from('leads').select('stage');
+      const counts: Record<string, number> = {
+        'novo_contato': 0,
+        'orcamento_enviado': 0,
+        'em_negociacao': 0,
+        'fechados': 0,
+        'perdidos': 0
+      };
+      
+      leads?.forEach(l => {
+        if (counts[l.stage] !== undefined) counts[l.stage]++;
+      });
+
+      return [
+        { name: 'Novo Contato', value: counts.novo_contato },
+        { name: 'Orçamento Enviado', value: counts.orcamento_enviado },
+        { name: 'Em Negociação', value: counts.em_negociacao },
+        { name: 'Fechados', value: counts.fechados },
+        { name: 'Perdidos', value: counts.perdidos },
+      ];
+    }
+  });
+
+  // 3. Monthly Metrics for Charts & DRE
+  const { data: monthlyMetrics, isLoading: isLoadingMetrics } = useQuery({
+    queryKey: ['dashboard_metrics'],
+    queryFn: async () => {
+      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const data = months.map(m => ({
+        month: m,
+        receitas: 0,
+        despesas: 0,
+        eventos: 0
+      }));
+
+      // In the real system, we'd fetch transactions or grouping from SQL
+      // For now, let's aggregate from 'events' for revenue and 'accounts_payable' for expenses as a proxy
+      const { data: events } = await supabase.from('events').select('budget_value, event_date');
+      const { data: expenses } = await supabase.from('accounts_payable').select('amount, due_date');
+
+      events?.forEach(e => {
+        const monthIdx = new Date(e.event_date).getMonth();
+        data[monthIdx].receitas += Number(e.budget_value || 0);
+        data[monthIdx].eventos++;
+      });
+
+      expenses?.forEach(ex => {
+        const monthIdx = new Date(ex.due_date).getMonth();
+        data[monthIdx].despesas += Number(ex.amount || 0);
+      });
+
+      return data;
+    }
+  });
+
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+  if (isLoadingKPIs || isLoadingCRM || isLoadingMetrics) {
+    return (
+      <div className="h-[80vh] flex flex-col items-center justify-center gap-6">
+        <Loader2 className="w-12 h-12 text-gold animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold animate-pulse">Sincronizando Ecossistema David Melo...</p>
+      </div>
+    );
+  }
+
+  const kpiCards = [
+    { label: 'Faturamento Anual', value: formatCurrency(kpis?.annual || 0), icon: DollarSign },
+    { label: 'Vendas do Mês', value: formatCurrency(kpis?.monthly || 0), icon: TrendingUp },
+    { label: 'A Receber no Mês', value: formatCurrency(kpis?.receivable || 0), icon: Clock },
+  ];
+
   return (
     <div className="space-y-10 animate-fade-in max-w-[1600px] mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-border/10 pb-8">
@@ -62,15 +162,15 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white premium-shadow rounded-2xl p-10 border border-border/40 transition-all hover:shadow-2xl">
           <div className="flex items-center justify-between mb-10">
-            <h3 className="text-xl font-display text-foreground tracking-tight uppercase">Performance Semanal</h3>
+            <h3 className="text-xl font-display text-foreground tracking-tight uppercase">Performance Trimestral</h3>
             <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
           </div>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData.slice(0, 4)} barGap={8}>
+              <BarChart data={monthlyMetrics?.slice(0, 4)} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="month" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 10 }} />
-                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v}`} />
+                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(197, 160, 89, 0.05)' }}
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
@@ -101,7 +201,7 @@ const Dashboard = () => {
                   paddingAngle={10}
                   stroke="none"
                 >
-                  {pipelineData.map((_, idx) => (
+                  {pipelineData?.map((_, idx) => (
                     <Cell key={idx} fill={GOLD_COLORS[idx % GOLD_COLORS.length]} />
                   ))}
                 </Pie>
@@ -112,7 +212,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
             <div className="absolute flex flex-col items-center justify-center pointer-events-none">
               <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ativos</span>
-              <span className="text-2xl font-display text-foreground">0</span>
+              <span className="text-2xl font-display text-foreground">{pipelineData?.reduce((a, b) => a + b.value, 0) || 0}</span>
             </div>
           </div>
         </div>
@@ -132,7 +232,7 @@ const Dashboard = () => {
         </div>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthlyData}>
+            <LineChart data={monthlyMetrics}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
               <XAxis dataKey="month" stroke="#666" fontSize={11} tickLine={false} axisLine={false} tick={{ dy: 15 }} />
               <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
@@ -148,34 +248,43 @@ const Dashboard = () => {
 
       {/* DRE Table */}
       <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40 overflow-hidden">
-        <h3 className="text-lg font-display text-foreground mb-6">DRE Informativo - Resultados Consolidados</h3>
+        <h3 className="text-lg font-display text-foreground mb-6 underline decoration-gold/30">DRE Informativo - Resultados de Gestão</h3>
         <div className="overflow-x-auto -mx-8 px-8">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/40">
-                {['Mês', 'Eventos', 'Receita', 'Despesas', 'Lucro Real', 'Margem', 'Status'].map(h => (
-                  <th key={h} className="text-left py-4 px-4 text-muted-foreground font-bold text-[10px] uppercase tracking-[0.2em]">{h}</th>
+                {['Mês', 'Eventos', 'Receita Bruta', 'Despesas', 'Lucro Operacional', 'Margem', 'Status'].map(h => (
+                  <th key={h} className="text-left py-4 px-4 text-muted-foreground font-black text-[9px] uppercase tracking-[0.2em]">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/20">
-              {monthlyData.map((m) => (
-                <tr key={m.month} className="hover:bg-secondary/20 transition-colors">
-                  <td className="py-4 px-4 text-foreground font-bold">{m.month}</td>
-                  <td className="py-4 px-4 text-foreground font-medium">0</td>
-                  <td className="py-4 px-4 text-success font-bold">R$ 0,00</td>
-                  <td className="py-4 px-4 text-destructive font-bold">R$ 0,00</td>
-                  <td className="py-4 px-4 text-foreground font-bold">R$ 0,00</td>
-                  <td className="py-4 px-4 font-medium">
-                    <span className="bg-secondary/50 px-2 py-1 rounded text-[10px] font-bold">0%</span>
-                  </td>
-                  <td className="py-4 px-4 text-warning">
-                    <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider">
-                       <Clock size={12} /> Auditando
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {monthlyMetrics?.map((m) => {
+                const lucro = m.receitas - m.despesas;
+                const margem = m.receitas > 0 ? (lucro / m.receitas) * 100 : 0;
+                return (
+                  <tr key={m.month} className="hover:bg-secondary/20 transition-colors">
+                    <td className="py-4 px-4 text-foreground font-black uppercase text-[10px] tracking-widest">{m.month}</td>
+                    <td className="py-4 px-4 text-foreground font-bold">{m.eventos}</td>
+                    <td className="py-4 px-4 text-emerald-600 font-bold">{formatCurrency(m.receitas)}</td>
+                    <td className="py-4 px-4 text-rose-600 font-bold">{formatCurrency(m.despesas)}</td>
+                    <td className={`py-4 px-4 font-bold ${lucro >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{formatCurrency(lucro)}</td>
+                    <td className="py-4 px-4 font-medium">
+                      <span className={cn(
+                        "px-2 py-1 rounded text-[10px] font-black",
+                        margem > 30 ? "bg-emerald-100 text-emerald-800" : margem > 0 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"
+                      )}>
+                        {margem.toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider text-muted-foreground opacity-60">
+                         <div className={`w-1.5 h-1.5 rounded-full ${m.receitas > 0 ? 'bg-gold' : 'bg-slate-300'}`} /> {m.receitas > 0 ? 'Auditado' : 'Sem Dados'}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -183,5 +292,7 @@ const Dashboard = () => {
     </div>
   );
 };
+
+export default Dashboard;
 
 export default Dashboard;

@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     title: '',
@@ -95,6 +96,12 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
       }
 
       toast({ title: 'Sucesso', description: 'Evento salvo com sucesso!', style: { backgroundColor: '#DAA520', color: '#000' } });
+      
+      // Sync Dashboard Data
+      queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      
       onSaved();
       onOpenChange(false);
     } catch (error: any) {
