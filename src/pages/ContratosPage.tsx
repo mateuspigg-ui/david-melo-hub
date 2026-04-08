@@ -356,7 +356,16 @@ export default function ContratosPage() {
                 <h3 className="text-xl font-display uppercase tracking-tight">Visualização do Contrato</h3>
                 <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mt-1">Conferência David Melo Hub</p>
               </div>
-              <Button variant="ghost" onClick={() => setIsPreviewOpen(false)} className="text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest">Fechar</Button>
+              <div className="flex gap-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => previewUrl && handleDownload(previewUrl, 'contrato')}
+                  className="text-white border-white/20 hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest h-10 px-6"
+                >
+                  <Download size={14} className="mr-2" /> Baixar PDF
+                </Button>
+                <Button variant="ghost" onClick={() => setIsPreviewOpen(false)} className="text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest h-10">Fechar</Button>
+              </div>
             </div>
             <div className="flex-1 bg-slate-950 p-4 relative">
               {previewUrl && (
