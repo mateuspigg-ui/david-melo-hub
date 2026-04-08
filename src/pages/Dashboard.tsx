@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { format, startOfYear, startOfMonth, endOfMonth } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const GOLD_COLORS = ['#C5A059', '#B89451', '#D4AF37', '#997F3D', '#E5C185'];
 
@@ -292,7 +293,5 @@ const Dashboard = () => {
     </div>
   );
 };
-
-export default Dashboard;
 
 export default Dashboard;
