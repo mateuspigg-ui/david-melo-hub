@@ -137,76 +137,81 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-dark border-border/30 max-w-2xl text-foreground font-body">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-display text-gold flex items-center gap-2">
-            <Upload className="w-5 h-5" /> Importar Extrato CSV
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="bg-background border-border/40 max-w-2xl text-foreground font-body rounded-2xl p-0 overflow-hidden shadow-2xl">
+        <div className="bg-gradient-gold p-6 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-display text-white flex items-center gap-2">
+              <Upload className="w-6 h-6" /> Importar Extrato CSV
+            </DialogTitle>
+            <p className="text-white/80 text-sm mt-1">Carregue seu extrato bancário para realizar o matching inteligente.</p>
+          </DialogHeader>
+        </div>
 
-        <div className="space-y-6 py-4">
+        <div className="p-8 space-y-6">
           {!file ? (
-            <div className="border-2 border-dashed border-border/30 rounded-2xl p-12 text-center hover:border-gold/50 transition-all cursor-pointer relative">
+            <div className="border-3 border-dashed border-border/60 rounded-2xl p-16 text-center hover:border-gold/50 transition-all cursor-pointer relative bg-secondary/10 group">
               <input 
                 type="file" 
                 accept=".csv" 
                 onChange={handleFileChange} 
-                className="absolute inset-0 opacity-0 cursor-pointer" 
+                className="absolute inset-0 opacity-0 cursor-pointer z-10" 
               />
-              <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-sm text-foreground/80 font-medium">Clique ou arraste o arquivo CSV aqui</p>
-              <p className="text-xs text-muted-foreground mt-1">O sistema detectará as colunas automaticamente</p>
+              <div className="relative z-0 group-hover:scale-105 transition-transform duration-300">
+                <FileText className="w-16 h-16 text-gold/30 mx-auto mb-4 group-hover:text-gold/50" />
+                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste o arquivo CSV</p>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">O David Melo Hub detectará as colunas automaticamente</p>
+              </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-dark-surface rounded-xl border border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gold/10 rounded-full flex items-center justify-center text-gold">
-                    <CheckCircle2 size={18} />
+            <div className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-xl border border-border/40">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gold/10 rounded-xl flex items-center justify-center text-gold">
+                    <CheckCircle2 size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
+                    <p className="text-sm font-bold text-foreground">{file.name}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{(file.size / 1024).toFixed(1)} KB • Pronto para importar</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => { setFile(null); setPreview([]); }} className="text-xs text-destructive hover:text-white">Remover</Button>
+                <Button variant="ghost" size="sm" onClick={() => { setFile(null); setPreview([]); }} className="text-xs font-bold text-destructive hover:bg-destructive/10">Trocar Arquivo</Button>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs uppercase text-gold/60 font-semibold tracking-wider">Mapeamento Detectado</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-2 bg-white/5 rounded-lg border border-border/10">
-                    <p className="text-[10px] text-muted-foreground uppercase">Coluna Data</p>
-                    <p className="text-xs font-medium truncate">{columns.date}</p>
+              <div className="space-y-3">
+                <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Inteligência de Mapeamento</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Data</p>
+                    <p className="text-xs font-bold text-foreground truncate">{columns.date}</p>
                   </div>
-                  <div className="p-2 bg-white/5 rounded-lg border border-border/10">
-                    <p className="text-[10px] text-muted-foreground uppercase">Coluna Valor</p>
-                    <p className="text-xs font-medium truncate">{columns.amount}</p>
+                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Valor</p>
+                    <p className="text-xs font-bold text-foreground truncate">{columns.amount}</p>
                   </div>
-                  <div className="p-2 bg-white/5 rounded-lg border border-border/10">
-                    <p className="text-[10px] text-muted-foreground uppercase">Coluna Descrição</p>
-                    <p className="text-xs font-medium truncate">{columns.description}</p>
+                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Descrição</p>
+                    <p className="text-xs font-bold text-foreground truncate">{columns.description}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs uppercase text-gold/60 font-semibold tracking-wider">Prévia dos Dados</Label>
-                <div className="rounded-xl border border-border/20 overflow-hidden bg-dark-surface">
-                  <table className="w-full text-[11px] text-left">
-                    <thead className="bg-white/5 font-semibold text-muted-foreground">
+              <div className="space-y-3">
+                <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Prévia dos Registros</Label>
+                <div className="rounded-xl border border-border/40 overflow-hidden bg-white shadow-sm">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-secondary/50 font-bold text-muted-foreground border-b border-border/40">
                       <tr>
-                        <th className="px-3 py-2">Data</th>
-                        <th className="px-3 py-2">Descrição</th>
-                        <th className="px-3 py-2 text-right">Valor</th>
+                        <th className="px-4 py-3 uppercase tracking-wider">Data</th>
+                        <th className="px-4 py-3 uppercase tracking-wider">Descrição</th>
+                        <th className="px-4 py-3 text-right uppercase tracking-wider">Valor</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-border/20">
                       {preview.map((row, idx) => (
-                        <tr key={idx} className="border-t border-border/10">
-                          <td className="px-3 py-2">{row[columns.date]}</td>
-                          <td className="px-3 py-2 truncate max-w-[150px]">{row[columns.description]}</td>
-                          <td className="px-3 py-2 text-right font-medium">{row[columns.amount]}</td>
+                        <tr key={idx} className="hover:bg-secondary/10 transition-colors">
+                          <td className="px-4 py-3 text-foreground font-medium">{row[columns.date]}</td>
+                          <td className="px-4 py-3 text-foreground truncate max-w-[200px]">{row[columns.description]}</td>
+                          <td className="px-4 py-3 text-right font-bold text-foreground">{row[columns.amount]}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -217,17 +222,17 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-border/40 bg-dark-surface hover:bg-dark-surface/80">Cancelar</Button>
+        <div className="p-6 bg-secondary/10 border-t border-border/20 flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground font-bold uppercase text-[11px] tracking-widest">Cancelar</Button>
           <Button 
             onClick={handleImport} 
             disabled={loading || !file} 
-            className="bg-gold hover:bg-gold-light text-dark font-medium min-w-[120px]"
+            className="bg-gold hover:bg-gold-light text-white font-bold min-w-[160px] h-11 rounded-lg shadow-sm uppercase text-[11px] tracking-widest"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            Importar {preview.length > 0 ? 'tudo' : ''}
+            Processar Importação
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

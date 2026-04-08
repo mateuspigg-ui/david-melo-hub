@@ -111,18 +111,21 @@ const ClientesPage = () => {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-display text-foreground">Meus Clientes</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {clients.length} cliente{clients.length !== 1 ? 's' : ''} cadastrado{clients.length !== 1 ? 's' : ''}
+          <h1 className="text-3xl font-display text-foreground tracking-tight flex items-center gap-3">
+            <User className="h-8 w-8 text-gold" />
+            Meus Clientes
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1 font-body font-medium">
+            {clients.length} registro{clients.length !== 1 ? 's' : ''} {clients.length !== 1 ? 'ativos' : 'ativo'} na base David Melo
           </p>
         </div>
         <Button
           onClick={() => { setForm(emptyForm); setEditingClient(null); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-90 text-primary-foreground shadow-gold"
+          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
         >
           <Plus size={18} className="mr-2" /> Novo Cliente
         </Button>
@@ -130,82 +133,93 @@ const ClientesPage = () => {
 
       {/* Search */}
       <div className="relative max-w-md">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome, email ou telefone..."
-          className="pl-10 bg-card border-border/50"
+          className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl shadow-sm"
         />
       </div>
 
       {/* Cards Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-card rounded-xl p-6 border border-border/50 animate-pulse h-48" />
+            <div key={i} className="bg-card premium-shadow rounded-2xl p-6 border border-border/40 animate-pulse h-52" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-card rounded-xl p-12 border border-border/50 text-center">
-          <User size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-          <p className="text-muted-foreground">
+        <div className="bg-card premium-shadow rounded-2xl p-20 border border-border/40 text-center flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+            <User size={32} className="text-muted-foreground/30" />
+          </div>
+          <p className="text-foreground font-bold text-lg mb-1">
             {search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
           </p>
+          <p className="text-sm text-muted-foreground/60 mb-6 font-medium">
+            {search ? 'Tente outros termos de busca.' : 'Comece cadastrando seu primeiro cliente VIP.'}
+          </p>
           {!search && (
-            <p className="text-xs text-muted-foreground/60 mt-1">
-              Clique em "Novo Cliente" para começar
-            </p>
+            <Button variant="outline" onClick={() => setDialogOpen(true)} className="border-gold text-gold hover:bg-gold/5 font-bold uppercase text-[10px] tracking-widest">
+              Cadastrar Agora
+            </Button>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => (
             <div
               key={c.id}
-              className="bg-card rounded-xl p-5 border border-border/50 hover:shadow-gold transition-all duration-300 group"
+              className="bg-card premium-shadow rounded-2xl p-6 border border-border/40 hover:border-gold/30 hover:-translate-y-1 transition-all duration-300 group"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-semibold text-primary">
+              <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center shrink-0 border border-gold/10 group-hover:bg-gold group-hover:text-white transition-all duration-300">
+                    <span className="text-sm font-bold uppercase tracking-tighter">
                       {c.first_name[0]}{c.last_name?.[0] || ''}
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <p className="font-medium text-foreground truncate">
+                    <p className="font-bold text-foreground truncate text-base tracking-tight leading-tight">
                       {c.first_name} {c.last_name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1 opacity-60">
+                      Entrada: {new Date(c.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-primary transition-colors">
-                    <Pencil size={14} />
+                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => openEdit(c)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all">
+                    <Pencil size={16} />
                   </button>
-                  <button onClick={() => setDeleteId(c.id)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                    <Trash2 size={14} />
+                  <button onClick={() => setDeleteId(c.id)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3">
                 {c.phone && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone size={14} className="text-primary/60 shrink-0" />
+                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
+                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
+                      <Phone size={14} className="text-gold/60" />
+                    </div>
                     <span className="truncate">{c.phone}</span>
                   </div>
                 )}
                 {c.email && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail size={14} className="text-primary/60 shrink-0" />
+                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
+                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
+                      <Mail size={14} className="text-gold/60" />
+                    </div>
                     <span className="truncate">{c.email}</span>
                   </div>
                 )}
                 {c.instagram && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Instagram size={14} className="text-primary/60 shrink-0" />
+                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
+                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
+                      <Instagram size={14} className="text-gold/60" />
+                    </div>
                     <span className="truncate">{c.instagram}</span>
                   </div>
                 )}
@@ -217,94 +231,102 @@ const ClientesPage = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) closeDialog(); }}>
-        <DialogContent className="bg-card border-border/50 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-foreground">
-              {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-md p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden">
+          <div className="bg-gradient-gold p-8 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-display text-white">
+                {editingClient ? 'Ajustar Cadastro' : 'Novo Cliente David Melo'}
+              </DialogTitle>
+              <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Preencha os dados do cliente VIP abaixo.</p>
+            </DialogHeader>
+          </div>
           <form
             onSubmit={(e) => { e.preventDefault(); upsert.mutate(); }}
-            className="space-y-4"
+            className="p-8 space-y-6"
           >
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Nome *</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
                 <Input
                   required
                   value={form.first_name}
                   onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  className="bg-background border-border/50"
+                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Sobrenome</Label>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
                 <Input
                   value={form.last_name}
                   onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  className="bg-background border-border/50"
+                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Telefone</Label>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Telefone Principal</Label>
               <Input
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="bg-background border-border/50"
+                className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
                 placeholder="(00) 00000-0000"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Email</Label>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">E-mail Corporativo</Label>
               <Input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="bg-background border-border/50"
+                className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Instagram</Label>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Perfil Instagram</Label>
               <Input
                 value={form.instagram}
                 onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-                className="bg-background border-border/50"
-                placeholder="@usuario"
+                className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11"
+                placeholder="@usuario_premium"
               />
             </div>
-            <DialogFooter className="gap-2">
+            <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
               <DialogClose asChild>
-                <Button type="button" variant="outline" className="border-border/50">Cancelar</Button>
+                <Button type="button" variant="ghost" className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
               </DialogClose>
               <Button
                 type="submit"
                 disabled={upsert.isPending}
-                className="bg-gradient-gold hover:opacity-90 text-primary-foreground"
+                className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
               >
-                {upsert.isPending ? 'Salvando...' : 'Salvar'}
+                {upsert.isPending ? 'Salvando...' : editingClient ? 'Confirmar Ajustes' : 'Registrar Cliente'}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
-        <AlertDialogContent className="bg-card border-border/50">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">Remover cliente?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="border-border/50">Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteId && remove.mutate(deleteId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remover
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className="bg-background border-border/40 rounded-2xl shadow-2xl p-0 overflow-hidden max-w-sm">
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="text-destructive h-8 w-8" />
+            </div>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-foreground text-center font-display text-xl">Remover cliente?</AlertDialogTitle>
+              <AlertDialogDescription className="text-center font-medium mt-2">Esta operação é permanente e removerá todos os dados históricos deste cliente.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="flex flex-col gap-2 mt-8">
+              <AlertDialogAction
+                onClick={() => deleteId && remove.mutate(deleteId)}
+                className="bg-destructive text-white hover:bg-destructive/90 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest"
+              >
+                Confirmar Exclusão
+              </AlertDialogAction>
+              <AlertDialogCancel className="border-none hover:bg-secondary/50 rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest text-muted-foreground">Voltar</AlertDialogCancel>
+            </div>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>

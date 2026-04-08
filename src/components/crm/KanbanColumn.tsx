@@ -15,30 +15,33 @@ export default function KanbanColumn({ stage, leads, onCardClick }: Props) {
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[270px] flex-1 rounded-xl border transition-colors ${
-        isOver ? 'border-gold/60 bg-gold/5' : 'border-border/30 bg-card/30'
+      className={`min-w-[300px] flex-1 rounded-2xl border transition-all duration-300 ${
+        isOver 
+          ? 'border-gold bg-gold/5 shadow-lg shadow-gold/10' 
+          : 'border-border/40 bg-secondary/10'
       }`}
     >
-      <div className="p-3 border-b border-border/20">
+      <div className="p-4 border-b border-border/20 bg-white/40 backdrop-blur-sm rounded-t-2xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-            <span className="text-sm font-medium text-foreground">{stage.label}</span>
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
+            <span className="text-xs font-bold text-foreground uppercase tracking-widest">{stage.label}</span>
           </div>
-          <span className="text-xs text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-bold text-gold bg-gold/10 px-2.5 py-1 rounded-full border border-gold/10">
             {leads.length}
           </span>
         </div>
       </div>
-      <div className="p-2 space-y-2 min-h-[120px] max-h-[calc(100vh-320px)] overflow-y-auto">
+      <div className="p-3 space-y-3 min-h-[120px] max-h-[calc(100vh-350px)] overflow-y-auto no-scrollbar">
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <LeadCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} />
           ))}
         </SortableContext>
         {leads.length === 0 && (
-          <div className="text-center py-8 text-xs text-muted-foreground/50">
-            Nenhum lead
+          <div className="text-center py-12 flex flex-col items-center justify-center opacity-30 grayscale">
+            <div className="w-8 h-8 rounded-full border-2 border-dashed border-foreground/30 mb-2" />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground">Vazio</p>
           </div>
         )}
       </div>

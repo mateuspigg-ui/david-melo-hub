@@ -143,32 +143,40 @@ export default function CRMPage() {
   const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-display text-foreground">Gestão de Clientes</h1>
-          <p className="text-sm text-muted-foreground mt-1">Pipeline comercial com Kanban</p>
+          <h1 className="text-3xl font-display text-foreground tracking-tight">Gestão Comercial</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-body">Pipeline estratégico de leads e oportunidades</p>
         </div>
-        <Button onClick={() => { setEditingLead(null); setIsFormOpen(true); }} className="bg-gold hover:bg-gold-dark text-dark font-medium">
-          <Plus className="w-4 h-4 mr-1" /> Novo Lead
+        <Button 
+          onClick={() => { setEditingLead(null); setIsFormOpen(true); }} 
+          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-6 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
+        >
+          <Plus className="w-5 h-5 mr-2" /> Novo Lead
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar por título, cliente ou local..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border/50" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar por título, cliente ou local..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl" 
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <Filter className="w-4 h-4 text-gold" />
           <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[160px] bg-card border-border/50">
+            <SelectTrigger className="w-[180px] bg-secondary/30 border-border/40 h-11 rounded-xl focus:ring-gold font-medium">
               <SelectValue placeholder="Tipo de evento" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
+            <SelectContent className="bg-white border-border/40 rounded-xl shadow-2xl">
+              <SelectItem value="all" className="font-medium text-xs">Todos os tipos</SelectItem>
               {EVENT_TYPES.map(t => (
-                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                <SelectItem key={t.value} value={t.value} className="font-medium text-xs font-bold">{t.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>

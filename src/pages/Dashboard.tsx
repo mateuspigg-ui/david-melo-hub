@@ -25,25 +25,25 @@ const monthlyData = Array.from({ length: 12 }, (_, i) => ({
 
 const Dashboard = () => {
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
       <div>
-        <h1 className="text-2xl font-display text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-1">Visão geral do seu negócio</p>
+        <h1 className="text-3xl font-display text-foreground tracking-tight">Dashboard Executivo</h1>
+        <p className="text-sm text-muted-foreground mt-1 font-body">Visão geral consolidada do seu negócio em tempo real</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <div key={kpi.label} className="bg-card rounded-xl p-6 border border-border/50 shadow-sm hover:shadow-gold transition-shadow">
+            <div key={kpi.label} className="bg-card premium-shadow rounded-2xl p-6 border border-border/40 hover:border-gold/30 transition-all group">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
-                  <p className="text-2xl font-semibold text-foreground mt-1">{kpi.value}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em]">{kpi.label}</p>
+                  <p className="text-3xl font-bold text-foreground mt-2 tracking-tight">{kpi.value}</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Icon size={20} className={kpi.color} />
+                <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center group-hover:bg-gold group-hover:text-white transition-all duration-300">
+                  <Icon size={24} className={kpi.color} />
                 </div>
               </div>
             </div>
@@ -52,73 +52,95 @@ const Dashboard = () => {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-card rounded-xl p-6 border border-border/50">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Vendas Semanais</h3>
-          <ResponsiveContainer width="100%" height={250}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40">
+          <h3 className="text-lg font-display text-foreground mb-6">Volume de Vendas Semanais</h3>
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart data={monthlyData.slice(0, 4)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 20%)" />
-              <XAxis dataKey="month" stroke="hsl(40 10% 60%)" fontSize={12} />
-              <YAxis stroke="hsl(40 10% 60%)" fontSize={12} />
-              <Tooltip contentStyle={{ background: 'hsl(0 0% 13%)', border: '1px solid hsl(0 0% 20%)', borderRadius: '8px', color: '#e5e2d9' }} />
-              <Bar dataKey="receitas" fill="#b89451" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <XAxis dataKey="month" stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                itemStyle={{ fontSize: '12px', color: '#DAA520', fontWeight: 'bold' }}
+              />
+              <Bar dataKey="receitas" fill="#DAA520" radius={[6, 6, 0, 0]} barSize={40} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-card rounded-xl p-6 border border-border/50">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Pipeline CRM</h3>
-          <ResponsiveContainer width="100%" height={250}>
+        <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40">
+          <h3 className="text-lg font-display text-foreground mb-6">Eficiência do Pipeline CRM</h3>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={pipelineData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" label={({ name }) => name}>
+              <Pie 
+                data={pipelineData} 
+                cx="50%" 
+                cy="50%" 
+                innerRadius={70} 
+                outerRadius={100} 
+                dataKey="value" 
+                paddingAngle={5}
+                label={({ name }) => name}
+              >
                 {pipelineData.map((_, idx) => (
-                  <Cell key={idx} fill={GOLD_COLORS[idx % GOLD_COLORS.length]} />
+                  <Cell key={idx} fill={GOLD_COLORS[idx % GOLD_COLORS.length]} stroke="rgba(255,255,255,0.5)" strokeWidth={2} />
                 ))}
               </Pie>
-              <Tooltip contentStyle={{ background: 'hsl(0 0% 13%)', border: '1px solid hsl(0 0% 20%)', borderRadius: '8px', color: '#e5e2d9' }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Monthly Sales */}
-      <div className="bg-card rounded-xl p-6 border border-border/50">
-        <h3 className="text-sm font-semibold text-foreground mb-4">Vendas Mensais</h3>
-        <ResponsiveContainer width="100%" height={300}>
+      <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40">
+        <h3 className="text-lg font-display text-foreground mb-6">Fluxo de Caixa Mensal</h3>
+        <ResponsiveContainer width="100%" height={350}>
           <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 20%)" />
-            <XAxis dataKey="month" stroke="hsl(40 10% 60%)" fontSize={12} />
-            <YAxis stroke="hsl(40 10% 60%)" fontSize={12} />
-            <Tooltip contentStyle={{ background: 'hsl(0 0% 13%)', border: '1px solid hsl(0 0% 20%)', borderRadius: '8px', color: '#e5e2d9' }} />
-            <Legend />
-            <Line type="monotone" dataKey="receitas" stroke="#b89451" strokeWidth={2} dot={false} name="Receitas" />
-            <Line type="monotone" dataKey="despesas" stroke="#a6855a" strokeWidth={2} dot={false} name="Despesas" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+            <XAxis dataKey="month" stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="#a0a0a0" fontSize={11} tickLine={false} axisLine={false} />
+            <Tooltip 
+              contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+            />
+            <Legend verticalAlign="top" height={36} iconType="circle" />
+            <Line type="monotone" dataKey="receitas" stroke="#DAA520" strokeWidth={3} dot={{ r: 4, fill: '#DAA520', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} name="Receitas" />
+            <Line type="monotone" dataKey="despesas" stroke="#cbd5e1" strokeWidth={3} dot={{ r: 4, fill: '#cbd5e1', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} name="Despesas" />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {/* DRE Table */}
-      <div className="bg-card rounded-xl p-6 border border-border/50">
-        <h3 className="text-sm font-semibold text-foreground mb-4">DRE - Resultado Mensal</h3>
-        <div className="overflow-x-auto">
+      <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40 overflow-hidden">
+        <h3 className="text-lg font-display text-foreground mb-6">DRE Informativo - Resultados Consolidados</h3>
+        <div className="overflow-x-auto -mx-8 px-8">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/50">
-                {['Mês', 'Eventos', 'Receita', 'Despesas', 'Lucro', 'Margem %', 'A Receber'].map(h => (
-                  <th key={h} className="text-left py-3 px-4 text-muted-foreground font-medium text-xs uppercase tracking-wider">{h}</th>
+              <tr className="border-b border-border/40">
+                {['Mês', 'Eventos', 'Receita', 'Despesas', 'Lucro Real', 'Margem', 'Status'].map(h => (
+                  <th key={h} className="text-left py-4 px-4 text-muted-foreground font-bold text-[10px] uppercase tracking-[0.2em]">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/20">
               {monthlyData.map((m) => (
-                <tr key={m.month} className="border-b border-border/30 hover:bg-muted/30 transition-colors">
-                  <td className="py-3 px-4 text-foreground">{m.month}</td>
-                  <td className="py-3 px-4 text-foreground">0</td>
-                  <td className="py-3 px-4 text-success">R$ 0</td>
-                  <td className="py-3 px-4 text-destructive">R$ 0</td>
-                  <td className="py-3 px-4 text-foreground">R$ 0</td>
-                  <td className="py-3 px-4 text-foreground">0%</td>
-                  <td className="py-3 px-4 text-warning">R$ 0</td>
+                <tr key={m.month} className="hover:bg-secondary/20 transition-colors">
+                  <td className="py-4 px-4 text-foreground font-bold">{m.month}</td>
+                  <td className="py-4 px-4 text-foreground font-medium">0</td>
+                  <td className="py-4 px-4 text-success font-bold">R$ 0,00</td>
+                  <td className="py-4 px-4 text-destructive font-bold">R$ 0,00</td>
+                  <td className="py-4 px-4 text-foreground font-bold">R$ 0,00</td>
+                  <td className="py-4 px-4 font-medium">
+                    <span className="bg-secondary/50 px-2 py-1 rounded text-[10px] font-bold">0%</span>
+                  </td>
+                  <td className="py-4 px-4 text-warning">
+                    <div className="flex items-center gap-1.5 font-bold text-[10px] uppercase tracking-wider">
+                       <Clock size={12} /> Auditando
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

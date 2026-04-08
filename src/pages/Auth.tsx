@@ -42,32 +42,29 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-dark p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex flex-col items-center space-y-4">
           <img src={logo} alt="David Melo" className="h-40 w-auto" />
           <div className="text-center">
-            <h1 className="text-2xl font-display text-gold tracking-wider">
+            <h1 className="text-3xl font-display text-gold tracking-tight">
               Gestão Integrada
             </h1>
-            <p className="text-sm text-muted-foreground mt-1 font-body">
-              Produções e Eventos
-            </p>
           </div>
         </div>
 
-        <div className="glass-card rounded-xl p-8 bg-dark-card border-border/30">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="glass-card premium-shadow rounded-2xl p-10 bg-white border-border/40">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-foreground/80 text-sm">
+                <Label htmlFor="fullName" className="text-foreground/80 text-sm font-medium">
                   Nome completo
                 </Label>
                 <Input
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="bg-dark-surface border-border/40 focus:border-gold text-foreground"
+                  className="bg-secondary/50 border-border/40 focus:border-gold text-foreground"
                   placeholder="Seu nome completo"
                   required
                 />
@@ -75,7 +72,7 @@ const Auth = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground/80 text-sm">
+              <Label htmlFor="email" className="text-foreground/80 text-sm font-medium">
                 Email
               </Label>
               <Input
@@ -83,14 +80,14 @@ const Auth = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-dark-surface border-border/40 focus:border-gold text-foreground"
+                className="bg-secondary/50 border-border/40 focus:border-gold text-foreground"
                 placeholder="seu@email.com"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground/80 text-sm">
+              <Label htmlFor="password" title="passwordLabel" className="text-foreground/80 text-sm font-medium">
                 Senha
               </Label>
               <div className="relative">
@@ -99,7 +96,7 @@ const Auth = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-dark-surface border-border/40 focus:border-gold text-foreground pr-10"
+                  className="bg-secondary/50 border-border/40 focus:border-gold text-foreground pr-10"
                   placeholder="••••••••"
                   required
                   minLength={6}

@@ -186,101 +186,129 @@ export default function PagamentosPage() {
   });
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-display text-foreground">Pagamentos</h1>
-          <p className="text-sm text-muted-foreground mt-1">Controle de pagamentos e parcelas</p>
+          <h1 className="text-3xl font-display text-foreground tracking-tight flex items-center gap-3">
+            <DollarSign className="h-8 w-8 text-gold" />
+            Gestão de Recebíveis
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1 font-body font-medium">Controle estratégico de contratos e parcelas</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gold hover:bg-gold-light text-dark font-medium">
-          <Plus className="w-4 h-4 mr-2" /> Novo Pagamento
+        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
+          <Plus className="w-4 h-4 mr-2" /> Novo Contrato
         </Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar por cliente ou evento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-card border-border/50" />
+      <div className="relative max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input 
+          placeholder="Buscar por cliente ou evento..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl shadow-sm" 
+        />
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-card rounded-xl animate-pulse border border-border/50" />
+            <div key={i} className="h-24 bg-white rounded-2xl animate-pulse border border-border/40 premium-shadow" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-card rounded-xl p-12 border border-border/50 text-center">
-          <DollarSign className="w-10 h-10 mx-auto text-gold/40 mb-2" />
-          <p className="text-muted-foreground">Nenhum pagamento encontrado</p>
+        <div className="bg-white premium-shadow rounded-2xl p-20 border border-border/40 text-center flex flex-col items-center justify-center">
+          <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+            <DollarSign className="w-8 h-8 text-muted-foreground/30" />
+          </div>
+          <p className="text-foreground font-bold text-lg">Nenhum contrato encontrado</p>
+          <p className="text-sm text-muted-foreground/60 mt-1 font-medium">Sua base de contratos ativos está vazia no momento.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filtered.map((p) => {
             const expanded = expandedId === p.id;
             return (
-              <div key={p.id} className="bg-card rounded-xl border border-border/50 overflow-hidden transition-all">
+              <div key={p.id} className="bg-white rounded-2xl border border-border/40 premium-shadow overflow-hidden transition-all duration-300">
                 <div
-                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                  className="flex items-center justify-between p-6 cursor-pointer hover:bg-secondary/20 transition-colors"
                   onClick={() => setExpandedId(expanded ? null : p.id)}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-gold/10 flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-gold" />
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center shadow-sm">
+                      <DollarSign className="w-6 h-6 text-gold" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">
-                        {p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Sem cliente"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.events?.title || "Sem evento"} · {p.installment_count} parcela(s)
-                      </p>
+                      <h4 className="font-bold text-foreground text-base tracking-tight leading-tight uppercase">
+                        {p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Sem cliente vinculado"}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <p className="text-[10px] font-bold text-gold uppercase tracking-wider">
+                          {p.events?.title || "Evento s/ Título"}
+                        </p>
+                        <span className="text-muted-foreground/30 text-[10px]">•</span>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-60">
+                          {p.installment_count} parcela{p.installment_count !== 1 ? 's' : ''} programada{p.installment_count !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  
+                  <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <p className="font-display text-gold text-lg">{currencyFmt(p.total_event_value)}</p>
+                      <p className="font-display text-foreground text-xl tracking-tighter">{currencyFmt(p.total_event_value)}</p>
                       {p.has_entry_payment && p.entry_amount && (
-                        <p className="text-xs text-muted-foreground">Entrada: {currencyFmt(p.entry_amount)}</p>
+                        <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Entrada: {currencyFmt(p.entry_amount)}</p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(p.id); }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                    {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
+                        onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(p.id); }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${expanded ? 'bg-gold/10 text-gold' : 'bg-secondary/50 text-muted-foreground'}`}>
+                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {expanded && (
-                  <div className="border-t border-border/50 p-4 space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Parcelas</p>
-                    {installments.map((inst) => (
-                      <div key={inst.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm font-medium">Parcela {inst.installment_number}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Vence em {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}
-                            </p>
+                  <div className="bg-secondary/10 border-t border-border/20 p-6 space-y-3 shadow-inner">
+                    <div className="flex items-center justify-between mb-2">
+                       <h5 className="text-[10px] font-bold text-foreground/50 uppercase tracking-[0.2em]">Cronograma de Liquidação</h5>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                      {installments.map((inst) => (
+                        <div key={inst.id} className="flex items-center justify-between p-4 rounded-xl bg-white border border-border/20 shadow-sm transition-all hover:border-gold/30">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-secondary/30 flex items-center justify-center">
+                              <Calendar className="w-4 h-4 text-muted-foreground/60" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-foreground uppercase tracking-tight">Parcela {inst.installment_number.toString().padStart(2, '0')}</p>
+                              <p className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${inst.status === 'paid' ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                                {format(new Date(inst.due_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="font-bold text-sm tracking-tighter">{currencyFmt(inst.amount)}</span>
+                            {inst.status === "paid" ? (
+                              <Badge className="bg-emerald-500 text-white border-none font-bold uppercase text-[8px] tracking-widest px-2.5 py-0.5">Auditado</Badge>
+                            ) : (
+                              <Button size="sm" variant="outline" className="h-8 border-gold/30 text-gold hover:bg-gold text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all" onClick={() => markPaidMutation.mutate(inst.id)}>
+                                Baixar / OK
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">{currencyFmt(inst.amount)}</span>
-                          {inst.status === "paid" ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border-0">Pago</Badge>
-                          ) : (
-                            <Button size="sm" variant="outline" className="text-xs border-gold/30 text-gold hover:bg-gold/10" onClick={() => markPaidMutation.mutate(inst.id)}>
-                              Marcar pago
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -291,64 +319,100 @@ export default function PagamentosPage() {
 
       {/* Create dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-card border-border/50 max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-foreground">Novo Pagamento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Valor total do evento</Label>
-              <Input type="number" placeholder="0,00" value={form.total_event_value} onChange={(e) => setForm({ ...form, total_event_value: e.target.value })} className="bg-muted/30 border-border/50" />
+        <DialogContent className="max-w-md p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body">
+          <div className="bg-gradient-gold p-8 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-display text-white">Novo Contrato Comercial</DialogTitle>
+              <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Defina o cronograma financeiro deste evento.</p>
+            </DialogHeader>
+          </div>
+          <div className="p-8 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Total VIP *</Label>
+                <Input 
+                  type="number" 
+                  placeholder="0,00" 
+                  value={form.total_event_value} 
+                  onChange={(e) => setForm({ ...form, total_event_value: e.target.value })} 
+                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11 font-bold text-gold" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Parcelas Máx.</Label>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  value={form.installment_count} 
+                  onChange={(e) => setForm({ ...form, installment_count: e.target.value })} 
+                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11 font-medium" 
+                />
+              </div>
             </div>
-            <div>
-              <Label>Número de parcelas</Label>
-              <Input type="number" min="1" value={form.installment_count} onChange={(e) => setForm({ ...form, installment_count: e.target.value })} className="bg-muted/30 border-border/50" />
-            </div>
-            <div className="flex items-center gap-3">
+
+            <div className="flex items-center gap-3 p-4 bg-secondary/20 rounded-xl border border-border/10">
               <Switch checked={form.has_entry_payment} onCheckedChange={(v) => setForm({ ...form, has_entry_payment: v })} />
-              <Label>Pagamento de entrada</Label>
+              <Label className="text-xs font-bold text-foreground">Haverá Pagamento de Entrada?</Label>
             </div>
+
             {form.has_entry_payment && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Valor da entrada</Label>
-                  <Input type="number" value={form.entry_amount} onChange={(e) => setForm({ ...form, entry_amount: e.target.value })} className="bg-muted/30 border-border/50" />
+              <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 p-4 bg-secondary/10 rounded-xl border border-border/10">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Entrada</Label>
+                  <Input 
+                    type="number" 
+                    value={form.entry_amount} 
+                    onChange={(e) => setForm({ ...form, entry_amount: e.target.value })} 
+                    className="bg-background border-border/40 h-10 text-xs font-bold" 
+                  />
                 </div>
-                <div>
-                  <Label>Data da entrada</Label>
-                  <Input type="date" value={form.entry_date} onChange={(e) => setForm({ ...form, entry_date: e.target.value })} className="bg-muted/30 border-border/50" />
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Data Entrada</Label>
+                  <Input 
+                    type="date" 
+                    value={form.entry_date} 
+                    onChange={(e) => setForm({ ...form, entry_date: e.target.value })} 
+                    className="bg-background border-border/40 h-10 text-xs" 
+                  />
                 </div>
               </div>
             )}
-            <div>
-              <Label>Cliente</Label>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Titular do Contrato</Label>
               <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-                <SelectTrigger className="bg-muted/30 border-border/50"><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
+                  <SelectValue placeholder="Selecionar cliente VIP" />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-2xl border-border/40">
                   {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
+                    <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.first_name} {c.last_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Evento</Label>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Evento Relacionado</Label>
               <Select value={form.event_id} onValueChange={(v) => setForm({ ...form, event_id: v })}>
-                <SelectTrigger className="bg-muted/30 border-border/50"><SelectValue placeholder="Selecionar evento" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
+                  <SelectValue placeholder="Vincular evento ativo" />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-2xl border-border/40">
                   {events.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>
+                    <SelectItem key={e.id} value={e.id} className="font-bold text-xs uppercase">{e.title}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+              <Button onClick={() => createMutation.mutate()} disabled={!form.total_event_value} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest transition-all">
+                Gerar Contrato
+              </Button>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createMutation.mutate()} disabled={!form.total_event_value} className="bg-gold hover:bg-gold-light text-dark">
-              Criar Pagamento
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

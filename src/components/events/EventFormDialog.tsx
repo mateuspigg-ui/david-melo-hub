@@ -107,141 +107,147 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
 
   return (
     <Dialog open={open} onOpenChange={(open) => { if (!open && !loading) onOpenChange(false); }}>
-      <DialogContent className="bg-dark border-border/30 max-w-2xl text-foreground font-body max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-display text-gold">
-            {event ? 'Editar Evento' : 'Novo Evento'}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-          <div className="space-y-2 md:col-span-2">
-            <Label>Título do Evento *</Label>
-            <Input 
-              value={form.title} 
-              onChange={e => handleChange('title', e.target.value)} 
-              className="bg-dark-surface border-border/40 focus:border-gold"
-              placeholder="Ex: Cerimônia de Casamento"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Tipo de Evento</Label>
-            <select 
-              value={form.event_type}
-              onChange={e => handleChange('event_type', e.target.value)}
-              className="flex h-10 w-full rounded-md bg-dark-surface border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none"
-            >
-              <option value="Casamento">Casamento</option>
-              <option value="Formatura">Formatura</option>
-              <option value="15 Anos">15 Anos / Debutante</option>
-              <option value="Corporativo">Corporativo</option>
-              <option value="Aniversário">Aniversário</option>
-              <option value="Outro">Outro</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Status Financeiro</Label>
-            <select 
-              value={form.payment_status}
-              onChange={e => handleChange('payment_status', e.target.value)}
-              className="flex h-10 w-full rounded-md bg-dark-surface border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none"
-            >
-              <option value="pending">Pendente (Não Pago)</option>
-              <option value="partial">Parcialmente Pago</option>
-              <option value="paid">Totalmente Pago</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Data do Evento</Label>
-            <Input 
-              type="date"
-              value={form.event_date} 
-              onChange={e => handleChange('event_date', e.target.value)} 
-              className="bg-dark-surface border-border/40 focus:border-gold dark:[color-scheme:dark]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Hora do Evento</Label>
-            <Input 
-              type="time"
-              value={form.event_time} 
-              onChange={e => handleChange('event_time', e.target.value)} 
-              className="bg-dark-surface border-border/40 focus:border-gold dark:[color-scheme:dark]"
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label>Local/Endereço</Label>
-            <Input 
-              value={form.location} 
-              onChange={e => handleChange('location', e.target.value)} 
-              className="bg-dark-surface border-border/40 focus:border-gold"
-              placeholder="Nome do salão, buffet ou endereço"
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label>Orçamento (Budget) R$</Label>
-            <Input 
-              type="number"
-              value={form.budget_value} 
-              onChange={e => handleChange('budget_value', e.target.value)} 
-              className="bg-dark-surface border-border/40 focus:border-gold"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Vincular a um Cliente (Opcional)</Label>
-            <select 
-              value={form.client_id}
-              onChange={e => handleChange('client_id', e.target.value)}
-              className="flex h-10 w-full rounded-md bg-dark-surface border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none"
-            >
-              <option value="">-- Nenhum Cliente --</option>
-              {clients?.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Vincular a um Lead (Opcional)</Label>
-            <select 
-              value={form.lead_id}
-              onChange={e => handleChange('lead_id', e.target.value)}
-              className="flex h-10 w-full rounded-md bg-dark-surface border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none"
-            >
-              <option value="">-- Nenhum Lead --</option>
-              {leads?.map((l: any) => (
-                <option key={l.id} value={l.id}>{l.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label>Notas/Detalhes</Label>
-            <textarea
-              value={form.notes} 
-              onChange={e => handleChange('notes', e.target.value)} 
-              className="flex min-h-[80px] w-full rounded-md bg-dark-surface border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none"
-              placeholder="Informações extras essenciais para o evento..."
-            />
-          </div>
+      <DialogContent className="bg-white border-border/40 max-w-2xl text-foreground font-body max-h-[90vh] overflow-y-auto p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] overflow-hidden">
+        <div className="bg-gradient-gold p-10 text-white relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-display text-white tracking-tight">
+              {event ? 'Refinar Evento' : 'Novo Projeto de Evento'}
+            </DialogTitle>
+            <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Gestão Executiva David Melo</p>
+          </DialogHeader>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0 mt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading} className="border-border/40 bg-dark-surface hover:bg-dark-surface/80 hover:text-white">
-            Cancelar
-          </Button>
-          <Button onClick={handleSave} disabled={loading} className="bg-gold hover:bg-gold-light text-dark font-medium">
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {event ? 'Salvar Alterações' : 'Criar Evento'}
-          </Button>
-        </DialogFooter>
+        <div className="p-10 space-y-8 bg-white/50 backdrop-blur-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-3 md:col-span-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Título do Evento / Identificação</Label>
+              <Input 
+                value={form.title} 
+                onChange={e => handleChange('title', e.target.value)} 
+                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                placeholder="Ex: Cerimônia de Casamento - Família Silva"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Evento</Label>
+              <select 
+                value={form.event_type}
+                onChange={e => handleChange('event_type', e.target.value)}
+                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
+              >
+                <option value="Casamento">Casamento VIP</option>
+                <option value="Formatura">Formatura / Gala</option>
+                <option value="15 Anos">15 Anos / Debutante</option>
+                <option value="Corporativo">Corporativo / Business</option>
+                <option value="Aniversário">Aniversário / Festa</option>
+                <option value="Outro">Outro Especial</option>
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Status de Faturamento</Label>
+              <select 
+                value={form.payment_status}
+                onChange={e => handleChange('payment_status', e.target.value)}
+                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
+              >
+                <option value="pending" className="text-destructive font-bold">Pendente (Não Pago)</option>
+                <option value="partial" className="text-amber-500 font-bold">Parcialmente Recebido</option>
+                <option value="paid" className="text-emerald-500 font-bold">Totalmente Liquidado</option>
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Data Prevista</Label>
+              <Input 
+                type="date"
+                value={form.event_date} 
+                onChange={e => handleChange('event_date', e.target.value)} 
+                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl font-bold transition-all shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Horário de Início</Label>
+              <Input 
+                type="time"
+                value={form.event_time} 
+                onChange={e => handleChange('event_time', e.target.value)} 
+                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl font-bold transition-all shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-3 md:col-span-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Localização Principal</Label>
+              <Input 
+                value={form.location} 
+                onChange={e => handleChange('location', e.target.value)} 
+                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                placeholder="Nome do salão, buffet ou endereço completo"
+              />
+            </div>
+
+            <div className="space-y-3 md:col-span-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Orçamento Global do Projeto R$</Label>
+              <Input 
+                type="number"
+                value={form.budget_value} 
+                onChange={e => handleChange('budget_value', e.target.value)} 
+                className="bg-gold/5 border-gold/20 focus:border-gold h-14 rounded-xl font-display text-2xl text-gold shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Contratante Principal (Cliente)</Label>
+              <select 
+                value={form.client_id}
+                onChange={e => handleChange('client_id', e.target.value)}
+                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
+              >
+                <option value="">-- Vincular Cliente --</option>
+                {clients?.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Origem do Atendimento (Lead)</Label>
+              <select 
+                value={form.lead_id}
+                onChange={e => handleChange('lead_id', e.target.value)}
+                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
+              >
+                <option value="">-- Vincular Lead --</option>
+                {leads?.map((l: any) => (
+                  <option key={l.id} value={l.id}>{l.title}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3 md:col-span-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notas e Observações Operacionais</Label>
+              <textarea
+                value={form.notes} 
+                onChange={e => handleChange('notes', e.target.value)} 
+                className="flex min-h-[120px] w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-3 text-sm font-medium focus:border-gold text-foreground outline-none transition-all shadow-sm"
+                placeholder="Detalhes essenciais para o planejamento e execução..."
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center gap-6 mt-12 pt-8 border-t border-border/10">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="h-12 px-8 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50">
+              Descartar
+            </Button>
+            <Button onClick={handleSave} disabled={loading} className="bg-gradient-gold hover:opacity-90 text-white font-black h-12 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300">
+              {loading ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : null}
+              {event ? 'Atualizar Evento' : 'Publicar Evento'}
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -27,43 +27,62 @@ export default function LeadCard({ lead, onClick, isOverlay }: Props) {
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`p-3 rounded-lg border cursor-pointer transition-all hover:border-gold/40 hover:shadow-md ${
-        isDragging ? 'opacity-40' : ''
-      } ${isOverlay ? 'shadow-xl border-gold/50 bg-card rotate-2' : 'border-border/30 bg-card/80'}`}
+      className={`p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:border-gold/40 hover:-translate-y-1 active:scale-[0.98] ${
+        isDragging ? 'opacity-40 grayscale' : ''
+      } ${isOverlay ? 'shadow-2xl border-gold bg-card rotate-2' : 'border-border/40 bg-card premium-shadow hover:shadow-gold/10'}`}
     >
-      <h4 className="text-sm font-medium text-foreground truncate">{lead.title}</h4>
+      <div className="flex justify-between items-start gap-2">
+        <h4 className="text-xs font-bold text-foreground leading-tight tracking-tight line-clamp-2 uppercase">{lead.title}</h4>
+        {lead.event_type && (
+          <span className="shrink-0 bg-gold/10 text-gold text-[8px] font-bold px-1.5 py-0.5 rounded uppercase border border-gold/10">
+            {lead.event_type}
+          </span>
+        )}
+      </div>
+
       {clientName && (
-        <p className="text-xs text-gold mt-1 truncate">{clientName}</p>
+        <p className="text-[10px] font-bold text-gold mt-1.5 truncate tracking-wide">{clientName}</p>
       )}
-      <div className="mt-2 space-y-1">
+
+      <div className="mt-4 space-y-2">
         {lead.event_date && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3" />
-            {format(new Date(lead.event_date + 'T00:00:00'), "dd MMM yyyy", { locale: ptBR })}
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+            <Calendar className="w-3 h-3 text-gold/60" />
+            {format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMM, yyyy", { locale: ptBR })}
           </div>
         )}
-        {lead.event_location && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
-            <MapPin className="w-3 h-3 shrink-0" />
-            <span className="truncate">{lead.event_location}</span>
-          </div>
-        )}
+        
         {lead.total_budget && (
-          <div className="flex items-center gap-1.5 text-xs text-gold/80">
-            <DollarSign className="w-3 h-3" />
+          <div className="flex items-center gap-2 text-[10px] font-bold text-foreground bg-secondary/30 w-fit px-2 py-1 rounded-md">
+            <DollarSign className="w-3 h-3 text-gold" />
             {Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </div>
         )}
-        {lead.guest_count && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="w-3 h-3" />
-            {lead.guest_count} convidados
-          </div>
-        )}
+
+        <div className="flex items-center gap-3 pt-1">
+          {lead.event_location && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
+              <MapPin className="w-3 h-3 shrink-0 text-gold/60" />
+              <span className="truncate">{lead.event_location}</span>
+            </div>
+          )}
+          {lead.guest_count && (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+              <Users className="w-3 h-3 text-gold/60" />
+              {lead.guest_count}
+            </div>
+          )}
+        </div>
       </div>
+
       {lead.profiles?.full_name && (
-        <div className="mt-2 pt-2 border-t border-border/20">
-          <span className="text-[10px] text-muted-foreground/70">Responsável: {lead.profiles.full_name}</span>
+        <div className="mt-4 pt-3 border-t border-border/10 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 grayscale opacity-70">
+            <div className="w-4 h-4 rounded-full bg-secondary flex items-center justify-center text-[8px] font-bold">
+              {lead.profiles.full_name[0]}
+            </div>
+            <span className="text-[9px] text-muted-foreground font-bold tracking-tight">{lead.profiles.full_name}</span>
+          </div>
         </div>
       )}
     </div>

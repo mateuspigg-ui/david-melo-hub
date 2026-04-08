@@ -35,22 +35,22 @@ const EventosPage = () => {
   );
 
   return (
-    <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
+    <div className="p-6 space-y-8 max-w-[1600px] mx-auto animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display text-gold tracking-wide flex items-center gap-2">
-            <CalendarHeart className="h-8 w-8" />
+          <h1 className="text-3xl font-display text-foreground tracking-tight flex items-center gap-2">
+            <CalendarHeart className="h-8 w-8 text-gold" />
             Gestão de Eventos
           </h1>
-          <p className="text-sm text-foreground/60 mt-1 font-body">
+          <p className="text-sm text-muted-foreground mt-1 font-body">
             Gerencie seus eventos, cadastre datas, metas de orçamento e vincule aos seus clientes
           </p>
         </div>
         <Button 
           onClick={() => { setEditingEvent(null); setDialogOpen(true); }}
-          className="bg-gold hover:bg-gold-light text-dark font-medium shadow-gold"
+          className="bg-gradient-gold hover:opacity-90 text-white font-semibold shadow-gold px-6 h-11 rounded-lg transition-all"
         >
-          <Plus className="w-5 h-5 mr-1" /> Novo Evento
+          <Plus className="w-5 h-5 mr-2" /> Novo Evento
         </Button>
       </div>
 
@@ -59,18 +59,26 @@ const EventosPage = () => {
           placeholder="Buscar eventos por título ou tipo..." 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="md:max-w-md bg-dark-surface border-border/40 focus:border-gold"
+          className="md:max-w-md bg-secondary/30 border-border/40 focus:border-gold h-11"
         />
       </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-gold" />
+          <Loader2 className="w-10 h-10 animate-spin text-gold" />
         </div>
       ) : filteredEvents?.length === 0 ? (
-        <div className="glass-card rounded-xl p-12 flex flex-col items-center justify-center text-center border-border/30">
-          <p className="text-muted-foreground text-lg mb-2">Nenhum evento encontrado.</p>
-          <p className="text-sm text-muted-foreground/60">Comece criando um novo evento para popular esta lista.</p>
+        <div className="bg-card premium-shadow rounded-2xl p-20 flex flex-col items-center justify-center text-center border border-border/40">
+          <CalendarHeart className="h-16 w-16 text-muted-foreground/20 mb-4" />
+          <p className="text-foreground text-lg font-bold mb-2">Nenhum evento encontrado.</p>
+          <p className="text-sm text-muted-foreground font-medium">Comece criando um novo evento para popular sua agenda.</p>
+          <Button 
+            variant="outline" 
+            onClick={() => setDialogOpen(true)}
+            className="mt-6 border-gold text-gold hover:bg-gold/5"
+          >
+            Cadastrar Primeiro Evento
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
