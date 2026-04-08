@@ -74,7 +74,7 @@ const AppSidebar = ({ collapsed }: Props) => {
       collapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4 flex items-center justify-center border-b border-sidebar-border">
-        <img src={logo} alt="David Melo" className={cn("transition-all", collapsed ? "h-8" : "h-14")} />
+        <img src={logo} alt="David Melo" className={cn("transition-all", collapsed ? "h-10" : "h-20")} />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">

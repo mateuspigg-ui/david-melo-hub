@@ -45,7 +45,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-dark p-4">
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="flex flex-col items-center space-y-4">
-          <img src={logo} alt="David Melo" className="h-28 w-auto" />
+          <img src={logo} alt="David Melo" className="h-40 w-auto" />
           <div className="text-center">
             <h1 className="text-2xl font-display text-gold tracking-wider">
               Gestão Integrada
