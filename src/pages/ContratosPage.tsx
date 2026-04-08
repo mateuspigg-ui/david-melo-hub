@@ -45,13 +45,16 @@ export default function ContratosPage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = `contracts/${fileName}`;
+      const filePath = fileName; // Upload directly to bucket root for simplicity
 
       const { error: uploadError } = await supabase.storage
         .from('contracts')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Erro detalhado do Supabase Storage:', uploadError);
+        throw uploadError;
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from('contracts')
