@@ -1,0 +1,218 @@
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, Search, Filter } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import KanbanColumn from '@/components/crm/KanbanColumn';
+import LeadCard from '@/components/crm/LeadCard';
+import LeadFormDialog from '@/components/crm/LeadFormDialog';
+import LeadDetailDialog from '@/components/crm/LeadDetailDialog';
+
+const STAGES = [
+  { id: 'novo_contato', label: 'Novo Contato', color: 'hsl(var(--gold))' },
+  { id: 'orcamento_enviado', label: 'Orçamento Enviado', color: 'hsl(210 60% 50%)' },
+  { id: 'em_negociacao', label: 'Em Negociação', color: 'hsl(35 80% 55%)' },
+  { id: 'fechados', label: 'Fechados', color: 'hsl(142 60% 45%)' },
+  { id: 'perdidos', label: 'Perdidos', color: 'hsl(0 60% 50%)' },
+];
+
+const EVENT_TYPES = [
+  { value: 'casamento', label: 'Casamento' },
+  { value: '15_anos', label: '15 Anos' },
+  { value: 'formatura', label: 'Formatura' },
+  { value: 'aniversario', label: 'Aniversário' },
+  { value: 'bodas', label: 'Bodas' },
+  { value: 'corporativo', label: 'Corporativo' },
+];
+
+export type Lead = {
+  id: string;
+  title: string;
+  client_id: string | null;
+  stage: string;
+  event_type: string | null;
+  event_location: string | null;
+  event_date: string | null;
+  event_time: string | null;
+  guest_count: number | null;
+  total_budget: number | null;
+  notes: string | null;
+  assigned_to: string | null;
+  created_at: string;
+  updated_at: string;
+  clients?: { first_name: string; last_name: string } | null;
+  profiles?: { full_name: string } | null;
+};
+
+export default function CRMPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [detailLead, setDetailLead] = useState<Lead | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const { data: leads = [], isLoading } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*, clients(first_name, last_name), profiles:assigned_to(full_name)')
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data as Lead[];
+    },
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clients').select('id, first_name, last_name').order('first_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['profiles'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, full_name').order('full_name');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ id, stage }: { id: string; stage: string }) => {
+      const { error } = await supabase.from('leads').update({ stage }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leads'] }),
+    onError: () => toast({ title: 'Erro ao mover lead', variant: 'destructive' }),
+  });
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter(lead => {
+      const matchesSearch = !search || 
+        lead.title.toLowerCase().includes(search.toLowerCase()) ||
+        (lead.clients && `${lead.clients.first_name} ${lead.clients.last_name}`.toLowerCase().includes(search.toLowerCase())) ||
+        (lead.event_location && lead.event_location.toLowerCase().includes(search.toLowerCase()));
+      const matchesType = filterType === 'all' || lead.event_type === filterType;
+      return matchesSearch && matchesType;
+    });
+  }, [leads, search, filterType]);
+
+  const leadsByStage = useMemo(() => {
+    const map: Record<string, Lead[]> = {};
+    STAGES.forEach(s => { map[s.id] = []; });
+    filteredLeads.forEach(lead => {
+      if (map[lead.stage]) map[lead.stage].push(lead);
+    });
+    return map;
+  }, [filteredLeads]);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const leadId = active.id as string;
+    const newStage = over.id as string;
+    const lead = leads.find(l => l.id === leadId);
+    
+    if (lead && lead.stage !== newStage && STAGES.some(s => s.id === newStage)) {
+      updateStageMutation.mutate({ id: leadId, stage: newStage });
+    }
+  };
+
+  const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
+
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-display text-foreground">Gestão de Clientes</h1>
+          <p className="text-sm text-muted-foreground mt-1">Pipeline comercial com Kanban</p>
+        </div>
+        <Button onClick={() => { setEditingLead(null); setIsFormOpen(true); }} className="bg-gold hover:bg-gold-dark text-dark font-medium">
+          <Plus className="w-4 h-4 mr-1" /> Novo Lead
+        </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Buscar por título, cliente ou local..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-card border-border/50" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[160px] bg-card border-border/50">
+              <SelectValue placeholder="Tipo de evento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {EVENT_TYPES.map(t => (
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {STAGES.map(s => (
+            <div key={s.id} className="min-w-[280px] flex-1 bg-card/50 rounded-xl p-4 border border-border/30 animate-pulse h-[400px]" />
+          ))}
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {STAGES.map(stage => (
+              <KanbanColumn key={stage.id} stage={stage} leads={leadsByStage[stage.id] || []} onCardClick={setDetailLead} />
+            ))}
+          </div>
+          <DragOverlay>
+            {activeLead && <LeadCard lead={activeLead} isOverlay />}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      <LeadFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        lead={editingLead}
+        clients={clients}
+        teamMembers={teamMembers}
+        stages={STAGES}
+        eventTypes={EVENT_TYPES}
+      />
+
+      <LeadDetailDialog
+        lead={detailLead}
+        onClose={() => setDetailLead(null)}
+        onEdit={(lead) => { setDetailLead(null); setEditingLead(lead); setIsFormOpen(true); }}
+        clients={clients}
+        teamMembers={teamMembers}
+        stages={STAGES}
+        eventTypes={EVENT_TYPES}
+      />
+    </div>
+  );
+}
