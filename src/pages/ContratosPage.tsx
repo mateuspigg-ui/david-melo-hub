@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, FileText, User, Calendar, CheckCircle2, Clock, Trash2 } from 'lucide-react';
+import { Plus, Search, FileText, User, Calendar, CheckCircle2, Clock, Trash2, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,36 @@ export default function ContratosPage() {
     signed_status: 'draft',
     file_url: ''
   });
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `contracts/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('contracts')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('contracts')
+        .getPublicUrl(filePath);
+
+      setForm(prev => ({ ...prev, file_url: publicUrl }));
+      toast({ title: 'Arquivo carregado!', description: 'Link gerado com sucesso.' });
+    } catch (error: any) {
+      toast({ title: 'Erro no upload', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ['contracts'],
@@ -241,9 +271,38 @@ export default function ContratosPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">URL / Link do Arquivo (PDF/Doc)</Label>
-                <Input value={form.file_url} onChange={e => setForm({...form, file_url: e.target.value})} placeholder="https://..." className="h-12 bg-secondary/20 border-border/10 rounded-xl font-medium text-xs" />
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Anexo do Contrato (PDF/Img)</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={form.file_url} 
+                    onChange={e => setForm({...form, file_url: e.target.value})} 
+                    placeholder="https://..." 
+                    className="h-12 bg-secondary/20 border-border/10 rounded-xl font-medium text-xs flex-1" 
+                  />
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="file-upload"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      accept=".pdf,.doc,.docx,.jpg,.png"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isUploading}
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      className="h-12 w-12 rounded-xl border-gold/30 text-gold hover:bg-gold/10"
+                    >
+                      {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-[9px] text-muted-foreground ml-1 opacity-60 uppercase font-bold tracking-wider">
+                  {isUploading ? 'Enviando arquivo para o servidor...' : 'Clique no ícone para subir um arquivo local'}
+                </p>
               </div>
             </div>
             
