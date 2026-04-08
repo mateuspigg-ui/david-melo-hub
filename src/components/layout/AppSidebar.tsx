@@ -40,8 +40,10 @@ const sections: NavSection[] = [
   {
     label: 'Financeiro',
     items: [
+      { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard },
+      { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark },
       { label: 'Pagamentos', path: '/pagamentos', icon: CreditCard },
-      { label: 'Conciliação', path: '/conciliacao', icon: Landmark },
+      { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp },
       { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt },
       { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp },
     ],

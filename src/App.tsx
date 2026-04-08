@@ -18,6 +18,8 @@ import RecebimentosPage from "@/pages/RecebimentosPage";
 import ConciliacaoPage from "@/pages/ConciliacaoPage";
 import CRMPage from "@/pages/CRMPage";
 import ClientesPage from "@/pages/ClientesPage";
+import BankAccountsPage from "@/pages/BankAccountsPage";
+import FinancialDashboard from "@/pages/FinancialDashboard";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,8 @@ const App = () => (
               <Route path="/agenda" element={<AgendaPage />} />
               <Route path="/pagamentos" element={<PagamentosPage />} />
               <Route path="/conciliacao" element={<ConciliacaoPage />} />
+              <Route path="/financeiro-dashboard" element={<FinancialDashboard />} />
+              <Route path="/contas-bancarias" element={<BankAccountsPage />} />
               <Route path="/contas-pagar" element={<ContasPagarPage />} />
               <Route path="/recebimentos" element={<RecebimentosPage />} />
               <Route path="/equipe" element={<EquipePage />} />
