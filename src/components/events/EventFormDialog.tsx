@@ -144,7 +144,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
                 onChange={e => handleChange('event_type', e.target.value)}
                 className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
               >
-                <option value="Casamento">Casamento VIP</option>
+                <option value="Casamento">Casamento</option>
                 <option value="Formatura">Formatura / Gala</option>
                 <option value="15 Anos">15 Anos / Debutante</option>
                 <option value="Corporativo">Corporativo / Business</option>

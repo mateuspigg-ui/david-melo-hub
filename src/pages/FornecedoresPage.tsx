@@ -102,7 +102,7 @@ export default function FornecedoresPage() {
                 </div>
                 <div className="min-w-0">
                   <h3 className="font-display text-xl text-foreground tracking-tight uppercase truncate">{s.company_name}</h3>
-                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1 opacity-60">Parceiro VIP Hub</p>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1 opacity-60">Parceiro Hub</p>
                 </div>
               </div>
 

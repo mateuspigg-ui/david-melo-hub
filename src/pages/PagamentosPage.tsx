@@ -336,7 +336,7 @@ export default function PagamentosPage() {
           <div className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Total VIP *</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Total *</Label>
                 <Input 
                   type="number" 
                   placeholder="0,00" 
@@ -389,7 +389,7 @@ export default function PagamentosPage() {
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Titular do Contrato</Label>
               <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
                 <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
-                  <SelectValue placeholder="Selecionar cliente VIP" />
+                  <SelectValue placeholder="Selecionar cliente" />
                 </SelectTrigger>
                 <SelectContent className="bg-white shadow-2xl border-border/40">
                   {clients.map((c) => (

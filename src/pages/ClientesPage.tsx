@@ -122,7 +122,7 @@ const ClientesPage = () => {
           onClick={() => { setForm(emptyForm); setEditingClient(null); setDialogOpen(true); }}
           className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
         >
-          <Plus size={20} className="mr-3" /> Novo Cliente VIP
+          <Plus size={20} className="mr-3" /> Novo Cliente
         </Button>
       </div>
 
@@ -154,7 +154,7 @@ const ClientesPage = () => {
             {search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
           </p>
           <p className="text-sm text-muted-foreground/60 mb-6 font-medium">
-            {search ? 'Tente outros termos de busca.' : 'Comece cadastrando seu primeiro cliente VIP.'}
+            {search ? 'Tente outros termos de busca.' : 'Comece cadastrando seu primeiro cliente.'}
           </p>
           {!search && (
             <Button variant="outline" onClick={() => setDialogOpen(true)} className="border-gold text-gold hover:bg-gold/5 font-bold uppercase text-[10px] tracking-widest">
@@ -233,7 +233,7 @@ const ClientesPage = () => {
               <DialogTitle className="text-2xl font-display text-white">
                 {editingClient ? 'Ajustar Cadastro' : 'Novo Cliente David Melo'}
               </DialogTitle>
-              <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Preencha os dados do cliente VIP abaixo.</p>
+              <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Preencha os dados do cliente abaixo.</p>
             </DialogHeader>
           </div>
           <form

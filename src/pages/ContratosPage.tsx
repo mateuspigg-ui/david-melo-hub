@@ -200,7 +200,7 @@ export default function ContratosPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Vincular Cliente VIP</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Vincular Cliente</Label>
                   <Select value={form.client_id} onValueChange={v => setForm({...form, client_id: v})}>
                     <SelectTrigger className="h-12 bg-secondary/20 border-border/10 rounded-xl font-bold text-xs uppercase">
                       <SelectValue placeholder="Selecionar Cliente" />
