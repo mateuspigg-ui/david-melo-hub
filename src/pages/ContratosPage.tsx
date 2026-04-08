@@ -60,12 +60,13 @@ export default function ContratosPage() {
           .getPublicUrl(fileName);
         
         setForm(prev => ({ ...prev, file_url: publicUrl }));
-        toast({ title: 'Arquivo carregado!', description: 'Contrato salvo com sucesso no storage.' });
+        toast({ title: 'Arquivo carregado!', description: 'Sucesso!' });
       } else {
-        console.error('Erro no upload:', uploadError);
+        console.error('ERRO COMPLETO:', uploadError);
+        alert(`FALHA NO UPLOAD:\n\nMensagem: ${uploadError.message}\nErro: ${JSON.stringify(uploadError)}\n\nPor favor, copie esta mensagem para o chat.`);
         toast({ 
           title: 'Erro de Storage', 
-          description: `Não foi possível subir: ${uploadError.message}. Verifique as políticas de RLS no bucket "contratos".`,
+          description: uploadError.message,
           variant: 'destructive' 
         });
       }
