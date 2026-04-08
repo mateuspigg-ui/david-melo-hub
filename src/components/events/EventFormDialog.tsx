@@ -114,35 +114,37 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
 
   return (
     <Dialog open={open} onOpenChange={(open) => { if (!open && !loading) onOpenChange(false); }}>
-      <DialogContent className="bg-white border-border/40 max-w-2xl text-foreground font-body max-h-[90vh] overflow-y-auto p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] overflow-hidden">
-        <div className="bg-gradient-gold p-10 text-white relative">
+      <DialogContent className="bg-white border-border/40 max-w-2xl text-foreground font-body h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] overflow-hidden">
+        {/* Header - Fixed */}
+        <div className="bg-gradient-gold p-6 text-white relative flex-none">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
           <DialogHeader>
-            <DialogTitle className="text-3xl font-display text-white tracking-tight">
+            <DialogTitle className="text-2xl font-display text-white tracking-tight">
               {event ? 'Refinar Evento' : 'Novo Projeto de Evento'}
             </DialogTitle>
-            <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Gestão Executiva David Melo</p>
+            <p className="text-white/80 text-[9px] font-black uppercase tracking-[0.2em] mt-1">Gestão Executiva David Melo</p>
           </DialogHeader>
         </div>
 
-        <div className="p-10 space-y-8 bg-white/50 backdrop-blur-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3 md:col-span-2">
+        {/* Form Body - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-white/50 backdrop-blur-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Título do Evento / Identificação</Label>
               <Input 
                 value={form.title} 
                 onChange={e => handleChange('title', e.target.value)} 
-                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
                 placeholder="Ex: Cerimônia de Casamento - Família Silva"
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Evento</Label>
               <select 
                 value={form.event_type}
                 onChange={e => handleChange('event_type', e.target.value)}
-                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
+                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
               >
                 <option value="Casamento">Casamento</option>
                 <option value="Formatura">Formatura / Gala</option>
@@ -153,12 +155,12 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               </select>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Status de Faturamento</Label>
               <select 
                 value={form.payment_status}
                 onChange={e => handleChange('payment_status', e.target.value)}
-                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
+                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-bold uppercase tracking-wider focus:border-gold text-foreground outline-none transition-all shadow-sm"
               >
                 <option value="pending" className="text-destructive font-bold">Pendente (Não Pago)</option>
                 <option value="partial" className="text-amber-500 font-bold">Parcialmente Recebido</option>
@@ -166,52 +168,52 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               </select>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Data Prevista</Label>
               <Input 
                 type="date"
                 value={form.event_date} 
                 onChange={e => handleChange('event_date', e.target.value)} 
-                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl font-bold transition-all shadow-sm"
+                className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl font-bold transition-all shadow-sm"
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Horário de Início</Label>
               <Input 
                 type="time"
                 value={form.event_time} 
                 onChange={e => handleChange('event_time', e.target.value)} 
-                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl font-bold transition-all shadow-sm"
+                className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl font-bold transition-all shadow-sm"
               />
             </div>
 
-            <div className="space-y-3 md:col-span-2">
+            <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Localização Principal</Label>
               <Input 
                 value={form.location} 
                 onChange={e => handleChange('location', e.target.value)} 
-                className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
                 placeholder="Nome do salão, buffet ou endereço completo"
               />
             </div>
 
-            <div className="space-y-3 md:col-span-2">
+            <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Orçamento Global do Projeto R$</Label>
               <Input 
                 type="number"
                 value={form.budget_value} 
                 onChange={e => handleChange('budget_value', e.target.value)} 
-                className="bg-gold/5 border-gold/20 focus:border-gold h-14 rounded-xl font-display text-2xl text-gold shadow-sm"
+                className="bg-gold/5 border-gold/20 focus:border-gold h-12 rounded-xl font-display text-xl text-gold shadow-sm"
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Contratante Principal (Cliente)</Label>
               <select 
                 value={form.client_id}
                 onChange={e => handleChange('client_id', e.target.value)}
-                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
+                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
               >
                 <option value="">-- Vincular Cliente --</option>
                 {clients?.map((c: any) => (
@@ -220,12 +222,12 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               </select>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Origem do Atendimento (Lead)</Label>
               <select 
                 value={form.lead_id}
                 onChange={e => handleChange('lead_id', e.target.value)}
-                className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
+                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
               >
                 <option value="">-- Vincular Lead --</option>
                 {leads?.map((l: any) => (
@@ -234,26 +236,27 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               </select>
             </div>
 
-            <div className="space-y-3 md:col-span-2">
+            <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notas e Observações Operacionais</Label>
               <textarea
                 value={form.notes} 
                 onChange={e => handleChange('notes', e.target.value)} 
-                className="flex min-h-[120px] w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-3 text-sm font-medium focus:border-gold text-foreground outline-none transition-all shadow-sm"
+                className="flex min-h-[100px] w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-3 text-sm font-medium focus:border-gold text-foreground outline-none transition-all shadow-sm"
                 placeholder="Detalhes essenciais para o planejamento e execução..."
               />
             </div>
           </div>
+        </div>
 
-          <div className="flex justify-between items-center gap-6 mt-12 pt-8 border-t border-border/10">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="h-12 px-8 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50">
-              Descartar
-            </Button>
-            <Button onClick={handleSave} disabled={loading} className="bg-gradient-gold hover:opacity-90 text-white font-black h-12 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300">
-              {loading ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : null}
-              {event ? 'Atualizar Evento' : 'Publicar Evento'}
-            </Button>
-          </div>
+        {/* Footer - Fixed */}
+        <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="h-11 px-8 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50">
+            Descartar
+          </Button>
+          <Button onClick={handleSave} disabled={loading} className="bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300">
+            {loading ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : null}
+            {event ? 'Atualizar Evento' : 'Publicar Evento'}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
