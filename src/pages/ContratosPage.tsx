@@ -65,7 +65,7 @@ export default function ContratosPage() {
         console.error('Erro no upload:', uploadError);
         toast({ 
           title: 'Erro de Storage', 
-          description: `Erro: ${uploadError.message}`,
+          description: `Não foi possível subir: ${uploadError.message}. Verifique as políticas de RLS no bucket "contratos".`,
           variant: 'destructive' 
         });
       }
