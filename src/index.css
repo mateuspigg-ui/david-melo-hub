@@ -6,42 +6,50 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 37 42% 52%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 37 42% 52%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 37 42% 52%;
-    --radius: 0.75rem;
+    --background: 30 20% 97%; /* #F8F7F4 approx */
+    --foreground: 0 0% 10%; /* Deeper executive black */
 
-    --gold: 37 42% 52%;
-    --gold-light: 37 30% 70%;
-    --gold-dark: 37 40% 35%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 38 45% 56%; /* #C5A059 - Brand Gold */
+    --primary-foreground: 30 20% 98%;
+
+    --secondary: 30 15% 90%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 30 10% 94%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 38 45% 95%;
+    --accent-foreground: 38 45% 30%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 30 15% 85%;
+    --input: 30 15% 85%;
+    --ring: 38 45% 56%;
+
+    --radius: 1rem;
+
+    --gold: 38 45% 56%;
+    --gold-light: 38 30% 70%;
+    --gold-dark: 38 40% 35%;
     --cream: 40 20% 98%;
-    --dark: 222 47% 11%;
-    --dark-card: 222 47% 15%;
-    --dark-surface: 210 40% 96%;
+    --dark: 0 0% 10%;
+    --dark-card: 0 0% 15%;
+    --dark-surface: 30 15% 90%;
     --success: 142 71% 45%;
     --warning: 38 92% 50%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 37 42% 52%;
+    --sidebar-foreground: 0 0% 15%;
+    --sidebar-primary: 38 45% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 37 42% 52%;

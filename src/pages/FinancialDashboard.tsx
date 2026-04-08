@@ -147,28 +147,28 @@ const FinancialDashboard = () => {
         <div className="bg-white premium-shadow border border-border/40 rounded-2xl p-8 transition-all duration-300 lg:col-span-1">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-xl font-display text-foreground tracking-tight uppercase">Comparativo Geral</h3>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Visão consolidada Banco vs Razão</p>
+              <h3 className="text-xl font-display text-foreground tracking-tight uppercase">Comparativo Geral de Saldos</h3>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1 opacity-70">Monitoramento Sincronizado Banco vs Razão</p>
             </div>
-            <div className="flex items-center gap-4">
-               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-gold" /><span className="text-[9px] font-bold uppercase text-muted-foreground">Saldo Bancário</span></div>
-               <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-sm bg-secondary" /><span className="text-[9px] font-bold uppercase text-muted-foreground">Saldo Contábil</span></div>
+            <div className="flex gap-8 items-center">
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-gold shadow-sm" /><span className="text-[10px] font-black uppercase text-secondary-foreground opacity-60">Saldo em Conta</span></div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-200 shadow-sm" /><span className="text-[10px] font-black uppercase text-secondary-foreground opacity-60">Base Contábil</span></div>
             </div>
           </div>
-          <div className="h-[400px]">
+          <div className="h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barGap={12}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                <XAxis dataKey="name" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 10 }} />
+              <BarChart data={chartData} barGap={16}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f2f2f2" vertical={false} />
+                <XAxis dataKey="name" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 15 }} />
                 <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
                 <Tooltip 
-                  cursor={{ fill: 'rgba(218, 165, 32, 0.05)' }}
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
-                  itemStyle={{ fontSize: '11px', color: '#DAA520', fontWeight: 'bold', textTransform: 'uppercase' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#000', marginBottom: '4px', fontSize: '12px' }}
+                  cursor={{ fill: 'rgba(197, 160, 89, 0.05)' }}
+                  contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '16px' }}
+                  itemStyle={{ fontSize: '11px', color: '#C5A059', fontWeight: 'bold', textTransform: 'uppercase' }}
+                  labelStyle={{ fontWeight: 'black', color: '#000', marginBottom: '8px', fontSize: '12px', letterSpacing: '0.05em' }}
                 />
-                <Bar dataKey="Banco" fill="#DAA520" radius={[6, 6, 0, 0]} barSize={40} />
-                <Bar dataKey="Contábil" fill="#e2e8f0" radius={[6, 6, 0, 0]} barSize={40} />
+                <Bar dataKey="Banco" fill="#C5A059" radius={[8, 8, 0, 0]} barSize={45} />
+                <Bar dataKey="Contábil" fill="#E2E8F0" radius={[8, 8, 0, 0]} barSize={45} />
               </BarChart>
             </ResponsiveContainer>
           </div>

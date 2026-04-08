@@ -111,34 +111,30 @@ const ClientesPage = () => {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
+    <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 border-b border-border/10 pb-10">
         <div>
-          <h1 className="text-3xl font-display text-foreground tracking-tight flex items-center gap-3">
-            <User className="h-8 w-8 text-gold" />
-            Meus Clientes
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 font-body font-medium">
-            {clients.length} registro{clients.length !== 1 ? 's' : ''} {clients.length !== 1 ? 'ativos' : 'ativo'} na base David Melo
-          </p>
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase whitespace-nowrap">Base de Clientes</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">David Melo Produções • Gestão de Relacionamento</p>
         </div>
         <Button
           onClick={() => { setForm(emptyForm); setEditingClient(null); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
+          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
         >
-          <Plus size={18} className="mr-2" /> Novo Cliente
+          <Plus size={20} className="mr-3" /> Novo Cliente VIP
         </Button>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <div className="relative max-w-xl group">
+        <div className="absolute -inset-1 bg-gradient-gold opacity-0 group-focus-within:opacity-10 rounded-2xl blur transition duration-500" />
+        <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-gold transition-colors" />
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome, email ou telefone..."
-          className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl shadow-sm"
+          className="pl-14 bg-white border-border/10 focus:border-gold h-14 rounded-2xl shadow-sm text-sm font-medium relative z-10"
         />
       </div>
 

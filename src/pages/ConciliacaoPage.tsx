@@ -83,15 +83,15 @@ const ConciliacaoPage = () => {
   const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   return (
-    <div className="p-6 space-y-8 animate-fade-in max-w-[1400px] mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-8 space-y-10 animate-fade-in max-w-[1400px] mx-auto min-h-screen">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
         <div>
-          <h1 className="text-3xl font-display text-gold tracking-wide">Conciliação Inteligente</h1>
-          <p className="text-sm text-foreground/60 mt-1 font-body">Processo automatizado de auditoria bancária vs contábil</p>
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Conciliação Inteligente</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Auditagem Automatizada David Melo Hub</p>
         </div>
         
         {/* Step Indicator */}
-        <div className="flex items-center gap-1 bg-secondary/50 p-1.5 rounded-full border border-border/40">
+        <div className="flex items-center gap-2 bg-white premium-shadow-sm p-2 rounded-[20px] border border-border/40">
           {steps.map((step) => {
             const Icon = step.icon;
             const isCompleted = currentStep > step.id;
@@ -100,17 +100,17 @@ const ConciliacaoPage = () => {
               <div 
                 key={step.id}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-semibold transition-all",
-                  isActive ? "bg-white text-dark shadow-sm" : isCompleted ? "text-gold" : "text-muted-foreground"
+                  "flex items-center gap-3 px-5 py-2.5 rounded-2xl text-[10px] font-black transition-all uppercase tracking-widest",
+                  isActive ? "bg-secondary/40 text-foreground ring-1 ring-gold/20" : isCompleted ? "text-gold" : "text-muted-foreground/40"
                 )}
               >
                 <div className={cn(
-                  "w-5 h-5 rounded-full flex items-center justify-center border transition-colors",
-                  isActive ? "border-gold bg-gold text-white" : isCompleted ? "border-gold bg-gold/10 text-gold" : "border-muted-foreground/30"
+                  "w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                  isActive ? "border-gold bg-gradient-gold text-white scale-110 shadow-gold" : isCompleted ? "border-gold bg-gold/10 text-gold" : "border-muted-foreground/10 bg-transparent"
                 )}>
-                  {isCompleted ? <CheckCircle2 size={12} /> : step.id}
+                  {isCompleted ? <CheckCircle2 size={12} strokeWidth={3} /> : <span className="text-[10px]">{step.id}</span>}
                 </div>
-                <span className="hidden md:inline uppercase tracking-wider">{step.title}</span>
+                <span className={cn("hidden lg:inline", isActive ? "opacity-100" : "opacity-60")}>{step.title}</span>
               </div>
             );
           })}
