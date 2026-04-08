@@ -13,6 +13,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ImportTransactionsDialog } from '@/components/events/ImportTransactionsDialog';
 
 const steps = [
   { id: 1, title: 'Diagnóstico', icon: Search },
@@ -25,12 +26,13 @@ const ConciliacaoPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [period, setPeriod] = useState({ start: '', end: '' });
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   
   // Data for reconciliation
   const { data: accounts } = useQuery({
     queryKey: ['bank_accounts_dropdown'],
     queryFn: async () => {
-      const { data } = await supabase.from('bank_accounts').select('*').eq('status', 'active');
+      const { data } = await (supabase as any).from('bank_accounts').select('*').eq('status', 'active');
       return data || [];
     }
   });
@@ -39,7 +41,7 @@ const ConciliacaoPage = () => {
     queryKey: ['reconciliation_bank_tx', selectedAccount],
     enabled: !!selectedAccount,
     queryFn: async () => {
-      const { data } = await supabase.from('bank_transactions')
+      const { data } = await (supabase as any).from('bank_transactions')
         .select('*')
         .eq('bank_account_id', selectedAccount)
         .eq('status', 'pendente');
@@ -51,7 +53,7 @@ const ConciliacaoPage = () => {
     queryKey: ['reconciliation_acc_entries', selectedAccount],
     enabled: !!selectedAccount,
     queryFn: async () => {
-      const { data } = await supabase.from('accounting_entries')
+      const { data } = await (supabase as any).from('accounting_entries')
         .select('*')
         .eq('bank_account_id', selectedAccount)
         .eq('status', 'pendente');
@@ -108,7 +110,7 @@ const ConciliacaoPage = () => {
                 )}>
                   {isCompleted ? <FileCheck size={12} /> : step.id}
                 </div>
-                {!collapsed && <span className="hidden md:inline">{step.title}</span>}
+                <span className="hidden md:inline">{step.title}</span>
               </div>
             );
           })}
@@ -184,9 +186,18 @@ const ConciliacaoPage = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Cruzamento de Dados</h2>
-                <Button variant="outline" className="text-xs border-gold text-gold hover:bg-gold hover:text-dark">
-                  Rodar Inteligência de Matching
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="text-xs border-gold text-gold hover:bg-gold hover:text-dark"
+                    onClick={() => setImportDialogOpen(true)}
+                  >
+                    Importar Extrato CSV
+                  </Button>
+                  <Button variant="outline" className="text-xs border-gold text-gold hover:bg-gold hover:text-dark">
+                    Rodar Inteligência de Matching
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -344,6 +355,15 @@ const ConciliacaoPage = () => {
            </Button>
         </div>
       </div>
+
+      <ImportTransactionsDialog 
+        open={importDialogOpen} 
+        onOpenChange={setImportDialogOpen} 
+        bankAccountId={selectedAccount}
+        onImported={() => {
+          refetchBank();
+        }}
+      />
     </div>
   );
 };
