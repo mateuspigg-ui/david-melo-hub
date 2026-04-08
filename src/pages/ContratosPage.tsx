@@ -59,7 +59,7 @@ export default function ContratosPage() {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       
-      const bucketsToTry = ['contracts', 'contratos', 'documents'];
+      const bucketsToTry = ['contratos', 'contracts', 'documents'];
       let uploadSuccess = false;
       let finalPublicUrl = '';
 
@@ -67,7 +67,9 @@ export default function ContratosPage() {
         console.log(`Tentando upload no bucket: ${bucketName}...`);
         const { error: uploadError, data } = await supabase.storage
           .from(bucketName)
-          .upload(fileName, file);
+          .upload(fileName, file, {
+            upsert: true
+          });
 
         if (!uploadError) {
           const { data: { publicUrl } } = supabase.storage
@@ -88,8 +90,8 @@ export default function ContratosPage() {
         toast({ title: 'Arquivo carregado!', description: 'Contrato salvo com sucesso no storage.' });
       } else {
         toast({ 
-          title: 'Erro Crítico', 
-          description: 'Nenhum bucket encontrado (contracts, contratos ou documents). Crie um destes buckets no Supabase.',
+          title: 'Erro de Storage', 
+          description: 'Não foi possível encontrar o bucket "contratos". Verifique se o nome está correto e se as políticas de RLS (Select/Insert) foram criadas.',
           variant: 'destructive' 
         });
       }
