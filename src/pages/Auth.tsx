@@ -47,7 +47,7 @@ const Auth = () => {
         <div className="flex flex-col items-center space-y-6">
           <div className="relative group">
             <div className="absolute -inset-4 bg-gold/10 rounded-full blur-2xl group-hover:bg-gold/20 transition-all duration-700" />
-            <img src={logo} alt="David Melo" className="h-44 w-auto relative z-10" />
+            <img src={logo} alt="David Melo" className="h-64 w-auto relative z-10" />
           </div>
           <div className="text-center relative">
             <h1 className="text-3xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Ecossistema</h1>
