@@ -243,54 +243,57 @@ const ClientesPage = () => {
 
           {/* Body - Scrollable */}
           <div className="flex-1 overflow-y-auto p-8 bg-white/50 backdrop-blur-sm">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
-                <Input
-                  value={form.first_name}
-                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                  placeholder="Ex: David"
-                />
+            <form id="client-form" onSubmit={(e) => { e.preventDefault(); upsert.mutate(); }} className="space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
+                  <Input
+                    required
+                    value={form.first_name}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="Ex: David"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
+                  <Input
+                    value={form.last_name}
+                    onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="Ex: Melo"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Telefone / WhatsApp</Label>
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço de E-mail</Label>
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="cliente@email.com"
+                  />
+                </div>
+                <div className="sm:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Username)</Label>
+                  <Input
+                    value={form.instagram}
+                    onChange={(e) => setForm({ ...form, instagram: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="@usuario"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
-                <Input
-                  value={form.last_name}
-                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                  placeholder="Ex: Melo"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Telefone / WhatsApp</Label>
-                <Input
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço de E-mail</Label>
-                <Input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                  placeholder="cliente@email.com"
-                />
-              </div>
-              <div className="sm:col-span-2 space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Username)</Label>
-                <Input
-                  value={form.instagram}
-                  onChange={(e) => setForm({ ...form, instagram: e.target.value })}
-                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                  placeholder="@usuario"
-                />
-              </div>
-            </div>
+            </form>
           </div>
 
           {/* Footer - Fixed */}
@@ -299,11 +302,12 @@ const ClientesPage = () => {
               Descartar
             </Button>
             <Button 
-              onClick={() => upsert.mutate()}
+              form="client-form"
+              type="submit"
               disabled={upsert.isPending}
               className="bg-gradient-gold hover:opacity-90 text-white font-black h-12 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
             >
-              {upsert.isPending ? 'Sincronizando...' : (editingClient ? 'Salvar Alterações' : 'Registrar Cliente')}
+              {upsert.isPending ? 'Sincronizando...' : (editingClient ? 'Confirmar Ajustes' : 'Registrar Cliente')}
             </Button>
           </div>
         </DialogContent>

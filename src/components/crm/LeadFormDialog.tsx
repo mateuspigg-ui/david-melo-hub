@@ -124,13 +124,13 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
               
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Cliente Vinculado</Label>
-                <Select value={watch('client_id')} onValueChange={v => setValue('client_id', v)}>
+                <Select value={watch('client_id') || ""} onValueChange={v => setValue('client_id', v)}>
                   <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
                     <SelectValue placeholder="Selecionar Cliente" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
-                    <SelectItem value="" className="font-bold text-[10px] uppercase tracking-widest opacity-40">-- Sem Vínculo --</SelectItem>
-                    {clients.map(c => (
+                    <SelectItem value="none" className="font-bold text-[10px] uppercase tracking-widest opacity-40">-- Sem Vínculo --</SelectItem>
+                    {clients?.map(c => (
                       <SelectItem key={c.id} value={c.id} className="font-bold text-[10px] uppercase tracking-widest py-3">
                         {c.first_name} {c.last_name}
                       </SelectItem>
@@ -141,12 +141,12 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Estágio do Pipeline</Label>
-                <Select value={watch('stage')} onValueChange={v => setValue('stage', v)}>
+                <Select value={watch('stage') || "novo_contato"} onValueChange={v => setValue('stage', v)}>
                   <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
-                    {stages.map(s => (
+                    {stages?.map(s => (
                       <SelectItem key={s.id} value={s.id} className="font-bold text-[10px] uppercase tracking-widest py-3">
                         {s.label}
                       </SelectItem>
@@ -157,12 +157,12 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Tipo de Evento</Label>
-                <Select value={watch('event_type') || ''} onValueChange={v => setValue('event_type', v)}>
+                <Select value={watch('event_type') || ""} onValueChange={v => setValue('event_type', v)}>
                   <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
                     <SelectValue placeholder="Tipo de projeto" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
-                    {eventTypes.map(t => (
+                    {eventTypes?.map(t => (
                       <SelectItem key={t.value} value={t.value} className="font-bold text-[10px] uppercase tracking-widest py-3">
                         {t.label}
                       </SelectItem>
@@ -202,12 +202,12 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
 
               <div className="sm:col-span-2 space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Consultor Responsável</Label>
-                <Select value={watch('assigned_to') || ''} onValueChange={v => setValue('assigned_to', v)}>
+                <Select value={watch('assigned_to') || ""} onValueChange={v => setValue('assigned_to', v)}>
                   <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
                     <SelectValue placeholder="Selecionar Membro do Time" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
-                    {teamMembers.map(m => (
+                    {teamMembers?.map(m => (
                       <SelectItem key={m.id} value={m.id} className="font-bold text-[10px] uppercase tracking-widest py-3">{m.full_name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -238,7 +238,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
             disabled={mutation.isPending} 
             className="bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
           >
-            {mutation.isPending ? 'Sincronizando...' : lead ? 'Atualizar Lead' : 'Publicar Lead'}
+            {mutation.isPending ? 'Sincronizando...' : (lead ? 'Atualizar Lead' : 'Publicar Lead')}
           </Button>
         </div>
       </DialogContent>
