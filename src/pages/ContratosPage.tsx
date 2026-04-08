@@ -27,6 +27,19 @@ export default function ContratosPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  const runStorageDiagnostics = async () => {
+    const projectId = import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0];
+    const bucketsToTry = ['contratos', 'contracts', 'documents'];
+    let results = `Projeto ID: ${projectId}\n\n`;
+    
+    for (const b of bucketsToTry) {
+      const { data, error } = await supabase.storage.getBucket(b);
+      results += `Bucket "${b}": ${error ? '❌ Não encontrado' : '✅ Encontrado'}\n`;
+    }
+    
+    alert(results + '\nSe o seu bucket não estiver na lista acima, verifique o nome exato no Supabase.');
+  };
+
   const handleDownload = (url: string, title: string) => {
     const link = document.createElement('a');
     link.href = url;
@@ -345,6 +358,15 @@ export default function ContratosPage() {
                       {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
                     </Button>
                   </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={runStorageDiagnostics}
+                    className="h-12 px-2 text-muted-foreground hover:text-gold"
+                    title="Diagnosticar Conexão"
+                  >
+                    <Search size={14} />
+                  </Button>
                 </div>
                 <p className="text-[9px] text-muted-foreground ml-1 opacity-60 uppercase font-bold tracking-wider">
                   {isUploading ? 'Enviando arquivo para o servidor...' : 'Clique no ícone para subir um arquivo local'}
