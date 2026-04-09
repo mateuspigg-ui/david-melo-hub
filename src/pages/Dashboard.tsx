@@ -156,6 +156,13 @@ const Dashboard = () => {
 
   const recentQuarterData = (monthlyMetrics || []).slice(-4);
   const maskMonetary = (value: string) => (isAdmin ? value : 'R$ ••••••••');
+  const maskCurrency = (value: number) => (isAdmin ? formatCurrency(value) : 'R$ ••••••••');
+  const financialChartData = isAdmin
+    ? (monthlyMetrics || [])
+    : (monthlyMetrics || []).map((m) => ({ ...m, receitas: 0, despesas: 0 }));
+  const financialQuarterData = isAdmin
+    ? recentQuarterData
+    : recentQuarterData.map((m) => ({ ...m, receitas: 0, despesas: 0 }));
 
   const dreRows = (monthlyMetrics || []).map((m) => {
     const lucro = m.receitas - m.despesas;
@@ -176,7 +183,7 @@ const Dashboard = () => {
     {
       label: 'Faturamento Anual',
       value: formatCurrency(annualValue),
-      subValue: `${formatCurrency(avgRevenue)} media mensal`,
+      subValue: `${maskCurrency(avgRevenue)} media mensal`,
       icon: DollarSign,
       sensitive: true,
       cardClass: 'from-amber-50 to-yellow-50 border-amber-200/50',
@@ -317,7 +324,7 @@ const Dashboard = () => {
           </div>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={recentQuarterData} barGap={10}>
+              <BarChart data={financialQuarterData} barGap={10}>
                 <defs>
                   <linearGradient id="quarterRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#C5A059" stopOpacity={1} />
@@ -326,10 +333,10 @@ const Dashboard = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="month" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 10 }} />
-                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
+                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => (isAdmin ? `R$${Math.round(v / 1000)}k` : 'R$ •••')} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(197, 160, 89, 0.08)' }}
-                  formatter={(value: number) => [formatCurrency(value), 'Receita']}
+                  formatter={(value: number) => [maskCurrency(value), 'Receita']}
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.12)', padding: '12px' }}
                 />
                 <Bar dataKey="receitas" fill="url(#quarterRevenue)" radius={[10, 10, 0, 0]} barSize={44} />
@@ -338,7 +345,7 @@ const Dashboard = () => {
           </div>
           <div className="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Melhor lucro mensal</span>
-            <span className="font-display text-xl text-amber-900">{formatCurrency(bestProfit)}</span>
+            <span className="font-display text-xl text-amber-900 select-none">{maskCurrency(bestProfit)}</span>
           </div>
         </div>
 
@@ -422,7 +429,7 @@ const Dashboard = () => {
         </div>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={monthlyMetrics}>
+            <AreaChart data={financialChartData}>
               <defs>
                 <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#C5A059" stopOpacity={0.45} />
@@ -435,9 +442,9 @@ const Dashboard = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
               <XAxis dataKey="month" stroke="#666" fontSize={11} tickLine={false} axisLine={false} tick={{ dy: 15 }} />
-              <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
+              <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => (isAdmin ? `R$${Math.round(v / 1000)}k` : 'R$ •••')} />
               <Tooltip 
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value: number) => maskCurrency(value)}
                 contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '16px' }}
               />
               <Area type="monotone" dataKey="receitas" stroke="#C5A059" strokeWidth={3} fill="url(#revenueArea)" name="Receitas" />
