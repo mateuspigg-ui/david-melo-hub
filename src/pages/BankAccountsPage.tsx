@@ -191,7 +191,7 @@ const BankAccountsPage = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) setDialogOpen(false); }}>
-        <DialogContent className="bg-white border-border/40 text-foreground max-w-2xl rounded-[32px] p-0 overflow-hidden shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] font-body">
+        <DialogContent className="bg-white border-border/40 text-foreground max-w-2xl max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] font-body flex flex-col">
           <div className="bg-gradient-gold p-10 text-white relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
             <DialogHeader>
@@ -202,7 +202,7 @@ const BankAccountsPage = () => {
             </DialogHeader>
           </div>
           
-          <div className="p-10 space-y-8 bg-white/50 backdrop-blur-sm">
+          <div className="p-6 md:p-10 space-y-8 bg-white/50 backdrop-blur-sm overflow-y-auto min-h-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Instituição Bancária</Label>
