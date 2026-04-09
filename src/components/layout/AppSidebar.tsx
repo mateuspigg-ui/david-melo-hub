@@ -6,52 +6,60 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
+
+interface NavItem {
+  label: string;
+  path: string;
+  icon: React.ElementType;
+  module: string; // permission key
+}
 
 interface NavSection {
   label: string;
-  items: { label: string; path: string; icon: React.ElementType }[];
+  items: NavItem[];
 }
 
 const sections: NavSection[] = [
   {
     label: 'Administrativo',
     items: [
-      { label: 'Dashboard', path: '/', icon: LayoutDashboard },
-      { label: 'Contratos', path: '/contratos', icon: FileText },
-      { label: 'Documentos', path: '/documentos', icon: FileText },
-      { label: 'Fornecedores', path: '/fornecedores', icon: Building2 },
+      { label: 'Dashboard', path: '/', icon: LayoutDashboard, module: 'dashboard' },
+      { label: 'Contratos', path: '/contratos', icon: FileText, module: 'contratos' },
+      { label: 'Documentos', path: '/documentos', icon: FileText, module: 'documentos' },
+      { label: 'Fornecedores', path: '/fornecedores', icon: Building2, module: 'fornecedores' },
     ],
   },
   {
     label: 'Comercial',
     items: [
-      { label: 'Meus Clientes', path: '/clientes', icon: Users },
-      { label: 'Gestão de Clientes', path: '/crm', icon: Handshake },
+      { label: 'Meus Clientes', path: '/clientes', icon: Users, module: 'clientes' },
+      { label: 'Gestão de Clientes', path: '/crm', icon: Handshake, module: 'crm' },
     ],
   },
   {
     label: 'Eventos',
     items: [
-      { label: 'Eventos', path: '/eventos', icon: ShoppingBag },
-      { label: 'Agenda', path: '/agenda', icon: Calendar },
+      { label: 'Eventos', path: '/eventos', icon: ShoppingBag, module: 'eventos' },
+      { label: 'Agenda', path: '/agenda', icon: Calendar, module: 'agenda' },
     ],
   },
   {
     label: 'Financeiro',
     items: [
-      { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard },
-      { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark },
-      { label: 'Pagamentos', path: '/pagamentos', icon: CreditCard },
-      { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp },
-      { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt },
-      { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp },
+      { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard, module: 'financeiro' },
+      { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark, module: 'financeiro' },
+      { label: 'Pagamentos', path: '/pagamentos', icon: CreditCard, module: 'financeiro' },
+      { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp, module: 'financeiro' },
+      { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt, module: 'financeiro' },
+      { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp, module: 'financeiro' },
     ],
   },
   {
     label: 'Equipe',
     items: [
-      { label: 'Equipe', path: '/equipe', icon: UserCog },
+      { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
     ],
   },
 ];
@@ -62,6 +70,7 @@ interface Props {
 
 const AppSidebar = ({ collapsed }: Props) => {
   const location = useLocation();
+  const { hasModuleAccess, profile } = useAuth();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map(s => [s.label, true]))
   );
@@ -69,6 +78,18 @@ const AppSidebar = ({ collapsed }: Props) => {
   const toggleSection = (label: string) => {
     setOpenSections(prev => ({ ...prev, [label]: !prev[label] }));
   };
+
+  // Filter sections and items by permission
+  const filteredSections = sections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => hasModuleAccess(item.module)),
+    }))
+    .filter(section => section.items.length > 0);
+
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'DM';
 
   return (
     <aside className={cn(
@@ -80,7 +101,7 @@ const AppSidebar = ({ collapsed }: Props) => {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
-        {sections.map((section) => (
+        {filteredSections.map((section) => (
           <div key={section.label} className="space-y-3">
             {!collapsed && (
               <button
@@ -128,18 +149,17 @@ const AppSidebar = ({ collapsed }: Props) => {
         ))}
       </nav>
 
-      {/* Footer / User Profile Brief */}
       <div className={cn("p-6 border-t border-border/10 bg-secondary/10", collapsed ? "p-4 items-center" : "p-6")}>
          {!collapsed ? (
            <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">DM</div>
+             <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">{initials}</div>
              <div className="min-w-0">
-               <p className="text-[10px] font-black uppercase text-foreground leading-none">David Melo</p>
-               <p className="text-[9px] font-bold text-muted-foreground mt-1 truncate">Admin • Executive</p>
+               <p className="text-[10px] font-black uppercase text-foreground leading-none">{profile?.full_name || 'Usuário'}</p>
+               <p className="text-[9px] font-bold text-muted-foreground mt-1 truncate">{profile?.role || 'Colaborador'}</p>
              </div>
            </div>
          ) : (
-           <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">DM</div>
+           <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">{initials}</div>
          )}
       </div>
     </aside>
