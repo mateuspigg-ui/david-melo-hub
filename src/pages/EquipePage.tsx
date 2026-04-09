@@ -31,6 +31,7 @@ const EquipePage = () => {
   const [showPermissionsDialog, setShowPermissionsDialog] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedModules, setSelectedModules] = useState<string[]>(['dashboard']);
+  const [generatedInviteLink, setGeneratedInviteLink] = useState('');
   const [editModules, setEditModules] = useState<string[]>([]);
   const [editModulesDirty, setEditModulesDirty] = useState(false);
   const [editIsAdmin, setEditIsAdmin] = useState(false);
@@ -90,41 +91,49 @@ const EquipePage = () => {
       return data;
     },
     onSuccess: async (data: any) => {
-      const link = `${window.location.origin}/convite/${data.token}`;
-      navigator.clipboard.writeText(link);
+      try {
+        const link = `${window.location.origin}/convite/${data.token}`;
+        setGeneratedInviteLink(link);
 
-      let emailSent = false;
-      if (data?.email) {
-        const { error } = await supabase.functions.invoke('send-team-invite-email', {
-          body: {
-            email: data.email,
-            inviteLink: link,
-            modules: data.modules || [],
-          },
+        try {
+          await navigator.clipboard.writeText(link);
+        } catch {
+          // Clipboard can fail in some browsers/contexts; link remains visible for manual copy.
+        }
+
+        let emailSent = false;
+        if (data?.email) {
+          try {
+            const { error } = await supabase.functions.invoke('send-team-invite-email', {
+              body: {
+                email: data.email,
+                inviteLink: link,
+                modules: data.modules || [],
+              },
+            });
+            if (!error) emailSent = true;
+          } catch {
+            emailSent = false;
+          }
+        }
+
+        toast({
+          title: 'Convite enviado!',
+          description: emailSent
+            ? 'E-mail enviado com sucesso. O link também está disponível abaixo para cópia.'
+            : 'Link do convite gerado. Copie o link abaixo para compartilhar.',
         });
 
-        if (!error) {
-          emailSent = true;
-        } else {
-          toast({
-            title: 'Convite criado, mas o e-mail falhou',
-            description: 'O link foi copiado. Verifique a configuração da função de e-mail.',
-            variant: 'destructive',
-          });
-        }
+        queryClient.invalidateQueries({ queryKey: ['team_invitations'] });
+        setInviteEmail('');
+        setSelectedModules(['dashboard']);
+      } catch (err: any) {
+        toast({
+          title: 'Convite criado, mas houve um erro na exibição',
+          description: err?.message || 'Reabra a tela de equipe e copie o link do convite pendente.',
+          variant: 'destructive',
+        });
       }
-
-      toast({
-        title: 'Convite criado!',
-        description: emailSent
-          ? 'Link enviado por e-mail e copiado para a área de transferência.'
-          : 'Link copiado para a área de transferência.',
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['team_invitations'] });
-      setShowInviteDialog(false);
-      setInviteEmail('');
-      setSelectedModules(['dashboard']);
     },
     onError: (err: any) => toast({ title: 'Erro', description: err.message, variant: 'destructive' }),
   });
@@ -309,7 +318,13 @@ const EquipePage = () => {
       )}
 
       {/* Invite Dialog */}
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+      <Dialog
+        open={showInviteDialog}
+        onOpenChange={(open) => {
+          setShowInviteDialog(open);
+          if (!open) setGeneratedInviteLink('');
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><UserCog size={20} /> Convidar Membro</DialogTitle>
@@ -339,6 +354,29 @@ const EquipePage = () => {
                 ))}
               </div>
             </div>
+
+            {generatedInviteLink && (
+              <div className="space-y-2 rounded-lg border border-gold/30 bg-gold/5 p-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gold">Convite enviado</p>
+                <div className="flex gap-2">
+                  <Input value={generatedInviteLink} readOnly className="font-mono text-xs" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(generatedInviteLink);
+                        toast({ title: 'Link copiado!' });
+                      } catch {
+                        toast({ title: 'Não foi possível copiar automaticamente', description: 'Copie o link manualmente.', variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    <Copy size={14} className="mr-1" /> Copiar
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteDialog(false)}>Cancelar</Button>
