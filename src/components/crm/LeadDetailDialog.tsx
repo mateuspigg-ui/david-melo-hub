@@ -22,7 +22,7 @@ interface Props {
   eventTypes: { value: string; label: string }[];
 }
 
-export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventTypes }: Props) {
+export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, stages, eventTypes }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newTask, setNewTask] = useState('');
