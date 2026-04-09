@@ -191,7 +191,7 @@ export default function RecebimentosPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-9 border-gold/30 text-gold hover:bg-gold hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm"
+                        className="h-9 border-amber-500/50 text-amber-700 hover:bg-amber-600 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm"
                         onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
                       >
                         <Check className="w-3 h-3 mr-2" /> Efetivar Baixa
