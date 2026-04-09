@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, isSameDay, isSameWeek, startOfWeek, addDays, isSameMonth, parseISO } from 'date-fns';
+import { format, isSameDay, isSameWeek, startOfWeek, addDays, isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarClock, Loader2, Plus, Pencil, CalendarDays } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-type ViewMode = 'mes' | 'semana' | 'dia';
+type ViewMode = 'ano' | 'mes' | 'semana' | 'dia';
 
 const EVENT_TYPES = ['Casamento', 'Formatura', '15 Anos', 'Corporativo', 'Aniversario', 'Outro'];
 
@@ -67,6 +67,9 @@ const AgendaPage = () => {
   }, [events]);
 
   const eventsForSelectedView = useMemo(() => {
+    if (view === 'ano') {
+      return events.filter((evt: any) => evt.event_date && isSameYear(parseISO(evt.event_date), selectedDate));
+    }
     if (view === 'dia') {
       return events.filter((evt: any) => evt.event_date && isSameDay(parseISO(evt.event_date), selectedDate));
     }
@@ -144,6 +147,16 @@ const AgendaPage = () => {
     return Array.from({ length: 7 }).map((_, idx) => addDays(start, idx));
   }, [selectedDate]);
 
+  const yearMonths = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, monthIndex) => {
+        const monthDate = new Date(selectedDate.getFullYear(), monthIndex, 1);
+        const monthEvents = events.filter((evt: any) => evt.event_date && isSameMonth(parseISO(evt.event_date), monthDate));
+        return { monthDate, monthEvents };
+      }),
+    [events, selectedDate]
+  );
+
   const formatCurrency = (value: number | null) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
 
@@ -157,7 +170,7 @@ const AgendaPage = () => {
           <p className="text-sm text-muted-foreground mt-1">Calendario operacional de eventos integrado ao sistema</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(['mes', 'semana', 'dia'] as ViewMode[]).map((mode) => (
+          {(['ano', 'mes', 'semana', 'dia'] as ViewMode[]).map((mode) => (
             <Button
               key={mode}
               variant={view === mode ? 'default' : 'outline'}
@@ -199,6 +212,56 @@ const AgendaPage = () => {
               },
             }}
           />
+        )}
+
+        {view === 'ano' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-xl bg-secondary/10 border border-border/30 px-4 py-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Visao anual</p>
+                <p className="text-xl font-display text-foreground">{format(selectedDate, 'yyyy')}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setSelectedDate(new Date(selectedDate.getFullYear() - 1, selectedDate.getMonth(), 1))}>
+                  Ano anterior
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedDate(new Date(selectedDate.getFullYear() + 1, selectedDate.getMonth(), 1))}>
+                  Proximo ano
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {yearMonths.map(({ monthDate, monthEvents }) => (
+                <button
+                  key={monthDate.toISOString()}
+                  onClick={() => {
+                    setSelectedDate(monthDate);
+                    setCalendarMonth(monthDate);
+                    setView('mes');
+                  }}
+                  className="rounded-xl border border-border/40 bg-white p-4 text-left hover:border-gold/50 hover:bg-secondary/10 transition-all"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-black uppercase tracking-wider text-foreground">{format(monthDate, 'MMMM', { locale: ptBR })}</p>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      {monthEvents.length} evento(s)
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    {monthEvents.slice(0, 3).map((evt: any) => (
+                      <div key={evt.id} className="text-xs text-muted-foreground truncate">
+                        {evt.event_date ? format(parseISO(evt.event_date), 'dd/MM') : '--'} • {evt.title}
+                      </div>
+                    ))}
+                    {monthEvents.length > 3 && (
+                      <p className="text-[11px] text-gold font-bold">+{monthEvents.length - 3} adicionais</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {view === 'semana' && (
