@@ -187,6 +187,52 @@ const Dashboard = () => {
     },
   ];
 
+  const essentialIndicators = [
+    {
+      title: 'Eventos no Ano',
+      value: String(totalEvents),
+      subtitle: 'Volume total de projetos atendidos',
+      badge: 'Operacao',
+      tone: 'border-l-amber-500 bg-amber-50/70',
+    },
+    {
+      title: 'Ticket Medio por Evento',
+      value: maskMonetary(formatCurrency(avgTicket)),
+      subtitle: 'Receita media por contrato fechado',
+      badge: 'Comercial',
+      tone: 'border-l-sky-500 bg-sky-50/70',
+    },
+    {
+      title: 'Conversao Comercial',
+      value: `${conversionRate.toFixed(1)}%`,
+      subtitle: `${pipelineWon} fechados de ${pipelineTotal} oportunidades`,
+      badge: 'CRM',
+      tone: 'border-l-emerald-500 bg-emerald-50/70',
+    },
+    {
+      title: 'Margem Operacional Anual',
+      value: `${annualMargin.toFixed(1)}%`,
+      subtitle: 'Qualidade financeira da operacao',
+      badge: 'Financeiro',
+      tone: 'border-l-rose-500 bg-rose-50/70',
+      valueClass: annualMargin >= 20 ? 'text-emerald-700' : annualMargin > 0 ? 'text-amber-700' : 'text-rose-700',
+    },
+    {
+      title: 'Lucro Operacional Anual',
+      value: maskMonetary(formatCurrency(annualProfit)),
+      subtitle: 'Receitas menos despesas consolidadas',
+      badge: 'Resultado',
+      tone: 'border-l-indigo-500 bg-indigo-50/70',
+    },
+    {
+      title: 'Backlog em Negociacao',
+      value: String(pipelineNegotiation),
+      subtitle: `${receivableCoverage.toFixed(1)}% do mes em contas a receber`,
+      badge: 'Pipeline',
+      tone: 'border-l-teal-500 bg-teal-50/70',
+    },
+  ];
+
   return (
     <div className="space-y-10 animate-fade-in max-w-[1600px] mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-b border-border/10 pb-8">
@@ -232,43 +278,18 @@ const Dashboard = () => {
           <span className="text-[10px] font-black uppercase tracking-widest text-gold">Eventos • CRM • Financeiro</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Eventos no Ano</p>
-            <p className="text-3xl font-display text-foreground mt-2">{totalEvents}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Volume total de projetos atendidos</p>
-          </div>
-
-          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ticket Médio por Evento</p>
-            <p className="text-3xl font-display text-foreground mt-2 select-none">{maskMonetary(formatCurrency(avgTicket))}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Receita média por contrato fechado</p>
-          </div>
-
-          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conversão Comercial</p>
-            <p className="text-3xl font-display text-foreground mt-2">{conversionRate.toFixed(1)}%</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{pipelineWon} fechados de {pipelineTotal} oportunidades</p>
-          </div>
-
-          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Margem Operacional Anual</p>
-            <p className={cn('text-3xl font-display mt-2', annualMargin >= 20 ? 'text-emerald-700' : annualMargin > 0 ? 'text-amber-700' : 'text-rose-700')}>
-              {annualMargin.toFixed(1)}%
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-1">Qualidade financeira da operação</p>
-          </div>
-
-          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lucro Operacional Anual</p>
-            <p className="text-3xl font-display text-foreground mt-2 select-none">{maskMonetary(formatCurrency(annualProfit))}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">Receitas menos despesas consolidadas</p>
-          </div>
-
-          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Backlog em Negociação</p>
-            <p className="text-3xl font-display text-foreground mt-2">{pipelineNegotiation}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{receivableCoverage.toFixed(1)}% do mês em contas a receber</p>
-          </div>
+          {essentialIndicators.map((indicator) => (
+            <div key={indicator.title} className={cn('rounded-xl border border-border/40 border-l-4 p-5 premium-shadow-sm', indicator.tone)}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-foreground/70">{indicator.title}</p>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full bg-white/80 text-foreground/70 border border-border/30">
+                  {indicator.badge}
+                </span>
+              </div>
+              <p className={cn('text-3xl font-display text-foreground mt-2 select-none', indicator.valueClass)}>{indicator.value}</p>
+              <p className="text-[11px] text-foreground/70 mt-1">{indicator.subtitle}</p>
+            </div>
+          ))}
         </div>
       </div>
 
