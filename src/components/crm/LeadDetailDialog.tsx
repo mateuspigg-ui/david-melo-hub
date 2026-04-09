@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Plus, Trash2, CheckCircle2, Phone } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Plus, Trash2, CheckCircle2, Phone, AlertTriangle } from 'lucide-react';
+import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import type { Lead } from '@/pages/CRMPage';
@@ -26,6 +26,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newTask, setNewTask] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['lead_tasks', lead?.id],
@@ -43,14 +44,20 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
   });
 
   const addTaskMutation = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async ({ title, due_date }: { title: string; due_date: string | null }) => {
       if (!lead) return;
-      const { error } = await supabase.from('lead_tasks').insert({ lead_id: lead.id, title });
+      const { error } = await supabase.from('lead_tasks').insert({
+        lead_id: lead.id,
+        title,
+        due_date: due_date || null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
       setNewTask('');
+      setNewTaskDueDate('');
     },
   });
 
@@ -60,7 +67,10 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
       const { error } = await supabase.from('lead_tasks').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
+    },
   });
 
   const deleteLeadMutation = useMutation({
@@ -89,6 +99,18 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
     : null;
   const displayName = clientName || leadName;
 
+  // Calcula status de prazo de cada tarefa
+  const getTaskDueStatus = (task: { status: string; due_date: string | null }) => {
+    if (task.status === 'done' || !task.due_date) return 'ok';
+    const due = parseISO(task.due_date);
+    if (isPast(due) && !isToday(due)) return 'overdue';
+    if (isToday(due)) return 'today';
+    return 'ok';
+  };
+
+  const overdueTasks = tasks.filter(t => getTaskDueStatus(t) === 'overdue');
+  const todayTasks = tasks.filter(t => getTaskDueStatus(t) === 'today');
+
   return (
     <Dialog open={!!lead} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
@@ -110,6 +132,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
               </div>
             </div>
           </DialogHeader>
+
           <div className="flex items-center gap-2 mt-6 flex-wrap relative z-10">
             {stageInfo && (
               <Badge className="bg-white/20 text-white border-white/30 font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full">
@@ -119,6 +142,17 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
             {eventTypeLabel && (
               <Badge className="bg-black/20 text-white border-none font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full">
                 {eventTypeLabel}
+              </Badge>
+            )}
+            {/* Alertas de prazo no header */}
+            {overdueTasks.length > 0 && (
+              <Badge className="bg-red-500/90 text-white border-none font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full animate-pulse">
+                ⚠ {overdueTasks.length} tarefa{overdueTasks.length > 1 ? 's' : ''} em atraso
+              </Badge>
+            )}
+            {todayTasks.length > 0 && overdueTasks.length === 0 && (
+              <Badge className="bg-orange-400/90 text-white border-none font-black uppercase text-[9px] tracking-widest px-4 py-1.5 rounded-full">
+                🔔 {todayTasks.length} tarefa{todayTasks.length > 1 ? 's' : ''} vence hoje
               </Badge>
             )}
           </div>
@@ -182,39 +216,90 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
             </div>
           )}
 
+          {/* Tarefas */}
           <div className="space-y-5 bg-secondary/10 p-6 rounded-[28px] border border-border/10 shadow-inner">
             <h4 className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.25em] flex items-center justify-between ml-1">
               Plano de Ação / Tarefas
-              <Badge variant="secondary" className="bg-foreground/5 text-foreground/60 rounded-full font-black text-[9px]">{tasks.length}</Badge>
+              <div className="flex items-center gap-2">
+                {overdueTasks.length > 0 && (
+                  <span className="flex items-center gap-1 text-red-500 text-[9px] font-black">
+                    <AlertTriangle className="w-3 h-3" /> {overdueTasks.length} em atraso
+                  </span>
+                )}
+                <Badge variant="secondary" className="bg-foreground/5 text-foreground/60 rounded-full font-black text-[9px]">{tasks.length}</Badge>
+              </div>
             </h4>
 
             <div className="space-y-3 max-h-[250px] overflow-y-auto no-scrollbar">
               {tasks.length === 0 && <p className="text-center py-6 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">Nenhuma tarefa agendada</p>}
-              {tasks.map(task => (
-                <div key={task.id} className="flex items-center gap-3 group bg-white p-4 rounded-xl border border-border/10 hover:shadow-md transition-all duration-300">
-                  <button
-                    onClick={() => toggleTaskMutation.mutate({ id: task.id, status: task.status })}
-                    className="shrink-0 transition-transform active:scale-90"
+              {tasks.map(task => {
+                const dueStatus = getTaskDueStatus(task);
+                return (
+                  <div
+                    key={task.id}
+                    className={`flex items-start gap-3 group bg-white p-4 rounded-xl border transition-all duration-300 hover:shadow-md ${
+                      dueStatus === 'overdue'
+                        ? 'border-red-300 bg-red-50 shadow-sm shadow-red-100'
+                        : dueStatus === 'today'
+                        ? 'border-orange-300 bg-orange-50'
+                        : 'border-border/10'
+                    }`}
                   >
-                    <CheckCircle2 className={`w-5 h-5 ${task.status === 'done' ? 'text-green-500 bg-green-500/5 rounded-full' : 'text-muted-foreground/20 hover:text-gold'}`} />
-                  </button>
-                  <span className={`text-sm font-bold flex-1 ${task.status === 'done' ? 'line-through text-muted-foreground/40' : 'text-foreground/80'}`}>
-                    {task.title}
-                  </span>
-                </div>
-              ))}
+                    <button
+                      onClick={() => toggleTaskMutation.mutate({ id: task.id, status: task.status })}
+                      className="shrink-0 transition-transform active:scale-90 mt-0.5"
+                    >
+                      <CheckCircle2 className={`w-5 h-5 ${task.status === 'done' ? 'text-green-500' : dueStatus === 'overdue' ? 'text-red-400' : 'text-muted-foreground/20 hover:text-gold'}`} />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-bold block ${task.status === 'done' ? 'line-through text-muted-foreground/40' : dueStatus === 'overdue' ? 'text-red-700' : 'text-foreground/80'}`}>
+                        {task.title}
+                      </span>
+                      {task.due_date && (
+                        <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 mt-1 ${
+                          dueStatus === 'overdue' ? 'text-red-500' :
+                          dueStatus === 'today' ? 'text-orange-500' :
+                          'text-muted-foreground/40'
+                        }`}>
+                          {dueStatus === 'overdue' && <AlertTriangle className="w-3 h-3" />}
+                          {dueStatus === 'overdue' ? 'ATRASADA · ' : dueStatus === 'today' ? 'HOJE · ' : ''}
+                          Prazo: {format(parseISO(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <form onSubmit={e => { e.preventDefault(); if (newTask.trim()) addTaskMutation.mutate(newTask.trim()); }} className="flex gap-2 pt-2">
+            {/* Formulário nova tarefa */}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                if (newTask.trim()) addTaskMutation.mutate({ title: newTask.trim(), due_date: newTaskDueDate || null });
+              }}
+              className="space-y-3 pt-2"
+            >
               <Input
                 value={newTask}
                 onChange={e => setNewTask(e.target.value)}
                 placeholder="Qual o próximo passo com este lead?"
                 className="text-xs h-12 bg-white border-border/10 focus:border-gold rounded-xl font-medium shadow-sm"
               />
-              <Button type="submit" size="icon" className="h-12 w-12 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold">
-                <Plus className="w-5 h-5" />
-              </Button>
+              <div className="flex gap-2 items-center">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 ml-1">Prazo da tarefa (opcional)</label>
+                  <Input
+                    type="date"
+                    value={newTaskDueDate}
+                    onChange={e => setNewTaskDueDate(e.target.value)}
+                    className="h-10 bg-white border-border/10 focus:border-gold rounded-xl text-sm font-medium shadow-sm"
+                  />
+                </div>
+                <Button type="submit" size="icon" className="h-10 w-12 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold self-end">
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
             </form>
           </div>
         </div>

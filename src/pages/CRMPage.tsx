@@ -96,6 +96,23 @@ export default function CRMPage() {
     },
   });
 
+  // Busca leads que possuem tarefas pendentes com prazo vencido
+  const { data: overdueLeadIds = new Set<string>() } = useQuery({
+    queryKey: ['overdue_leads'],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('lead_tasks')
+        .select('lead_id')
+        .neq('status', 'done')
+        .lt('due_date', today)
+        .not('due_date', 'is', null);
+      if (error) throw error;
+      return new Set((data ?? []).map(t => t.lead_id));
+    },
+    refetchInterval: 60_000, // atualiza a cada 1 minuto
+  });
+
   const updateStageMutation = useMutation({
     mutationFn: async ({ id, stage }: { id: string; stage: string }) => {
       const { error } = await supabase.from('leads').update({ stage }).eq('id', id);
@@ -217,7 +234,7 @@ export default function CRMPage() {
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4">
             {STAGES.map(stage => (
-              <KanbanColumn key={stage.id} stage={stage} leads={leadsByStage[stage.id] || []} onCardClick={setDetailLead} />
+              <KanbanColumn key={stage.id} stage={stage} leads={leadsByStage[stage.id] || []} onCardClick={setDetailLead} overdueLeadIds={overdueLeadIds} />
             ))}
           </div>
           <DragOverlay>

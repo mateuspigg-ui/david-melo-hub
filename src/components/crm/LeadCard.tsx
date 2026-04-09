@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, MapPin, Users, DollarSign, Clock } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Lead } from '@/pages/CRMPage';
@@ -9,9 +9,10 @@ interface Props {
   lead: Lead;
   onClick?: () => void;
   isOverlay?: boolean;
+  isOverdue?: boolean;
 }
 
-export default function LeadCard({ lead, onClick, isOverlay }: Props) {
+export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
 
   const style = {
@@ -31,10 +32,24 @@ export default function LeadCard({ lead, onClick, isOverlay }: Props) {
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:border-gold/40 hover:-translate-y-1 active:scale-[0.98] ${
+      className={`p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] ${
         isDragging ? 'opacity-40 grayscale' : ''
-      } ${isOverlay ? 'shadow-2xl border-gold bg-card rotate-2' : 'border-border/40 bg-card premium-shadow hover:shadow-gold/10'}`}
+      } ${
+        isOverlay
+          ? 'shadow-2xl border-gold bg-card rotate-2'
+          : isOverdue
+          ? 'border-red-300 bg-red-50/60 shadow-red-100 shadow-md hover:border-red-400'
+          : 'border-border/40 bg-card premium-shadow hover:border-gold/40 hover:shadow-gold/10'
+      }`}
     >
+      {/* Alerta de tarefas em atraso */}
+      {isOverdue && (
+        <div className="flex items-center gap-1.5 mb-3 bg-red-100 border border-red-200 rounded-lg px-3 py-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-red-600">Tarefa em atraso</span>
+        </div>
+      )}
+
       <div className="flex justify-between items-start gap-2">
         <h4 className="text-xs font-bold text-foreground leading-tight tracking-tight line-clamp-2 uppercase">{lead.title}</h4>
         {lead.event_type && (
