@@ -9,7 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/NotFound";
 import {
   ContratosPage, DocumentosPage, FornecedoresPage,
-  AgendaPage, EquipePage
+  AgendaPage
 } from "@/pages/Modules";
 import EventosPage from "@/pages/EventosPage";
 import PagamentosPage from "@/pages/PagamentosPage";
@@ -20,6 +20,8 @@ import CRMPage from "@/pages/CRMPage";
 import ClientesPage from "@/pages/ClientesPage";
 import BankAccountsPage from "@/pages/BankAccountsPage";
 import FinancialDashboard from "@/pages/FinancialDashboard";
+import EquipePage from "@/pages/EquipePage";
+import InvitePage from "@/pages/InvitePage";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />
+            <Route path="/convite/:token" element={<InvitePage />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/contratos" element={<ContratosPage />} />

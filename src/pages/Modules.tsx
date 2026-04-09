@@ -18,4 +18,3 @@ const PlaceholderPage = ({ title, description }: { title: string; description: s
 export { ContratosPage, DocumentosPage, FornecedoresPage };
 
 export const AgendaPage = () => <PlaceholderPage title="Agenda" description="Calendário de eventos" />;
-export const EquipePage = () => <PlaceholderPage title="Equipe" description="Gestão da equipe" />;
