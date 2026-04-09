@@ -192,7 +192,7 @@ const ConciliacaoPage = () => {
                     className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
                     onClick={() => setImportDialogOpen(true)}
                   >
-                    Importar Extrato CSV
+                    Importar Extrato
                   </Button>
                   <Button variant="outline" className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm">
                     Rodar Inteligência de Matching

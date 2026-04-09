@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
 interface Props {
   open: boolean;
@@ -18,6 +19,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [parsedRows, setParsedRows] = useState<any[]>([]);
   const [preview, setPreview] = useState<any[]>([]);
   const [columns, setColumns] = useState<{ date: string; amount: string; description: string }>({
     date: '',
@@ -25,22 +27,68 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
     description: ''
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
+  const getFileExtension = (filename: string) => filename.split('.').pop()?.toLowerCase() || '';
 
+  const parseCsvFile = (selectedFile: File) =>
+    new Promise<any[]>((resolve, reject) => {
       Papa.parse(selectedFile, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
-          const data = results.data as any[];
-          if (data.length > 0) {
-            autoDetectColumns(data);
-            setPreview(data.slice(0, 5));
-          }
-        }
+        complete: (results) => resolve(results.data as any[]),
+        error: (error) => reject(error),
       });
+    });
+
+  const parseXlsxFile = async (selectedFile: File) => {
+    const buffer = await selectedFile.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) return [];
+    const worksheet = workbook.Sheets[firstSheetName];
+    return XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as any[];
+  };
+
+  const parseFileRows = async (selectedFile: File) => {
+    const ext = getFileExtension(selectedFile.name);
+    if (ext === 'xlsx') return parseXlsxFile(selectedFile);
+    return parseCsvFile(selectedFile);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+
+    const selectedFile = e.target.files[0];
+    const ext = getFileExtension(selectedFile.name);
+
+    if (!['pdf', 'xlsx'].includes(ext)) {
+      toast({ title: 'Formato inválido', description: 'Selecione um arquivo PDF ou XLSX.', variant: 'destructive' });
+      return;
+    }
+
+    setFile(selectedFile);
+    setColumns({ date: '', amount: '', description: '' });
+
+    if (ext === 'pdf') {
+      setParsedRows([]);
+      setPreview([]);
+      return;
+    }
+
+    try {
+      const data = await parseFileRows(selectedFile);
+      setParsedRows(data);
+
+      if (data.length > 0) {
+        autoDetectColumns(data);
+        setPreview(data.slice(0, 5));
+      } else {
+        setPreview([]);
+      }
+    } catch (error: any) {
+      setFile(null);
+      setParsedRows([]);
+      setPreview([]);
+      toast({ title: 'Erro ao ler arquivo', description: error.message || 'Não foi possível processar o arquivo.', variant: 'destructive' });
     }
   };
 
@@ -84,15 +132,15 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
 
   const handleImport = async () => {
     if (!file || !bankAccountId) return;
+    if (getFileExtension(file.name) === 'pdf') {
+      toast({ title: 'PDF sem processamento automático', description: 'Para importação automática de transações, use um arquivo XLSX.', variant: 'destructive' });
+      return;
+    }
 
     setLoading(true);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        try {
-          const rawData = results.data as any[];
-          const transactions = rawData.map(row => ({
+    try {
+      const rawData = parsedRows.length > 0 ? parsedRows : await parseFileRows(file);
+      const transactions = rawData.map(row => ({
             bank_account_id: bankAccountId,
             transaction_date: parseDate(row[columns.date]),
             amount: parseAmount(row[columns.amount]),
@@ -100,22 +148,24 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
             status: 'pendente'
           })).filter(tx => tx.transaction_date && !isNaN(tx.amount));
 
-          const { error } = await (supabase as any).from('bank_transactions').insert(transactions);
-          
-          if (error) throw error;
-
-          toast({ title: 'Sucesso', description: `${transactions.length} transações importadas!` });
-          onImported();
-          onOpenChange(false);
-          setFile(null);
-          setPreview([]);
-        } catch (error: any) {
-          toast({ title: 'Erro na importação', description: error.message, variant: 'destructive' });
-        } finally {
-          setLoading(false);
-        }
+      if (transactions.length === 0) {
+        throw new Error('Nenhuma transação válida foi encontrada no arquivo.');
       }
-    });
+
+      const { error } = await (supabase as any).from('bank_transactions').insert(transactions);
+      if (error) throw error;
+
+      toast({ title: 'Sucesso', description: `${transactions.length} transações importadas!` });
+      onImported();
+      onOpenChange(false);
+      setFile(null);
+      setParsedRows([]);
+      setPreview([]);
+    } catch (error: any) {
+      toast({ title: 'Erro na importação', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const parseDate = (dateStr: string) => {
@@ -141,9 +191,9 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
         <div className="bg-gradient-gold p-6 text-white">
           <DialogHeader>
             <DialogTitle className="text-2xl font-display text-white flex items-center gap-2">
-              <Upload className="w-6 h-6" /> Importar Extrato CSV
+              <Upload className="w-6 h-6" /> Importar Extrato Bancário
             </DialogTitle>
-            <p className="text-white/80 text-sm mt-1">Carregue seu extrato bancário para realizar o matching inteligente.</p>
+            <p className="text-white/80 text-sm mt-1">Carregue um arquivo PDF ou XLSX para ingestão de extrato.</p>
           </DialogHeader>
         </div>
 
@@ -152,14 +202,14 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
             <div className="border-3 border-dashed border-border/60 rounded-2xl p-16 text-center hover:border-gold/50 transition-all cursor-pointer relative bg-secondary/10 group">
               <input 
                 type="file" 
-                accept=".csv" 
+                accept=".pdf,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
                 onChange={handleFileChange} 
                 className="absolute inset-0 opacity-0 cursor-pointer z-10" 
               />
               <div className="relative z-0 group-hover:scale-105 transition-transform duration-300">
                 <FileText className="w-16 h-16 text-gold/30 mx-auto mb-4 group-hover:text-gold/50" />
-                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste o arquivo CSV</p>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">O David Melo Hub detectará as colunas automaticamente</p>
+                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste arquivo PDF ou XLSX</p>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">Para importação automática de lançamentos, prefira XLSX</p>
               </div>
             </div>
           ) : (
@@ -177,47 +227,59 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
                 <Button variant="ghost" size="sm" onClick={() => { setFile(null); setPreview([]); }} className="text-xs font-bold text-destructive hover:bg-destructive/10">Trocar Arquivo</Button>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Inteligência de Mapeamento</Label>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
-                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Data</p>
-                    <p className="text-xs font-bold text-foreground truncate">{columns.date}</p>
+              {preview.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Inteligência de Mapeamento</Label>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Data</p>
+                        <p className="text-xs font-bold text-foreground truncate">{columns.date}</p>
+                      </div>
+                      <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Valor</p>
+                        <p className="text-xs font-bold text-foreground truncate">{columns.amount}</p>
+                      </div>
+                      <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Descrição</p>
+                        <p className="text-xs font-bold text-foreground truncate">{columns.description}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
-                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Valor</p>
-                    <p className="text-xs font-bold text-foreground truncate">{columns.amount}</p>
-                  </div>
-                  <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
-                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Descrição</p>
-                    <p className="text-xs font-bold text-foreground truncate">{columns.description}</p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Prévia dos Registros</Label>
-                <div className="rounded-xl border border-border/40 overflow-hidden bg-white shadow-sm">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-secondary/50 font-bold text-muted-foreground border-b border-border/40">
-                      <tr>
-                        <th className="px-4 py-3 uppercase tracking-wider">Data</th>
-                        <th className="px-4 py-3 uppercase tracking-wider">Descrição</th>
-                        <th className="px-4 py-3 text-right uppercase tracking-wider">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/20">
-                      {preview.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-secondary/10 transition-colors">
-                          <td className="px-4 py-3 text-foreground font-medium">{row[columns.date]}</td>
-                          <td className="px-4 py-3 text-foreground truncate max-w-[200px]">{row[columns.description]}</td>
-                          <td className="px-4 py-3 text-right font-bold text-foreground">{row[columns.amount]}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Prévia dos Registros</Label>
+                    <div className="rounded-xl border border-border/40 overflow-hidden bg-white shadow-sm">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-secondary/50 font-bold text-muted-foreground border-b border-border/40">
+                          <tr>
+                            <th className="px-4 py-3 uppercase tracking-wider">Data</th>
+                            <th className="px-4 py-3 uppercase tracking-wider">Descrição</th>
+                            <th className="px-4 py-3 text-right uppercase tracking-wider">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/20">
+                          {preview.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-secondary/10 transition-colors">
+                              <td className="px-4 py-3 text-foreground font-medium">{row[columns.date]}</td>
+                              <td className="px-4 py-3 text-foreground truncate max-w-[200px]">{row[columns.description]}</td>
+                              <td className="px-4 py-3 text-right font-bold text-foreground">{row[columns.amount]}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-bold">Arquivo PDF selecionado</p>
+                    <p className="mt-1">O processamento automático de lançamentos está disponível para XLSX.</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -230,7 +292,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
             className="bg-gold hover:bg-gold-light text-white font-bold min-w-[160px] h-11 rounded-lg shadow-sm uppercase text-[11px] tracking-widest"
           >
             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            Processar Importação
+            Confirmar Importação
           </Button>
         </div>
       </DialogContent>
