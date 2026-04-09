@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, Folder, FileText, Download, Trash2, Tag, Info } from 'lucide-react';
+import { Plus, Search, Folder, Download, Trash2, Info, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,12 +26,57 @@ export default function DocumentosPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [form, setForm] = useState({
     title: '',
     category: 'operacional',
     description: '',
     file_url: ''
   });
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      setUploadingFile(true);
+      const ext = file.name.split('.').pop() || 'bin';
+      const safeName = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[^a-zA-Z0-9-_]/g, '-')
+        .toLowerCase();
+      const fileName = `${Date.now()}-${safeName}.${ext}`;
+
+      const bucketsToTry = ['documentos', 'Documentos', 'documents', 'storage'];
+      let publicUrl = '';
+      let lastError: any = null;
+
+      for (const bucketName of bucketsToTry) {
+        const { error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(fileName, file, { upsert: true });
+
+        if (!uploadError) {
+          const {
+            data: { publicUrl: url },
+          } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+          publicUrl = url;
+          break;
+        }
+        lastError = uploadError;
+      }
+
+      if (!publicUrl) throw lastError || new Error('Falha ao enviar arquivo para o storage.');
+
+      setForm((prev) => ({
+        ...prev,
+        file_url: publicUrl,
+        title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
+      }));
+      toast({ title: 'Upload concluido', description: 'Arquivo enviado com sucesso.' });
+    } catch (error: any) {
+      toast({ title: 'Erro no upload', description: error.message || 'Nao foi possivel enviar o arquivo.', variant: 'destructive' });
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ['company_documents'],
@@ -206,6 +251,29 @@ export default function DocumentosPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">URL de Acesso</Label>
                 <Input value={form.file_url} onChange={e => setForm({...form, file_url: e.target.value})} placeholder="Link do arquivo no Storage" className="h-12 bg-secondary/20 border-border/10 rounded-xl font-medium text-xs" />
+                <div className="flex items-center gap-2">
+                  <input
+                    id="document-upload"
+                    type="file"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) await handleFileUpload(file);
+                      e.currentTarget.value = '';
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('document-upload')?.click()}
+                    disabled={uploadingFile}
+                    className="h-10 rounded-xl font-black uppercase text-[10px] tracking-widest"
+                  >
+                    {uploadingFile ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload do computador
+                  </Button>
+                  {form.file_url && <span className="text-[10px] font-bold text-emerald-600">Arquivo vinculado</span>}
+                </div>
               </div>
             </div>
             
