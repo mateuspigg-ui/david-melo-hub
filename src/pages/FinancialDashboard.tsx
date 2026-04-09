@@ -9,6 +9,7 @@ import {
   ArrowUpRight, ArrowDownRight, Landmark, Receipt
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 const FinancialDashboard = () => {
   // Fetch summary from the view created in SQL
@@ -53,6 +54,54 @@ const FinancialDashboard = () => {
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+  const kpiCards = [
+    {
+      label: 'Saldo Bancario Total',
+      value: formatCurrency(totalBankBalance),
+      icon: DollarSign,
+      cardClass: 'from-amber-50 to-yellow-50 border-amber-200/50',
+      iconClass: 'bg-amber-100 text-amber-700',
+      subValue: 'Base diaria consolidada',
+      trend: '+2.1%',
+      trendClass: 'bg-emerald-500/10 text-emerald-600',
+      trendIcon: ArrowUpRight,
+    },
+    {
+      label: 'Saldo Contabil Total',
+      value: formatCurrency(totalAccBalance),
+      icon: Receipt,
+      cardClass: 'from-blue-50 to-cyan-50 border-blue-200/50',
+      iconClass: 'bg-blue-100 text-blue-700',
+      subValue: 'Sincronizado via API',
+      trend: 'OK',
+      trendClass: 'bg-blue-500/10 text-blue-600',
+      trendIcon: CheckCircle2,
+    },
+    {
+      label: 'Diferenca Bancaria',
+      value: formatCurrency(totalDiff),
+      icon: AlertCircle,
+      cardClass: totalDiff === 0 ? 'from-emerald-50 to-teal-50 border-emerald-200/50' : 'from-amber-50 to-orange-50 border-amber-200/50',
+      iconClass: totalDiff === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700',
+      valueClass: totalDiff === 0 ? 'text-emerald-700' : 'text-amber-700',
+      subValue: 'Valor total a conciliar',
+      trend: totalDiff === 0 ? 'CONCILIADO' : 'ATENCAO',
+      trendClass: totalDiff === 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600',
+      trendIcon: totalDiff === 0 ? CheckCircle2 : AlertCircle,
+    },
+    {
+      label: 'Status da Auditoria',
+      value: 'Auditado',
+      icon: CheckCircle2,
+      cardClass: 'from-emerald-50 to-lime-50 border-emerald-200/50',
+      iconClass: 'bg-emerald-100 text-emerald-700',
+      subValue: `Conciliado em ${new Date().toLocaleDateString('pt-BR')}`,
+      trend: 'ESTAVEL',
+      trendClass: 'bg-emerald-500/10 text-emerald-600',
+      trendIcon: ArrowUpRight,
+    },
+  ];
+
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto bg-transparent">
       {/* Dashboard Header */}
@@ -72,74 +121,38 @@ const FinancialDashboard = () => {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white premium-shadow border border-border/40 rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-110" />
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Saldo Bancário Total</p>
-            <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
-               <DollarSign className="w-4 h-4 text-gold" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-display text-foreground tracking-tighter">{formatCurrency(totalBankBalance)}</div>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex items-center text-emerald-500 font-bold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                <ArrowUpRight className="w-3 h-3 mr-1" /> +2.1%
+        {kpiCards.map((kpi) => {
+          const Icon = kpi.icon;
+          const TrendIcon = kpi.trendIcon;
+          return (
+            <div
+              key={kpi.label}
+              className={cn(
+                'premium-shadow rounded-2xl p-6 border bg-gradient-to-br transition-all duration-300 group relative overflow-hidden hover:shadow-2xl',
+                kpi.cardClass
+              )}
+            >
+              <div className="absolute top-0 right-0 w-28 h-28 bg-white/40 rounded-full -mr-14 -mt-14 group-hover:scale-110 transition-transform" />
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black text-foreground/70 uppercase tracking-[0.2em]">{kpi.label}</p>
+                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shadow-sm', kpi.iconClass)}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                </div>
+
+                <div className={cn('text-3xl font-display text-foreground tracking-tighter', kpi.valueClass)}>{kpi.value}</div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className={cn('inline-flex items-center text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full', kpi.trendClass)}>
+                    <TrendIcon className="w-3 h-3 mr-1" /> {kpi.trend}
+                  </span>
+                  <p className="text-[9px] text-foreground/60 font-bold uppercase tracking-widest text-right">{kpi.subValue}</p>
+                </div>
               </div>
-              <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter opacity-60">Base Diária</p>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white premium-shadow border border-border/40 rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-110" />
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Saldo Contábil Total</p>
-            <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
-               <Receipt className="w-4 h-4 text-gold" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-display text-foreground tracking-tighter">{formatCurrency(totalAccBalance)}</div>
-            <div className="flex items-center gap-2 mt-2">
-               <p className="text-[9px] text-emerald-500 font-black uppercase tracking-widest">Sincronizado via API</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white premium-shadow border border-border/40 rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-110" />
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Diferença Bancária</p>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${totalDiff === 0 ? 'bg-emerald-500/10' : 'bg-amber-500/10'}`}>
-               <AlertCircle className={`w-4 h-4 ${totalDiff === 0 ? 'text-emerald-500' : 'text-amber-500'}`} />
-            </div>
-          </div>
-          <div>
-            <div className={`text-3xl font-display tracking-tighter ${totalDiff === 0 ? 'text-emerald-500' : 'text-amber-500'}`}>
-              {formatCurrency(totalDiff)}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide opacity-60">Valor total a conciliar</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white premium-shadow border border-border/40 rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 transition-all group-hover:scale-110" />
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status da Auditoria</p>
-            <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center">
-               <CheckCircle2 className="w-4 h-4 text-gold" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-display text-gold tracking-tight uppercase">Auditado</div>
-            <div className="flex items-center gap-2 mt-2">
-              <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide opacity-60">Conciliado em: {new Date().toLocaleDateString('pt-BR')}</p>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Main Charts area */}
