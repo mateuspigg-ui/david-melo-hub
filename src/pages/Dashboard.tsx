@@ -2,7 +2,7 @@ import { DollarSign, TrendingUp, Clock, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { format, startOfYear, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +19,8 @@ const PIPELINE_COLORS: Record<string, string> = {
 const Dashboard = () => {
   const { isAdmin } = useAuth();
   const currentMonthStart = startOfMonth(new Date());
+  const yearStart = format(startOfYear(new Date()), 'yyyy-MM-dd');
+  const yearEnd = format(endOfYear(new Date()), 'yyyy-MM-dd');
   
   // 1. Fetch KPI Totals
   const { data: kpis, isLoading: isLoadingKPIs } = useQuery({
@@ -28,7 +30,8 @@ const Dashboard = () => {
       const { data: yearEvents } = await supabase
         .from('events')
         .select('budget_value')
-        .gte('event_date', format(startOfYear(new Date()), 'yyyy-MM-dd'));
+        .gte('event_date', yearStart)
+        .lte('event_date', yearEnd);
       
       const annualTotal = yearEvents?.reduce((acc, curr) => acc + Number(curr.budget_value || 0), 0) || 0;
 
@@ -96,17 +99,52 @@ const Dashboard = () => {
         eventos: 0
       }));
 
-      // In the real system, we'd fetch transactions or grouping from SQL
-      // For now, let's aggregate from 'events' for revenue and 'accounts_payable' for expenses as a proxy
-      const { data: events } = await supabase.from('events').select('budget_value, event_date');
-      const { data: expenses } = await supabase.from('accounts_payable').select('amount, due_date');
+      const { data: installments } = await supabase
+        .from('payment_installments')
+        .select('amount, due_date, paid_at, status')
+        .gte('due_date', yearStart)
+        .lte('due_date', yearEnd);
+
+      const { data: entryPayments } = await supabase
+        .from('payments')
+        .select('entry_amount, entry_date, has_entry_payment')
+        .eq('has_entry_payment', true)
+        .gte('entry_date', yearStart)
+        .lte('entry_date', yearEnd);
+
+      const { data: events } = await supabase
+        .from('events')
+        .select('event_date')
+        .gte('event_date', yearStart)
+        .lte('event_date', yearEnd);
+
+      const { data: expenses } = await supabase
+        .from('accounts_payable')
+        .select('amount, due_date')
+        .gte('due_date', yearStart)
+        .lte('due_date', yearEnd);
+
+      installments?.forEach((inst) => {
+        const refDate = inst.status === 'paid' && inst.paid_at ? new Date(inst.paid_at) : new Date(inst.due_date);
+        if (Number.isNaN(refDate.getTime())) return;
+        const monthIdx = refDate.getMonth();
+        if (monthIdx < 0 || monthIdx > 11) return;
+        data[monthIdx].receitas += Number(inst.amount || 0);
+      });
+
+      entryPayments?.forEach((pay) => {
+        const entryDate = pay.entry_date ? new Date(pay.entry_date) : null;
+        if (!entryDate || Number.isNaN(entryDate.getTime())) return;
+        const monthIdx = entryDate.getMonth();
+        if (monthIdx < 0 || monthIdx > 11) return;
+        data[monthIdx].receitas += Number(pay.entry_amount || 0);
+      });
 
       events?.forEach(e => {
         const eventDate = e.event_date ? new Date(e.event_date) : null;
         if (!eventDate || Number.isNaN(eventDate.getTime())) return;
         const monthIdx = eventDate.getMonth();
         if (monthIdx < 0 || monthIdx > 11) return;
-        data[monthIdx].receitas += Number(e.budget_value || 0);
         data[monthIdx].eventos++;
       });
 
