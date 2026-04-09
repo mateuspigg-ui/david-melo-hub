@@ -142,10 +142,24 @@ export default function CRMPage() {
     if (!over) return;
 
     const leadId = active.id as string;
-    const newStage = over.id as string;
+    const overId = over.id as string;
+
+    // over.id can be a stage ID (dropped on empty column area)
+    // or a card ID (dropped on top of another card) – resolve to stage either way
+    const isStage = STAGES.some(s => s.id === overId);
+    let newStage: string;
+
+    if (isStage) {
+      newStage = overId;
+    } else {
+      // overId is a lead id – find which stage that lead belongs to
+      const targetLead = leads.find(l => l.id === overId);
+      if (!targetLead) return;
+      newStage = targetLead.stage;
+    }
+
     const lead = leads.find(l => l.id === leadId);
-    
-    if (lead && lead.stage !== newStage && STAGES.some(s => s.id === newStage)) {
+    if (lead && lead.stage !== newStage) {
       updateStageMutation.mutate({ id: leadId, stage: newStage });
     }
   };
