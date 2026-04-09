@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +27,11 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
   const queryClient = useQueryClient();
   const [newTask, setNewTask] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskAssignee, setNewTaskAssignee] = useState('');
+
+  useEffect(() => {
+    setNewTaskAssignee(lead?.assigned_to || '');
+  }, [lead?.id, lead?.assigned_to]);
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['lead_tasks', lead?.id],
@@ -34,7 +39,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
       if (!lead) return [];
       const { data, error } = await supabase
         .from('lead_tasks')
-        .select('*')
+        .select('*, assignee:assigned_to(full_name)')
         .eq('lead_id', lead.id)
         .order('created_at', { ascending: true });
       if (error) throw error;
@@ -44,12 +49,13 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
   });
 
   const addTaskMutation = useMutation({
-    mutationFn: async ({ title, due_date }: { title: string; due_date: string | null }) => {
+    mutationFn: async ({ title, due_date, assigned_to }: { title: string; due_date: string | null; assigned_to: string | null }) => {
       if (!lead) return;
       const { error } = await supabase.from('lead_tasks').insert({
         lead_id: lead.id,
         title,
         due_date: due_date || null,
+        assigned_to,
       });
       if (error) throw error;
     },
@@ -58,6 +64,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
       queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
       setNewTask('');
       setNewTaskDueDate('');
+      setNewTaskAssignee(lead?.assigned_to || '');
     },
   });
 
@@ -266,6 +273,11 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
                           Prazo: {format(parseISO(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       )}
+                      {task.assignee?.full_name && (
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mt-1 block">
+                          Responsavel: {task.assignee.full_name}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -276,7 +288,13 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
             <form
               onSubmit={e => {
                 e.preventDefault();
-                if (newTask.trim()) addTaskMutation.mutate({ title: newTask.trim(), due_date: newTaskDueDate || null });
+                if (newTask.trim()) {
+                  addTaskMutation.mutate({
+                    title: newTask.trim(),
+                    due_date: newTaskDueDate || null,
+                    assigned_to: newTaskAssignee || null,
+                  });
+                }
               }}
               className="space-y-3 pt-2"
             >
@@ -295,6 +313,21 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
                     onChange={e => setNewTaskDueDate(e.target.value)}
                     className="h-10 bg-white border-border/10 focus:border-gold rounded-xl text-sm font-medium shadow-sm"
                   />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 ml-1">Responsavel</label>
+                  <select
+                    value={newTaskAssignee}
+                    onChange={(e) => setNewTaskAssignee(e.target.value)}
+                    className="flex h-10 w-full rounded-xl bg-white border border-border/10 px-3 text-xs font-bold focus:border-gold outline-none shadow-sm"
+                  >
+                    <option value="">Sem responsavel</option>
+                    {teamMembers.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.full_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <Button type="submit" size="icon" className="h-10 w-12 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold self-end">
                   <Plus className="w-5 h-5" />
