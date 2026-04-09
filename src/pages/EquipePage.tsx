@@ -104,28 +104,39 @@ const EquipePage = () => {
   // Update permissions
   const updatePermissions = useMutation({
     mutationFn: async ({ userId, modules, makeAdmin }: { userId: string; modules: string[]; makeAdmin: boolean }) => {
+      const safeModules = modules.length > 0 ? modules : ['dashboard'];
+
       if (makeAdmin) {
         const { error: adminError } = await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' as any });
         if (adminError && !adminError.message?.includes('duplicate key')) throw adminError;
 
-        await supabase.from('profiles').update({ role: 'admin' }).eq('id', userId);
+        const { error: removeMemberError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId)
+          .eq('role', 'team_member');
+        if (removeMemberError) throw removeMemberError;
+
         return;
       }
 
-      await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin');
+      const { error: removeAdminError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', 'admin');
+      if (removeAdminError) throw removeAdminError;
 
       const { error: memberError } = await supabase.from('user_roles').insert({ user_id: userId, role: 'team_member' as any });
       if (memberError && !memberError.message?.includes('duplicate key')) throw memberError;
 
-      await supabase.from('profiles').update({ role: 'team_member' }).eq('id', userId);
+      const { error: clearModulesError } = await supabase.from('module_permissions').delete().eq('user_id', userId);
+      if (clearModulesError) throw clearModulesError;
 
-      await supabase.from('module_permissions').delete().eq('user_id', userId);
-      if (modules.length > 0) {
-        const { error } = await supabase.from('module_permissions').insert(
-          modules.map(m => ({ user_id: userId, module: m })) as any
-        );
-        if (error) throw error;
-      }
+      const { error: modulesError } = await supabase.from('module_permissions').insert(
+        safeModules.map(m => ({ user_id: userId, module: m })) as any
+      );
+      if (modulesError) throw modulesError;
     },
     onSuccess: () => {
       toast({ title: 'Permissões atualizadas!' });
@@ -135,6 +146,13 @@ const EquipePage = () => {
       setEditModules([]);
       setEditModulesDirty(false);
       setEditIsAdmin(false);
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Erro ao atualizar permissões',
+        description: err?.message || 'Não foi possível salvar as alterações.',
+        variant: 'destructive',
+      });
     },
   });
 
