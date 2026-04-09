@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, MapPin, Users, DollarSign } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Lead } from '@/pages/CRMPage';
@@ -92,6 +92,14 @@ export default function LeadCard({ lead, onClick, isOverlay }: Props) {
           </div>
         </div>
       )}
+
+      {/* Data de chegada do lead */}
+      <div className={`flex items-center gap-1.5 ${lead.profiles?.full_name ? 'mt-2' : 'mt-4 pt-3 border-t border-border/10'}`}>
+        <Clock className="w-3 h-3 text-gold/40 shrink-0" />
+        <span className="text-[9px] text-muted-foreground/50 font-medium italic">
+          Lead desde {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
+        </span>
+      </div>
     </div>
   );
 }
