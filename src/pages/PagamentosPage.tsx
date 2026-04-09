@@ -126,9 +126,12 @@ export default function PagamentosPage() {
         }
       }
 
-      const { data: payment, error } = await supabase
+      const paymentId = crypto.randomUUID();
+
+      const { error } = await supabase
         .from('payments')
         .insert({
+          id: paymentId,
           total_event_value: totalValue,
           installment_count: count,
           has_entry_payment: hasEntry,
@@ -136,9 +139,7 @@ export default function PagamentosPage() {
           entry_date: hasEntry && form.entry_date ? form.entry_date : null,
           client_id: form.client_id || null,
           event_id: form.event_id || null,
-        })
-        .select()
-        .single();
+        });
       if (error) throw error;
 
       // Generate installments
@@ -152,7 +153,7 @@ export default function PagamentosPage() {
         const due = new Date(today);
         due.setMonth(due.getMonth() + i + 1);
         return {
-          payment_id: payment.id,
+          payment_id: paymentId,
           installment_number: i + 1,
           due_date: due.toISOString().split("T")[0],
           amount: Math.round(perInstallment * 100) / 100,
@@ -161,7 +162,10 @@ export default function PagamentosPage() {
       });
 
       const { error: instError } = await supabase.from('payment_installments').insert(installmentsData);
-      if (instError) throw instError;
+      if (instError) {
+        await supabase.from('payments').delete().eq('id', paymentId);
+        throw instError;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
