@@ -326,14 +326,14 @@ export default function PagamentosPage() {
 
       {/* Create dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body">
+        <DialogContent className="max-w-md max-h-[90vh] p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body flex flex-col">
           <div className="bg-gradient-gold p-8 text-white">
             <DialogHeader>
               <DialogTitle className="text-2xl font-display text-white">Novo Contrato Comercial</DialogTitle>
               <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Defina o cronograma financeiro deste evento.</p>
             </DialogHeader>
           </div>
-          <div className="p-8 space-y-6">
+          <div className="p-6 md:p-8 space-y-6 overflow-y-auto min-h-0">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Total *</Label>

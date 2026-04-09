@@ -267,14 +267,14 @@ export default function ContratosPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-white border-border/40 text-foreground max-w-lg rounded-[32px] p-0 overflow-hidden shadow-2xl font-body">
+        <DialogContent className="bg-white border-border/40 text-foreground max-w-lg max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">
           <div className="bg-gradient-gold p-10 text-white">
             <DialogHeader>
               <DialogTitle className="text-3xl font-display text-white tracking-tight">Registro de Contrato</DialogTitle>
               <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Compliance Executivo David Melo</p>
             </DialogHeader>
           </div>
-          <div className="p-10 space-y-6">
+          <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0">
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificação / Título do Contrato</Label>

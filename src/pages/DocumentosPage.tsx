@@ -47,17 +47,40 @@ export default function DocumentosPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const uploadPath = `${user?.id || 'public'}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('documentos')
-        .upload(uploadPath, file, { upsert: true, contentType: file.type || undefined });
+      const bucketCandidates = ['documentos', 'documents'];
+      const pathCandidates = [
+        `${user?.id || 'public'}/${fileName}`,
+        fileName,
+      ];
 
-      if (uploadError) throw new Error(uploadError.message || 'Falha ao enviar arquivo para o bucket documentos.');
+      let uploadedBucket = '';
+      let uploadedPath = '';
+      let lastError: any = null;
+
+      for (const bucket of bucketCandidates) {
+        for (const path of pathCandidates) {
+          const { error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(path, file, { upsert: true, contentType: file.type || undefined });
+
+          if (!uploadError) {
+            uploadedBucket = bucket;
+            uploadedPath = path;
+            break;
+          }
+          lastError = uploadError;
+        }
+        if (uploadedBucket) break;
+      }
+
+      if (!uploadedBucket || !uploadedPath) {
+        throw new Error(lastError?.message || 'Falha ao enviar arquivo para o storage (bucket documentos/documents).');
+      }
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from('documentos').getPublicUrl(uploadPath);
+      } = supabase.storage.from(uploadedBucket).getPublicUrl(uploadedPath);
 
       if (!publicUrl) throw new Error('Arquivo enviado, mas URL publica nao foi gerada.');
 
@@ -215,14 +238,14 @@ export default function DocumentosPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-white border-border/40 text-foreground max-w-lg rounded-[32px] p-0 overflow-hidden shadow-2xl font-body">
+        <DialogContent className="bg-white border-border/40 text-foreground max-w-lg max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">
           <div className="bg-gradient-gold p-10 text-white">
             <DialogHeader>
               <DialogTitle className="text-3xl font-display text-white tracking-tight">Registro de Documento</DialogTitle>
               <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Base de Conhecimento David Melo Hub</p>
             </DialogHeader>
           </div>
-          <div className="p-10 space-y-6">
+          <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0">
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Título do Documento</Label>

@@ -325,11 +325,11 @@ const EquipePage = () => {
           if (!open) setGeneratedInviteLink('');
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><UserCog size={20} /> Convidar Membro</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5">
+          <div className="space-y-5 overflow-y-auto min-h-0">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">E-mail (opcional)</Label>
               <Input
@@ -400,7 +400,7 @@ const EquipePage = () => {
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Permissões de Módulos</DialogTitle>
           </DialogHeader>

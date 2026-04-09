@@ -141,14 +141,14 @@ export default function FornecedoresPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-white border-border/40 text-foreground max-w-md rounded-[32px] p-0 overflow-hidden shadow-2xl font-body">
+        <DialogContent className="bg-white border-border/40 text-foreground max-w-md max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">
           <div className="bg-gradient-gold p-10 text-white relative">
             <DialogHeader>
               <DialogTitle className="text-3xl font-display text-white tracking-tight">Cadastro de Parceiro</DialogTitle>
               <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Ecossistema Operacional David Melo</p>
             </DialogHeader>
           </div>
-          <div className="p-10 space-y-6">
+          <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Razão Social / Nome</Label>
