@@ -157,6 +157,21 @@ const Dashboard = () => {
   const recentQuarterData = (monthlyMetrics || []).slice(-4);
   const maskMonetary = (value: string) => (isAdmin ? value : 'R$ ••••••••');
 
+  const dreRows = (monthlyMetrics || []).map((m) => {
+    const lucro = m.receitas - m.despesas;
+    const margem = m.receitas > 0 ? (lucro / m.receitas) * 100 : 0;
+    return { ...m, lucro, margem };
+  });
+  const profitableMonths = dreRows.filter((row) => row.lucro > 0).length;
+  const bestDreMonth = dreRows.reduce(
+    (best, row) => (row.lucro > best.lucro ? row : best),
+    dreRows[0] || { month: '-', lucro: 0 }
+  );
+  const worstDreMonth = dreRows.reduce(
+    (worst, row) => (row.lucro < worst.lucro ? row : worst),
+    dreRows[0] || { month: '-', lucro: 0 }
+  );
+
   const kpiCards = [
     {
       label: 'Faturamento Anual',
@@ -433,46 +448,74 @@ const Dashboard = () => {
       </div>
 
       {/* DRE Table */}
-      <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40 overflow-hidden">
-        <h3 className="text-lg font-display text-foreground mb-6">DRE Informativo - Resultados de Gestão</h3>
-        <div className="overflow-x-auto -mx-8 px-8">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/40 bg-secondary/20">
-                {['Mês', 'Eventos', 'Receita Bruta', 'Despesas', 'Lucro Operacional', 'Margem', 'Status'].map(h => (
-                  <th key={h} className="text-left py-4 px-4 text-muted-foreground font-black text-[9px] uppercase tracking-[0.2em]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/20">
-              {monthlyMetrics?.map((m) => {
-                const lucro = m.receitas - m.despesas;
-                const margem = m.receitas > 0 ? (lucro / m.receitas) * 100 : 0;
-                return (
-                  <tr key={m.month} className="hover:bg-secondary/20 transition-colors even:bg-secondary/[0.08]">
-                    <td className="py-4 px-4 text-foreground font-black uppercase text-[10px] tracking-widest">{m.month}</td>
-                    <td className="py-4 px-4 text-foreground font-bold">{m.eventos}</td>
-                    <td className="py-4 px-4 text-emerald-600 font-bold">{formatCurrency(m.receitas)}</td>
-                    <td className="py-4 px-4 text-rose-600 font-bold">{formatCurrency(m.despesas)}</td>
-                    <td className={`py-4 px-4 font-bold ${lucro >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>{formatCurrency(lucro)}</td>
-                    <td className="py-4 px-4 font-medium">
-                      <span className={cn(
-                        "px-2 py-1 rounded text-[10px] font-black",
-                        margem > 30 ? "bg-emerald-100 text-emerald-800" : margem > 0 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"
-                      )}>
-                        {margem.toFixed(1)}%
-                      </span>
+      <div className="premium-shadow rounded-2xl border border-border/40 overflow-hidden bg-gradient-to-br from-white via-white to-secondary/30">
+        <div className="px-8 py-6 border-b border-border/30 bg-white/80 backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-display text-foreground uppercase tracking-tight">DRE Informativo - Resultados de Gestao</h3>
+              <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.25em] mt-2">Leitura de resultado mensal com foco em margem e lucro</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-[420px]">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-emerald-700">Meses lucrativos</p>
+                <p className="text-xl font-display text-emerald-900">{profitableMonths}/12</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-amber-700">Melhor mes</p>
+                <p className="text-xl font-display text-amber-900">{bestDreMonth.month}</p>
+              </div>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-rose-700">Ponto de atencao</p>
+                <p className="text-xl font-display text-rose-900">{worstDreMonth.month}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="overflow-x-auto rounded-xl border border-border/30 bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/40 bg-secondary/30">
+                  {['Mes', 'Eventos', 'Receita Bruta', 'Despesas', 'Lucro Operacional', 'Margem', 'Status'].map(h => (
+                    <th key={h} className="text-left py-4 px-4 text-muted-foreground font-black text-[9px] uppercase tracking-[0.2em]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/20">
+                {dreRows.map((row) => (
+                  <tr key={row.month} className="hover:bg-secondary/20 transition-colors even:bg-secondary/[0.08]">
+                    <td className="py-4 px-4 text-foreground font-black uppercase text-[10px] tracking-widest">{row.month}</td>
+                    <td className="py-4 px-4 text-foreground font-bold">{row.eventos}</td>
+                    <td className="py-4 px-4 text-emerald-600 font-bold select-none">{maskMonetary(formatCurrency(row.receitas))}</td>
+                    <td className="py-4 px-4 text-rose-600 font-bold select-none">{maskMonetary(formatCurrency(row.despesas))}</td>
+                    <td className={cn('py-4 px-4 font-bold select-none', row.lucro >= 0 ? 'text-emerald-700' : 'text-rose-700')}>
+                      {maskMonetary(formatCurrency(row.lucro))}
+                    </td>
+                    <td className="py-4 px-4 min-w-[160px]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-full h-1.5 rounded-full bg-secondary/60 overflow-hidden">
+                          <div
+                            className={cn('h-full rounded-full', row.margem >= 30 ? 'bg-emerald-500' : row.margem > 0 ? 'bg-amber-500' : 'bg-rose-500')}
+                            style={{ width: `${Math.min(Math.max(row.margem, 0), 100)}%` }}
+                          />
+                        </div>
+                        <span className={cn('px-2 py-1 rounded text-[10px] font-black whitespace-nowrap', row.margem >= 30 ? 'bg-emerald-100 text-emerald-800' : row.margem > 0 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-700')}>
+                          {row.margem.toFixed(1)}%
+                        </span>
+                      </div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider text-muted-foreground opacity-60">
-                         <div className={`w-1.5 h-1.5 rounded-full ${m.receitas > 0 ? 'bg-gold' : 'bg-slate-300'}`} /> {m.receitas > 0 ? 'Auditado' : 'Sem Dados'}
+                      <div className="flex items-center gap-1.5 font-black text-[9px] uppercase tracking-wider text-muted-foreground opacity-80">
+                        <div className={cn('w-1.5 h-1.5 rounded-full', row.receitas > 0 ? 'bg-gold' : 'bg-slate-300')} />
+                        {row.receitas > 0 ? 'Auditado' : 'Sem dados'}
                       </div>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
