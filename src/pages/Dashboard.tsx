@@ -138,7 +138,7 @@ const Dashboard = () => {
   const kpiCards = [
     { label: 'Faturamento Anual', value: formatCurrency(kpis?.annual || 0), icon: DollarSign, sensitive: true },
     { label: 'Vendas do Mês', value: formatCurrency(kpis?.monthly || 0), icon: TrendingUp, sensitive: true },
-    { label: 'A Receber no Mês', value: formatCurrency(kpis?.receivable || 0), icon: Clock, sensitive: false },
+    { label: 'A Receber no Mês', value: formatCurrency(kpis?.receivable || 0), icon: Clock, sensitive: true },
   ];
 
   return (
