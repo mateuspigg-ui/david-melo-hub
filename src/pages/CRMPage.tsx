@@ -96,21 +96,26 @@ export default function CRMPage() {
     },
   });
 
-  // Busca leads que possuem tarefas pendentes com prazo vencido
+  // Busca leads com tarefas pendentes vencidas — falha silenciosamente se o banco não suportar
   const { data: overdueLeadIds = new Set<string>() } = useQuery({
     queryKey: ['overdue_leads'],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from('lead_tasks')
-        .select('lead_id')
-        .neq('status', 'done')
-        .lt('due_date', today)
-        .not('due_date', 'is', null);
-      if (error) throw error;
-      return new Set((data ?? []).map(t => t.lead_id));
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const { data, error } = await supabase
+          .from('lead_tasks')
+          .select('lead_id')
+          .neq('status', 'done')
+          .lt('due_date', today)
+          .not('due_date', 'is', null);
+        if (error) return new Set<string>(); // falha silenciosa
+        return new Set((data ?? []).map(t => t.lead_id as string));
+      } catch {
+        return new Set<string>();
+      }
     },
-    refetchInterval: 60_000, // atualiza a cada 1 minuto
+    refetchInterval: 60_000,
+    retry: false, // não retentar em caso de erro
   });
 
   const updateStageMutation = useMutation({

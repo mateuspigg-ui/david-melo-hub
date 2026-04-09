@@ -99,7 +99,14 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
       onOpenChange(false);
       toast({ title: lead ? 'Lead atualizado' : 'Lead criado com sucesso' });
     },
-    onError: () => toast({ title: 'Erro ao salvar lead', variant: 'destructive' }),
+    onError: (err: unknown) => {
+      const msg = err && typeof err === 'object' && 'message' in err ? String((err as {message: string}).message) : '';
+      if (msg.includes('column') || msg.includes('schema')) {
+        toast({ title: 'Execute o SQL de migração no Supabase para adicionar os campos de contato.', variant: 'destructive' });
+      } else {
+        toast({ title: 'Erro ao salvar lead. Verifique os dados e tente novamente.', variant: 'destructive' });
+      }
+    },
   });
 
   return (
@@ -137,9 +144,9 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 mt-2 border-b border-border/10 pb-2">Dados Pessoais do Contato</p>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Nome *</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Nome</Label>
                 <Input 
-                  {...register('first_name', { required: true })} 
+                  {...register('first_name')} 
                   placeholder="Ex: João" 
                   className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
                 />
