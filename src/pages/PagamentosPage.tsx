@@ -101,10 +101,30 @@ export default function PagamentosPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const totalValue = parseFloat(form.total_event_value);
-      const count = parseInt(form.installment_count);
+      const totalValue = Number(String(form.total_event_value).replace(',', '.'));
+      const count = Number(form.installment_count);
       const hasEntry = form.has_entry_payment;
-      const entryAmount = hasEntry ? parseFloat(form.entry_amount) : null;
+      const entryAmount = hasEntry ? Number(String(form.entry_amount).replace(',', '.')) : null;
+
+      if (!Number.isFinite(totalValue) || totalValue <= 0) {
+        throw new Error('Informe um valor total válido maior que zero.');
+      }
+
+      if (!Number.isInteger(count) || count < 1) {
+        throw new Error('Informe uma quantidade de parcelas válida (mínimo 1).');
+      }
+
+      if (hasEntry) {
+        if (!Number.isFinite(entryAmount as number) || (entryAmount as number) <= 0) {
+          throw new Error('Informe um valor de entrada válido.');
+        }
+        if ((entryAmount as number) > totalValue) {
+          throw new Error('O valor de entrada não pode ser maior que o valor total.');
+        }
+        if (!form.entry_date) {
+          throw new Error('Informe a data da entrada.');
+        }
+      }
 
       const { data: payment, error } = await supabase
         .from('payments')
@@ -123,6 +143,9 @@ export default function PagamentosPage() {
 
       // Generate installments
       const remaining = hasEntry && entryAmount ? totalValue - entryAmount : totalValue;
+      if (remaining < 0) {
+        throw new Error('Não foi possível calcular as parcelas. Verifique os valores informados.');
+      }
       const perInstallment = remaining / count;
       const today = new Date();
       const installmentsData = Array.from({ length: count }, (_, i) => {
@@ -150,7 +173,7 @@ export default function PagamentosPage() {
       resetForm();
       toast({ title: "Pagamento criado com sucesso", style: { backgroundColor: '#C5A059', color: '#fff' } });
     },
-    onError: () => toast({ title: "Erro ao criar pagamento", variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Erro ao criar pagamento", description: e?.message || 'Verifique os dados informados.', variant: "destructive" }),
   });
 
   const markPaidMutation = useMutation({
@@ -415,7 +438,11 @@ export default function PagamentosPage() {
 
             <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!form.total_event_value} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest transition-all">
+              <Button
+                onClick={() => createMutation.mutate()}
+                disabled={!form.total_event_value || createMutation.isPending || (form.has_entry_payment && (!form.entry_amount || !form.entry_date))}
+                className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest transition-all"
+              >
                 Gerar Contrato
               </Button>
             </div>
