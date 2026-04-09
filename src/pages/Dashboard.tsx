@@ -154,7 +154,9 @@ const Dashboard = () => {
   const annualMargin = totalRevenue > 0 ? (annualProfit / totalRevenue) * 100 : 0;
   const receivableCoverage = monthlyValue > 0 ? (receivableValue / monthlyValue) * 100 : 0;
 
-  const recentQuarterData = (monthlyMetrics || []).slice(-4);
+  const currentMonthIndex = new Date().getMonth();
+  const quarterStartIndex = Math.max(0, currentMonthIndex - 3);
+  const recentQuarterData = (monthlyMetrics || []).slice(quarterStartIndex, currentMonthIndex + 1);
   const maskMonetary = (value: string) => (isAdmin ? value : 'R$ ••••••••');
   const maskCurrency = (value: number) => (isAdmin ? formatCurrency(value) : 'R$ ••••••••');
   const financialChartData = isAdmin
