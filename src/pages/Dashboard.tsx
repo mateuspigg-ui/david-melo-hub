@@ -159,7 +159,7 @@ const Dashboard = () => {
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           const restricted = kpi.sensitive && !isAdmin;
-          const displayValue = restricted ? 'R$ ********' : kpi.value;
+          const displayValue = restricted ? 'R$ ••••••••' : kpi.value;
           return (
             <div key={kpi.label} className="bg-white premium-shadow rounded-2xl p-8 border border-border/40 hover:border-gold/30 transition-all duration-300 group relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gold/[0.03] rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
