@@ -19,7 +19,11 @@ export default function LeadCard({ lead, onClick, isOverlay }: Props) {
     transition,
   };
 
-  const clientName = lead.clients ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim() : null;
+  const clientName = lead.clients 
+    ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim() 
+    : (lead.first_name || lead.last_name)
+      ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim()
+      : null;
 
   return (
     <div
@@ -42,6 +46,9 @@ export default function LeadCard({ lead, onClick, isOverlay }: Props) {
 
       {clientName && (
         <p className="text-[10px] font-bold text-gold mt-1.5 truncate tracking-wide">{clientName}</p>
+      )}
+      {lead.phone && (
+        <p className="text-[9px] font-medium text-muted-foreground/60 mt-0.5 truncate">{lead.phone}</p>
       )}
 
       <div className="mt-4 space-y-2">

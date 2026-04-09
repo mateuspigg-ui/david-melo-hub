@@ -6,8 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Plus, Trash2, CheckCircle2, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -82,9 +81,16 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
 
   const stageInfo = stages.find(s => s.id === lead.stage);
   const eventTypeLabel = eventTypes.find(t => t.value === lead.event_type)?.label;
-  const clientName = lead.clients ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim() : null;
+  const clientName = lead.clients
+    ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim()
+    : null;
+  const leadName = (lead.first_name || lead.last_name)
+    ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim()
+    : null;
+  const displayName = clientName || leadName;
 
-  return (    <Dialog open={!!lead} onOpenChange={() => onClose()}>
+  return (
+    <Dialog open={!!lead} onOpenChange={() => onClose()}>
       <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
         {/* Header - Fixed */}
         <div className="bg-gradient-gold p-8 text-white flex-none relative">
@@ -94,7 +100,13 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
               <div className="relative z-10">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 mb-2">Dossiê da Oportunidade</p>
                 <DialogTitle className="text-3xl font-display text-white tracking-tight leading-none mb-1">{lead.title}</DialogTitle>
-                {clientName && <p className="text-lg font-bold text-white/90 mt-1 capitalize tracking-tight">{clientName}</p>}
+                {displayName && <p className="text-lg font-bold text-white/90 mt-1 capitalize tracking-tight">{displayName}</p>}
+                {lead.phone && (
+                  <p className="flex items-center gap-1.5 text-sm text-white/70 font-medium mt-0.5">
+                    <Phone className="w-3.5 h-3.5" />
+                    {lead.phone}
+                  </p>
+                )}
               </div>
             </div>
           </DialogHeader>
@@ -137,7 +149,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
             <div className="space-y-4">
               {lead.total_budget && (
                 <div className="flex items-center gap-4 text-sm font-black text-gold">
-                   <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center shadow-sm">
                     <DollarSign className="w-5 h-5" />
                   </div>
                   <span className="text-lg font-display">{Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
@@ -172,16 +184,16 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
 
           <div className="space-y-5 bg-secondary/10 p-6 rounded-[28px] border border-border/10 shadow-inner">
             <h4 className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.25em] flex items-center justify-between ml-1">
-              Plano de Ação / Tarefas 
+              Plano de Ação / Tarefas
               <Badge variant="secondary" className="bg-foreground/5 text-foreground/60 rounded-full font-black text-[9px]">{tasks.length}</Badge>
             </h4>
-            
+
             <div className="space-y-3 max-h-[250px] overflow-y-auto no-scrollbar">
               {tasks.length === 0 && <p className="text-center py-6 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">Nenhuma tarefa agendada</p>}
               {tasks.map(task => (
                 <div key={task.id} className="flex items-center gap-3 group bg-white p-4 rounded-xl border border-border/10 hover:shadow-md transition-all duration-300">
-                  <button 
-                    onClick={() => toggleTaskMutation.mutate({ id: task.id, status: task.status })} 
+                  <button
+                    onClick={() => toggleTaskMutation.mutate({ id: task.id, status: task.status })}
                     className="shrink-0 transition-transform active:scale-90"
                   >
                     <CheckCircle2 className={`w-5 h-5 ${task.status === 'done' ? 'text-green-500 bg-green-500/5 rounded-full' : 'text-muted-foreground/20 hover:text-gold'}`} />
@@ -194,11 +206,11 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, stages, eventT
             </div>
 
             <form onSubmit={e => { e.preventDefault(); if (newTask.trim()) addTaskMutation.mutate(newTask.trim()); }} className="flex gap-2 pt-2">
-              <Input 
-                value={newTask} 
-                onChange={e => setNewTask(e.target.value)} 
-                placeholder="Qual o próximo passo com este lead?" 
-                className="text-xs h-12 bg-white border-border/10 focus:border-gold rounded-xl font-medium shadow-sm" 
+              <Input
+                value={newTask}
+                onChange={e => setNewTask(e.target.value)}
+                placeholder="Qual o próximo passo com este lead?"
+                className="text-xs h-12 bg-white border-border/10 focus:border-gold rounded-xl font-medium shadow-sm"
               />
               <Button type="submit" size="icon" className="h-12 w-12 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold">
                 <Plus className="w-5 h-5" />

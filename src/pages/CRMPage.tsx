@@ -33,6 +33,9 @@ const EVENT_TYPES = [
 export type Lead = {
   id: string;
   title: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
   client_id: string | null;
   stage: string;
   event_type: string | null;
@@ -108,10 +111,13 @@ export default function CRMPage() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
+      const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
       const matchesSearch = !search || 
         lead.title.toLowerCase().includes(search.toLowerCase()) ||
         (lead.clients && `${lead.clients.first_name} ${lead.clients.last_name}`.toLowerCase().includes(search.toLowerCase())) ||
-        (lead.event_location && lead.event_location.toLowerCase().includes(search.toLowerCase()));
+        (lead.event_location && lead.event_location.toLowerCase().includes(search.toLowerCase())) ||
+        leadName.toLowerCase().includes(search.toLowerCase()) ||
+        (lead.phone && lead.phone.includes(search));
       const matchesType = filterType === 'all' || lead.event_type === filterType;
       return matchesSearch && matchesType;
     });

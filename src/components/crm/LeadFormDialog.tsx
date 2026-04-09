@@ -23,6 +23,9 @@ interface Props {
 
 interface FormData {
   title: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
   client_id: string;
   stage: string;
   event_type: string;
@@ -45,6 +48,9 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
       if (lead) {
         reset({
           title: lead.title,
+          first_name: lead.first_name || '',
+          last_name: lead.last_name || '',
+          phone: lead.phone || '',
           client_id: lead.client_id || '',
           stage: lead.stage,
           event_type: lead.event_type || '',
@@ -57,7 +63,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
           assigned_to: lead.assigned_to || '',
         });
       } else {
-        reset({ title: '', client_id: '', stage: 'novo_contato', event_type: '', event_location: '', event_date: '', event_time: '', guest_count: '', total_budget: '', notes: '', assigned_to: '' });
+        reset({ title: '', first_name: '', last_name: '', phone: '', client_id: '', stage: 'novo_contato', event_type: '', event_location: '', event_date: '', event_time: '', guest_count: '', total_budget: '', notes: '', assigned_to: '' });
       }
     }
   }, [open, lead, reset]);
@@ -66,6 +72,9 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
     mutationFn: async (data: FormData) => {
       const payload = {
         title: data.title,
+        first_name: data.first_name || null,
+        last_name: data.last_name || null,
+        phone: data.phone || null,
         client_id: data.client_id || null,
         stage: data.stage,
         event_type: data.event_type || null,
@@ -113,6 +122,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
         <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-white/50 backdrop-blur-sm">
           <form id="lead-form" onSubmit={handleSubmit(d => mutation.mutate(d))} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* ── Seção: Dados do Lead/Oportunidade ── */}
               <div className="sm:col-span-2 space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Título da Oportunidade *</Label>
                 <Input 
@@ -121,7 +131,40 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
                   className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
                 />
               </div>
-              
+
+              {/* ── Seção: Dados Pessoais de Contato ── */}
+              <div className="sm:col-span-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 mt-2 border-b border-border/10 pb-2">Dados Pessoais do Contato</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Nome *</Label>
+                <Input 
+                  {...register('first_name', { required: true })} 
+                  placeholder="Ex: João" 
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
+                <Input 
+                  {...register('last_name')} 
+                  placeholder="Ex: Silva" 
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Telefone / WhatsApp</Label>
+                <Input 
+                  {...register('phone')} 
+                  placeholder="(00) 00000-0000" 
+                  className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
+                />
+              </div>
+
+              {/* ── Seção: Dados do Evento ── */}
+              <div className="sm:col-span-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 mt-2 border-b border-border/10 pb-2">Dados do Evento</p>
+              </div>
               {lead && (
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Cliente Vinculado</Label>
