@@ -159,13 +159,14 @@ const Dashboard = () => {
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           const restricted = kpi.sensitive && !isAdmin;
+          const displayValue = restricted ? 'R$ •••••••' : kpi.value;
           return (
             <div key={kpi.label} className="bg-white premium-shadow rounded-2xl p-8 border border-border/40 hover:border-gold/30 transition-all duration-300 group relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gold/[0.03] rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
               <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.25em]">{kpi.label}</p>
-                  <p className={cn("text-4xl font-display text-foreground mt-3 tracking-tighter transition-all", restricted && "blur-sm select-none")}>{kpi.value}</p>
+                  <p className={cn("text-4xl font-display text-foreground mt-3 tracking-tighter transition-all", restricted && "blur-sm select-none")}>{displayValue}</p>
                   {restricted && <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-2">Visao restrita para ADM</p>}
                 </div>
                 <div className="w-14 h-14 rounded-2xl bg-secondary/30 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-white transition-all duration-500 shadow-sm">
