@@ -140,13 +140,22 @@ const Dashboard = () => {
 
   const pipelineTotal = pipelineData?.reduce((acc, item) => acc + item.value, 0) || 0;
   const pipelineWon = pipelineData?.find((item) => item.name === 'Fechados')?.value || 0;
+  const pipelineNegotiation = pipelineData?.find((item) => item.name === 'Em Negociação')?.value || 0;
   const conversionRate = pipelineTotal > 0 ? (pipelineWon / pipelineTotal) * 100 : 0;
 
   const monthlyProfit = (monthlyMetrics || []).map((m) => m.receitas - m.despesas);
   const bestProfit = monthlyProfit.length > 0 ? Math.max(...monthlyProfit) : 0;
   const avgRevenue = (monthlyMetrics || []).reduce((acc, m) => acc + m.receitas, 0) / 12;
+  const totalEvents = (monthlyMetrics || []).reduce((acc, m) => acc + m.eventos, 0);
+  const totalRevenue = (monthlyMetrics || []).reduce((acc, m) => acc + m.receitas, 0);
+  const totalExpenses = (monthlyMetrics || []).reduce((acc, m) => acc + m.despesas, 0);
+  const annualProfit = totalRevenue - totalExpenses;
+  const avgTicket = totalEvents > 0 ? totalRevenue / totalEvents : 0;
+  const annualMargin = totalRevenue > 0 ? (annualProfit / totalRevenue) * 100 : 0;
+  const receivableCoverage = monthlyValue > 0 ? (receivableValue / monthlyValue) * 100 : 0;
 
   const recentQuarterData = (monthlyMetrics || []).slice(-4);
+  const maskMonetary = (value: string) => (isAdmin ? value : 'R$ ••••••••');
 
   const kpiCards = [
     {
@@ -196,7 +205,7 @@ const Dashboard = () => {
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           const restricted = kpi.sensitive && !isAdmin;
-          const displayValue = restricted ? 'R$ ••••••••' : kpi.value;
+          const displayValue = restricted ? maskMonetary(kpi.value) : kpi.value;
           return (
             <div key={kpi.label} className={cn('premium-shadow rounded-2xl p-8 border bg-gradient-to-br hover:shadow-2xl transition-all duration-300 group relative overflow-hidden', kpi.cardClass)}>
               <div className="absolute top-0 right-0 w-36 h-36 bg-white/50 rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform" />
@@ -214,6 +223,53 @@ const Dashboard = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* Essential Indicators */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-display text-foreground uppercase tracking-tight">Indicadores Essenciais da Operação</h3>
+          <span className="text-[10px] font-black uppercase tracking-widest text-gold">Eventos • CRM • Financeiro</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Eventos no Ano</p>
+            <p className="text-3xl font-display text-foreground mt-2">{totalEvents}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Volume total de projetos atendidos</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ticket Médio por Evento</p>
+            <p className="text-3xl font-display text-foreground mt-2 select-none">{maskMonetary(formatCurrency(avgTicket))}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Receita média por contrato fechado</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conversão Comercial</p>
+            <p className="text-3xl font-display text-foreground mt-2">{conversionRate.toFixed(1)}%</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{pipelineWon} fechados de {pipelineTotal} oportunidades</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Margem Operacional Anual</p>
+            <p className={cn('text-3xl font-display mt-2', annualMargin >= 20 ? 'text-emerald-700' : annualMargin > 0 ? 'text-amber-700' : 'text-rose-700')}>
+              {annualMargin.toFixed(1)}%
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">Qualidade financeira da operação</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lucro Operacional Anual</p>
+            <p className="text-3xl font-display text-foreground mt-2 select-none">{maskMonetary(formatCurrency(annualProfit))}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Receitas menos despesas consolidadas</p>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-white p-5 premium-shadow">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Backlog em Negociação</p>
+            <p className="text-3xl font-display text-foreground mt-2">{pipelineNegotiation}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{receivableCoverage.toFixed(1)}% do mês em contas a receber</p>
+          </div>
+        </div>
       </div>
 
       {/* Charts Row */}
