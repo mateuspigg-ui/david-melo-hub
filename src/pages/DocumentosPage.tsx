@@ -44,26 +44,22 @@ export default function DocumentosPage() {
         .toLowerCase();
       const fileName = `${Date.now()}-${safeName}.${ext}`;
 
-      const bucketsToTry = ['documentos', 'Documentos', 'documents', 'storage'];
-      let publicUrl = '';
-      let lastError: any = null;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const uploadPath = `${user?.id || 'public'}/${fileName}`;
 
-      for (const bucketName of bucketsToTry) {
-        const { error: uploadError } = await supabase.storage
-          .from(bucketName)
-          .upload(fileName, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from('documentos')
+        .upload(uploadPath, file, { upsert: true, contentType: file.type || undefined });
 
-        if (!uploadError) {
-          const {
-            data: { publicUrl: url },
-          } = supabase.storage.from(bucketName).getPublicUrl(fileName);
-          publicUrl = url;
-          break;
-        }
-        lastError = uploadError;
-      }
+      if (uploadError) throw new Error(uploadError.message || 'Falha ao enviar arquivo para o bucket documentos.');
 
-      if (!publicUrl) throw lastError || new Error('Falha ao enviar arquivo para o storage.');
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('documentos').getPublicUrl(uploadPath);
+
+      if (!publicUrl) throw new Error('Arquivo enviado, mas URL publica nao foi gerada.');
 
       setForm((prev) => ({
         ...prev,
@@ -96,7 +92,16 @@ export default function DocumentosPage() {
         const { error } = await supabase.from('company_documents').update(form).eq('id', editingDoc.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('company_documents').insert([form]);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        const { error } = await supabase.from('company_documents').insert([
+          {
+            ...form,
+            created_by: user?.id || null,
+          },
+        ]);
         if (error) throw error;
       }
     },
