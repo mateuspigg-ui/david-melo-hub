@@ -157,12 +157,21 @@ export default function PagamentosPage() {
           installment_number: i + 1,
           due_date: due.toISOString().split("T")[0],
           amount: Math.round(perInstallment * 100) / 100,
-          status: "pending",
         };
       });
 
       const { error: instError } = await supabase.from('payment_installments').insert(installmentsData);
       if (instError) {
+        const looksLikeStatusMismatch = /status|pending|pendente/i.test(instError.message || '');
+
+        if (looksLikeStatusMismatch) {
+          const retryData = installmentsData.map((item) => ({ ...item, status: 'pendente' }));
+          const { error: retryError } = await supabase.from('payment_installments').insert(retryData as any);
+          if (!retryError) return;
+          await supabase.from('payments').delete().eq('id', paymentId);
+          throw retryError;
+        }
+
         await supabase.from('payments').delete().eq('id', paymentId);
         throw instError;
       }
