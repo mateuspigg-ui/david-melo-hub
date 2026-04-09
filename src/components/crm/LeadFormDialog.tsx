@@ -70,11 +70,8 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const payload = {
+      const payload: Record<string, unknown> = {
         title: data.title,
-        first_name: data.first_name || null,
-        last_name: data.last_name || null,
-        phone: data.phone || null,
         client_id: data.client_id || null,
         stage: data.stage,
         event_type: data.event_type || null,
@@ -87,10 +84,10 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
         assigned_to: data.assigned_to || null,
       };
       if (lead) {
-        const { error } = await supabase.from('leads').update(payload).eq('id', lead.id);
+        const { error } = await supabase.from('leads').update(payload as any).eq('id', lead.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('leads').insert(payload);
+        const { error } = await supabase.from('leads').insert(payload as any);
         if (error) throw error;
       }
     },

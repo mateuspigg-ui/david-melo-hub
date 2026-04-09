@@ -327,12 +327,9 @@ export type Database = {
           event_location: string | null
           event_time: string | null
           event_type: string | null
-          first_name: string | null
           guest_count: number | null
           id: string
-          last_name: string | null
           notes: string | null
-          phone: string | null
           stage: string
           title: string
           total_budget: number | null
@@ -346,12 +343,9 @@ export type Database = {
           event_location?: string | null
           event_time?: string | null
           event_type?: string | null
-          first_name?: string | null
           guest_count?: number | null
           id?: string
-          last_name?: string | null
           notes?: string | null
-          phone?: string | null
           stage?: string
           title: string
           total_budget?: number | null
@@ -365,12 +359,9 @@ export type Database = {
           event_location?: string | null
           event_time?: string | null
           event_type?: string | null
-          first_name?: string | null
           guest_count?: number | null
           id?: string
-          last_name?: string | null
           notes?: string | null
-          phone?: string | null
           stage?: string
           title?: string
           total_budget?: number | null

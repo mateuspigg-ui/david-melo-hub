@@ -7,6 +7,14 @@ import { cn } from '@/lib/utils';
 
 const GOLD_COLORS = ['#C5A059', '#B89451', '#D4AF37', '#997F3D', '#E5C185'];
 
+const PIPELINE_COLORS: Record<string, string> = {
+  'Novo Contato': 'hsl(45, 70%, 50%)',       // gold (same as kanban)
+  'Orçamento Enviado': 'hsl(210, 60%, 50%)', // blue
+  'Em Negociação': 'hsl(35, 80%, 55%)',      // orange
+  'Fechados': 'hsl(142, 60%, 45%)',          // green
+  'Perdidos': 'hsl(0, 60%, 50%)',            // red
+};
+
 const Dashboard = () => {
   const currentYear = new Date().getFullYear();
   const currentMonthStart = startOfMonth(new Date());
@@ -185,25 +193,25 @@ const Dashboard = () => {
         </div>
 
         <div className="bg-white premium-shadow rounded-2xl p-10 border border-border/40 transition-all hover:shadow-2xl">
-          <div className="mb-10 text-center lg:text-left">
+          <div className="mb-6 text-center lg:text-left">
             <h3 className="text-xl font-display text-foreground tracking-tight uppercase">Eficiência do Pipeline</h3>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1 opacity-60">Matriz de Conversão CRM</p>
           </div>
-          <div className="h-[350px] flex items-center justify-center">
+          <div className="h-[220px] flex items-center justify-center relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie 
                   data={pipelineData} 
                   cx="50%" 
                   cy="50%" 
-                  innerRadius={85} 
-                  outerRadius={115} 
+                  innerRadius={65} 
+                  outerRadius={90} 
                   dataKey="value" 
-                  paddingAngle={10}
+                  paddingAngle={8}
                   stroke="none"
                 >
-                  {pipelineData?.map((_, idx) => (
-                    <Cell key={idx} fill={GOLD_COLORS[idx % GOLD_COLORS.length]} />
+                  {pipelineData?.map((entry, idx) => (
+                    <Cell key={idx} fill={PIPELINE_COLORS[entry.name] || GOLD_COLORS[idx % GOLD_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -215,6 +223,35 @@ const Dashboard = () => {
               <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ativos</span>
               <span className="text-2xl font-display text-foreground">{pipelineData?.reduce((a, b) => a + b.value, 0) || 0}</span>
             </div>
+          </div>
+          {/* Pipeline Table */}
+          <div className="mt-6 border-t border-border/20 pt-4">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <th className="text-left pb-2">Estágio</th>
+                  <th className="text-right pb-2">Qtd</th>
+                  <th className="text-right pb-2">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pipelineData?.map((entry) => {
+                  const total = pipelineData.reduce((a, b) => a + b.value, 0) || 1;
+                  const pct = ((entry.value / total) * 100).toFixed(1);
+                  const color = PIPELINE_COLORS[entry.name] || '#C5A059';
+                  return (
+                    <tr key={entry.name} className="border-t border-border/10">
+                      <td className="py-2 flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="font-bold text-foreground text-xs">{entry.name}</span>
+                      </td>
+                      <td className="text-right font-display text-foreground py-2">{entry.value}</td>
+                      <td className="text-right text-muted-foreground font-bold py-2">{pct}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
