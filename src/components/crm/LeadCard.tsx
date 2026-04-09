@@ -59,11 +59,9 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
           <span className="text-[9px] font-black uppercase tracking-widest text-blue-700">
             {taskMeta.pendingCount} tarefa{taskMeta.pendingCount > 1 ? 's' : ''} ativa{taskMeta.pendingCount > 1 ? 's' : ''}
           </span>
-          {taskMeta.assignees.length > 0 && (
-            <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 truncate max-w-[120px]" title={taskMeta.assignees.join(', ')}>
-              Resp: {taskMeta.assignees[0]}{taskMeta.assignees.length > 1 ? ` +${taskMeta.assignees.length - 1}` : ''}
-            </span>
-          )}
+          <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 truncate max-w-[140px]" title={taskMeta.assignees.join(', ') || 'Responsavel nao definido'}>
+            Resp: {taskMeta.assignees.length > 0 ? `${taskMeta.assignees[0]}${taskMeta.assignees.length > 1 ? ` +${taskMeta.assignees.length - 1}` : ''}` : 'NAO DEFINIDO'}
+          </span>
         </div>
       )}
 

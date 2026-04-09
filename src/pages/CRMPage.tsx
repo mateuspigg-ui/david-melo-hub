@@ -97,21 +97,22 @@ export default function CRMPage() {
   });
 
   const { data: leadTaskMeta = {} } = useQuery({
-    queryKey: ['lead_task_meta'],
+    queryKey: ['lead_task_meta', teamMembers.length],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lead_tasks')
-        .select('lead_id, status, assignee:assigned_to(full_name)');
+        .select('lead_id, status, assigned_to');
       if (error) throw error;
 
       const meta: Record<string, { pendingCount: number; assignees: string[] }> = {};
+      const memberById = new Map((teamMembers || []).map((m: any) => [m.id, m.full_name]));
 
       (data || []).forEach((task: any) => {
         const leadId = task.lead_id as string;
         if (!meta[leadId]) meta[leadId] = { pendingCount: 0, assignees: [] };
         if (task.status !== 'done') {
           meta[leadId].pendingCount += 1;
-          const assigneeName = task.assignee?.full_name;
+          const assigneeName = task.assigned_to ? memberById.get(task.assigned_to) : null;
           if (assigneeName && !meta[leadId].assignees.includes(assigneeName)) {
             meta[leadId].assignees.push(assigneeName);
           }

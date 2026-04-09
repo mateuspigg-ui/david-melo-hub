@@ -66,6 +66,8 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       setNewTask('');
       setNewTaskDueDate('');
       setNewTaskAssignee(lead?.assigned_to || '');
+      onClose();
+      toast({ title: 'Tarefa confirmada!' });
     },
   });
 
