@@ -70,7 +70,7 @@ interface Props {
 
 const AppSidebar = ({ collapsed }: Props) => {
   const location = useLocation();
-  const { hasModuleAccess, profile } = useAuth();
+  const { hasModuleAccess, profile, allowedModules, isAdmin } = useAuth();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map(s => [s.label, true]))
   );
@@ -87,6 +87,8 @@ const AppSidebar = ({ collapsed }: Props) => {
     }))
     .filter(section => section.items.length > 0);
 
+  const visibleSections = !isAdmin && allowedModules.length === 0 ? sections : filteredSections;
+
   const initials = profile?.full_name
     ? profile.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : 'DM';
@@ -101,7 +103,7 @@ const AppSidebar = ({ collapsed }: Props) => {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
-        {filteredSections.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.label} className="space-y-3">
             {!collapsed && (
               <button
