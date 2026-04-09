@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { format, startOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const GOLD_COLORS = ['#C5A059', '#B89451', '#D4AF37', '#997F3D', '#E5C185'];
 
@@ -16,6 +17,7 @@ const PIPELINE_COLORS: Record<string, string> = {
 };
 
 const Dashboard = () => {
+  const { isAdmin } = useAuth();
   const currentYear = new Date().getFullYear();
   const currentMonthStart = startOfMonth(new Date());
   
@@ -128,9 +130,9 @@ const Dashboard = () => {
   }
 
   const kpiCards = [
-    { label: 'Faturamento Anual', value: formatCurrency(kpis?.annual || 0), icon: DollarSign },
-    { label: 'Vendas do Mês', value: formatCurrency(kpis?.monthly || 0), icon: TrendingUp },
-    { label: 'A Receber no Mês', value: formatCurrency(kpis?.receivable || 0), icon: Clock },
+    { label: 'Faturamento Anual', value: formatCurrency(kpis?.annual || 0), icon: DollarSign, sensitive: true },
+    { label: 'Vendas do Mês', value: formatCurrency(kpis?.monthly || 0), icon: TrendingUp, sensitive: true },
+    { label: 'A Receber no Mês', value: formatCurrency(kpis?.receivable || 0), icon: Clock, sensitive: false },
   ];
 
   return (
@@ -150,13 +152,15 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
+          const restricted = kpi.sensitive && !isAdmin;
           return (
             <div key={kpi.label} className="bg-white premium-shadow rounded-2xl p-8 border border-border/40 hover:border-gold/30 transition-all duration-300 group relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-gold/[0.03] rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
               <div className="flex items-center justify-between relative z-10">
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.25em]">{kpi.label}</p>
-                  <p className="text-4xl font-display text-foreground mt-3 tracking-tighter">{kpi.value}</p>
+                  <p className={cn("text-4xl font-display text-foreground mt-3 tracking-tighter transition-all", restricted && "blur-sm select-none")}>{kpi.value}</p>
+                  {restricted && <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-2">Visao restrita para ADM</p>}
                 </div>
                 <div className="w-14 h-14 rounded-2xl bg-secondary/30 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-white transition-all duration-500 shadow-sm">
                   <Icon size={28} />
