@@ -192,7 +192,7 @@ export default function CRMPage() {
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display text-foreground tracking-tight">Gestão Comercial</h1>
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Gestão Comercial</h1>
           <p className="text-sm text-muted-foreground mt-1 font-body">Pipeline estratégico de leads e oportunidades</p>
         </div>
         <Button 

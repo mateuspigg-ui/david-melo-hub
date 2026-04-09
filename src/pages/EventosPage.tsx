@@ -38,7 +38,7 @@ const EventosPage = () => {
     <div className="p-6 space-y-8 max-w-[1600px] mx-auto animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display text-foreground tracking-tight flex items-center gap-2">
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase flex items-center gap-2">
             <CalendarHeart className="h-8 w-8 text-gold" />
             Gestão de Eventos
           </h1>

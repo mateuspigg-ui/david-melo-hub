@@ -210,7 +210,7 @@ const EquipePage = () => {
   if (!isAdmin) {
     return (
       <div className="space-y-4 animate-fade-in">
-        <h1 className="text-2xl font-display text-foreground">Equipe</h1>
+        <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Equipe</h1>
         <p className="text-muted-foreground">Você não tem permissão para gerenciar a equipe.</p>
       </div>
     );
@@ -220,7 +220,7 @@ const EquipePage = () => {
     <div className="space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display text-foreground">Equipe</h1>
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Equipe</h1>
           <p className="text-sm text-muted-foreground mt-1">Gerencie membros e permissões de acesso</p>
         </div>
         <Button onClick={() => setShowInviteDialog(true)} className="bg-gradient-gold text-white shadow-gold hover:opacity-90">

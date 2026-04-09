@@ -50,7 +50,7 @@ const Auth = () => {
             <img src={logo} alt="David Melo" className="h-64 w-auto relative z-10" />
           </div>
           <div className="text-center relative">
-            <h1 className="text-3xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Ecossistema</h1>
+            <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Ecossistema</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold mt-3 opacity-80">David Melo • Hub Integrado</p>
           </div>
         </div>

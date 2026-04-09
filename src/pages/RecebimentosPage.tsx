@@ -73,7 +73,7 @@ export default function RecebimentosPage() {
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-display text-foreground tracking-tight flex items-center gap-3">
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3">
             <ArrowDownCircle className="h-8 w-8 text-gold" />
             Fluxo de Recebimentos
           </h1>

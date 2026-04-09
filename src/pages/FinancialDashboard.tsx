@@ -58,7 +58,7 @@ const FinancialDashboard = () => {
       {/* Dashboard Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tight flex items-center gap-3">
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3">
             <Landmark className="h-10 w-10 text-gold" />
             Dashboard Financeiro
           </h1>

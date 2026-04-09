@@ -91,7 +91,7 @@ const InvitePage = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-6">
         <div className="text-center space-y-4 max-w-md">
           <XCircle className="mx-auto text-destructive" size={48} />
-          <h1 className="text-2xl font-display text-foreground">Convite Inválido</h1>
+          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Convite Inválido</h1>
           <p className="text-muted-foreground">Este link de convite é inválido, já foi utilizado ou expirou.</p>
           <Button onClick={() => navigate('/auth')} variant="outline">Ir para Login</Button>
         </div>
@@ -105,7 +105,7 @@ const InvitePage = () => {
         <div className="flex flex-col items-center space-y-4">
           <img src={logo} alt="David Melo" className="h-32 w-auto" />
           <div className="text-center">
-            <h1 className="text-2xl font-display text-foreground">Você foi convidado!</h1>
+            <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Você foi convidado!</h1>
             <p className="text-xs text-muted-foreground mt-2">Crie suas credenciais para acessar o sistema</p>
           </div>
         </div>
