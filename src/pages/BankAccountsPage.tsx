@@ -22,7 +22,7 @@ const BankAccountsPage = () => {
     account_digit: '',
     description: '',
     account_type: 'corrente',
-    default_initial_balance: 0,
+    default_initial_balance: '',
     accounting_account_id: ''
   });
 
@@ -37,7 +37,10 @@ const BankAccountsPage = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, default_initial_balance: Number(form.default_initial_balance) };
+      const payload = {
+        ...form,
+        default_initial_balance: form.default_initial_balance === '' ? 0 : Number(form.default_initial_balance),
+      };
       if (editingAccount) {
         const { error } = await (supabase as any).from('bank_accounts').update(payload).eq('id', editingAccount.id);
         if (error) throw error;
@@ -69,11 +72,11 @@ const BankAccountsPage = () => {
   });
 
   const resetForm = () => {
-    setForm({
-      bank_name: '', bank_code: '', agency: '', account_number: '',
-      account_digit: '', description: '', account_type: 'corrente',
-      default_initial_balance: 0, accounting_account_id: ''
-    });
+      setForm({
+        bank_name: '', bank_code: '', agency: '', account_number: '',
+        account_digit: '', description: '', account_type: 'corrente',
+        default_initial_balance: '', accounting_account_id: ''
+      });
   };
 
   return (
@@ -158,11 +161,11 @@ const BankAccountsPage = () => {
                        agency: account.agency,
                        account_number: account.account_number,
                        account_digit: account.account_digit || '',
-                       description: account.description || '',
-                       account_type: account.account_type || 'corrente',
-                       default_initial_balance: account.default_initial_balance || 0,
-                       accounting_account_id: account.accounting_account_id || ''
-                     });
+                        description: account.description || '',
+                        account_type: account.account_type || 'corrente',
+                        default_initial_balance: account.default_initial_balance != null ? String(account.default_initial_balance) : '',
+                        accounting_account_id: account.accounting_account_id || ''
+                      });
                      setDialogOpen(true);
                    }}
                    className="w-10 h-10 rounded-xl bg-secondary/40 flex items-center justify-center text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all shadow-sm"
@@ -276,7 +279,7 @@ const BankAccountsPage = () => {
                 <Input 
                   type="number"
                   value={form.default_initial_balance} 
-                  onChange={e => setForm({...form, default_initial_balance: Number(e.target.value)})} 
+                  onChange={e => setForm({...form, default_initial_balance: e.target.value})} 
                   className="bg-gold/5 h-12 border-gold/20 focus:border-gold rounded-xl font-display text-xl text-gold text-center"
                 />
               </div>
