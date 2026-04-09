@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
@@ -73,17 +72,18 @@ export default function ContasPagarPage() {
     onError: () => toast({ title: "Erro ao criar conta", variant: "destructive" }),
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const togglePaidMutation = useMutation({
+    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      const isPaid = currentStatus === 'pago';
       const { error } = await supabase
         .from("accounts_payable")
-        .update({ payment_status: "pago", paid_at: new Date().toISOString() })
+        .update({ payment_status: isPaid ? "nao_pago" : "pago", paid_at: isPaid ? null : new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
-      toast({ title: "Conta marcada como paga" });
+      toast({ title: variables.currentStatus === 'pago' ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
     },
   });
 
@@ -201,9 +201,21 @@ export default function ContasPagarPage() {
                   
                   <div className="flex items-center gap-2">
                     {item.payment_status === "pago" ? (
-                      <Badge className="bg-emerald-500 text-white border-0 font-bold uppercase text-[9px] tracking-widest px-3 py-1">Auditado / Pago</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-10 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-xl shadow-sm transition-all px-4 text-[9px] font-bold uppercase tracking-widest"
+                        onClick={() => togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status })}
+                      >
+                        Desfazer Baixa
+                      </Button>
                     ) : (
-                      <Button size="icon" variant="outline" className="h-10 w-10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl shadow-sm transition-all shadow-emerald-500/10" onClick={() => markPaidMutation.mutate(item.id)}>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-10 w-10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl shadow-sm transition-all shadow-emerald-500/10"
+                        onClick={() => togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status })}
+                      >
                         <Check className="w-5 h-5" />
                       </Button>
                     )}

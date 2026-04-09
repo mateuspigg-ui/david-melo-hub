@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Search, ArrowDownCircle, Check } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
@@ -44,17 +43,34 @@ export default function RecebimentosPage() {
     },
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const togglePaidMutation = useMutation({
+    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      if (currentStatus === 'paid') {
+        const { error } = await supabase
+          .from("payment_installments")
+          .update({ status: "pending", paid_at: null })
+          .eq("id", id);
+
+        if (!error) return;
+
+        const { error: fallbackError } = await supabase
+          .from("payment_installments")
+          .update({ status: "pendente", paid_at: null } as any)
+          .eq("id", id);
+
+        if (fallbackError) throw fallbackError;
+        return;
+      }
+
       const { error } = await supabase
         .from("payment_installments")
         .update({ status: "paid", paid_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["receivables"] });
-      toast({ title: "Recebimento confirmado" });
+      toast({ title: variables.currentStatus === 'paid' ? 'Baixa desfeita com sucesso' : "Recebimento confirmado" });
     },
   });
 
@@ -163,9 +179,21 @@ export default function RecebimentosPage() {
                   
                   <div className="min-w-[120px] flex justify-end">
                     {inst.status === "paid" ? (
-                      <Badge className="bg-emerald-500 text-white border-0 font-bold uppercase text-[9px] tracking-widest px-3 py-1">Confirmado</Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm"
+                        onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                      >
+                        Desfazer Baixa
+                      </Button>
                     ) : (
-                      <Button size="sm" variant="outline" className="h-9 border-gold/30 text-gold hover:bg-gold hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm" onClick={() => markPaidMutation.mutate(inst.id)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 border-gold/30 text-gold hover:bg-gold hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm"
+                        onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                      >
                         <Check className="w-3 h-3 mr-2" /> Efetivar Baixa
                       </Button>
                     )}

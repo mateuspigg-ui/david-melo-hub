@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
@@ -189,18 +188,38 @@ export default function PagamentosPage() {
     onError: (e: any) => toast({ title: "Erro ao criar pagamento", description: e?.message || 'Verifique os dados informados.', variant: "destructive" }),
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
+  const togglePaidMutation = useMutation({
+    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      if (currentStatus === 'paid') {
+        const { error } = await supabase
+          .from("payment_installments")
+          .update({ status: "pending", paid_at: null })
+          .eq("id", id);
+
+        if (!error) return;
+
+        const { error: fallbackError } = await supabase
+          .from("payment_installments")
+          .update({ status: "pendente", paid_at: null } as any)
+          .eq("id", id);
+
+        if (fallbackError) throw fallbackError;
+        return;
+      }
+
       const { error } = await supabase
         .from("payment_installments")
         .update({ status: "paid", paid_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["installments"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
-      toast({ title: "Mês auditado e baixado com sucesso!", style: { backgroundColor: '#10b981', color: '#fff' } });
+      toast({
+        title: variables.currentStatus === 'paid' ? 'Baixa desfeita com sucesso' : 'Mês auditado e baixado com sucesso!',
+        style: { backgroundColor: '#10b981', color: '#fff' }
+      });
     },
   });
 
@@ -342,9 +361,21 @@ export default function PagamentosPage() {
                           <div className="flex items-center gap-4">
                             <span className="font-bold text-sm tracking-tighter">{currencyFmt(inst.amount)}</span>
                             {inst.status === "paid" ? (
-                              <Badge className="bg-emerald-500 text-white border-none font-bold uppercase text-[8px] tracking-widest px-2.5 py-0.5">Auditado</Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all px-3"
+                                onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                              >
+                                Desfazer
+                              </Button>
                             ) : (
-                              <Button size="sm" variant="outline" className="h-8 border-gold/30 text-gold hover:bg-gold text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all" onClick={() => markPaidMutation.mutate(inst.id)}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-gold/30 text-gold hover:bg-gold text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all"
+                                onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                              >
                                 Baixar / OK
                               </Button>
                             )}
