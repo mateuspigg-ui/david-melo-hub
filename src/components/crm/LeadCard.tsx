@@ -10,9 +10,13 @@ interface Props {
   onClick?: () => void;
   isOverlay?: boolean;
   isOverdue?: boolean;
+  taskMeta?: {
+    pendingCount: number;
+    assignees: string[];
+  };
 }
 
-export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false }: Props) {
+export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, taskMeta }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
 
   const style = {
@@ -47,6 +51,19 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false }
         <div className="flex items-center gap-1.5 mb-3 bg-red-100 border border-red-200 rounded-lg px-3 py-1.5">
           <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" />
           <span className="text-[9px] font-black uppercase tracking-widest text-red-600">Tarefa em atraso</span>
+        </div>
+      )}
+
+      {taskMeta && taskMeta.pendingCount > 0 && (
+        <div className="flex items-center justify-between gap-2 mb-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+          <span className="text-[9px] font-black uppercase tracking-widest text-blue-700">
+            {taskMeta.pendingCount} tarefa{taskMeta.pendingCount > 1 ? 's' : ''} ativa{taskMeta.pendingCount > 1 ? 's' : ''}
+          </span>
+          {taskMeta.assignees.length > 0 && (
+            <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 truncate max-w-[120px]" title={taskMeta.assignees.join(', ')}>
+              Resp: {taskMeta.assignees[0]}{taskMeta.assignees.length > 1 ? ` +${taskMeta.assignees.length - 1}` : ''}
+            </span>
+          )}
         </div>
       )}
 

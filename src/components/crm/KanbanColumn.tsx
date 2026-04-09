@@ -8,9 +8,10 @@ interface Props {
   leads: Lead[];
   onCardClick: (lead: Lead) => void;
   overdueLeadIds: Set<string>;
+  leadTaskMeta: Record<string, { pendingCount: number; assignees: string[] }>;
 }
 
-export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds }: Props) {
+export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds, leadTaskMeta }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   return (
@@ -36,7 +37,13 @@ export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds
       <div className="p-3 space-y-3 min-h-[120px] max-h-[calc(100vh-350px)] overflow-y-auto no-scrollbar">
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
-            <LeadCard key={lead.id} lead={lead} onClick={() => onCardClick(lead)} isOverdue={overdueLeadIds.has(lead.id)} />
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onClick={() => onCardClick(lead)}
+              isOverdue={overdueLeadIds.has(lead.id)}
+              taskMeta={leadTaskMeta[lead.id]}
+            />
           ))}
         </SortableContext>
         {leads.length === 0 && (

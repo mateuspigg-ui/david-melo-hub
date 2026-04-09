@@ -96,6 +96,32 @@ export default function CRMPage() {
     },
   });
 
+  const { data: leadTaskMeta = {} } = useQuery({
+    queryKey: ['lead_task_meta'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lead_tasks')
+        .select('lead_id, status, assignee:assigned_to(full_name)');
+      if (error) throw error;
+
+      const meta: Record<string, { pendingCount: number; assignees: string[] }> = {};
+
+      (data || []).forEach((task: any) => {
+        const leadId = task.lead_id as string;
+        if (!meta[leadId]) meta[leadId] = { pendingCount: 0, assignees: [] };
+        if (task.status !== 'done') {
+          meta[leadId].pendingCount += 1;
+          const assigneeName = task.assignee?.full_name;
+          if (assigneeName && !meta[leadId].assignees.includes(assigneeName)) {
+            meta[leadId].assignees.push(assigneeName);
+          }
+        }
+      });
+
+      return meta;
+    },
+  });
+
   // Busca leads com tarefas pendentes vencidas — falha silenciosamente se o banco não suportar
   const { data: overdueLeadIds = new Set<string>() } = useQuery({
     queryKey: ['overdue_leads'],
@@ -239,11 +265,18 @@ export default function CRMPage() {
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4">
             {STAGES.map(stage => (
-              <KanbanColumn key={stage.id} stage={stage} leads={leadsByStage[stage.id] || []} onCardClick={setDetailLead} overdueLeadIds={overdueLeadIds} />
+              <KanbanColumn
+                key={stage.id}
+                stage={stage}
+                leads={leadsByStage[stage.id] || []}
+                onCardClick={setDetailLead}
+                overdueLeadIds={overdueLeadIds}
+                leadTaskMeta={leadTaskMeta}
+              />
             ))}
           </div>
           <DragOverlay>
-            {activeLead && <LeadCard lead={activeLead} isOverlay />}
+            {activeLead && <LeadCard lead={activeLead} isOverlay taskMeta={leadTaskMeta[activeLead.id]} />}
           </DragOverlay>
         </DndContext>
       )}

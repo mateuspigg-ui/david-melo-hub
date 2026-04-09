@@ -62,6 +62,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
       setNewTask('');
       setNewTaskDueDate('');
       setNewTaskAssignee(lead?.assigned_to || '');
@@ -77,6 +78,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
     },
   });
 
@@ -329,8 +331,11 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
                     ))}
                   </select>
                 </div>
-                <Button type="submit" size="icon" className="h-10 w-12 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold self-end">
-                  <Plus className="w-5 h-5" />
+                <Button
+                  type="submit"
+                  className="h-10 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold self-end font-black uppercase text-[10px] tracking-widest px-4"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> OK
                 </Button>
               </div>
             </form>
