@@ -93,7 +93,7 @@ const AppSidebar = ({ collapsed }: Props) => {
 
   return (
     <aside className={cn(
-      "h-screen bg-white flex flex-col border-r border-border/60 transition-all duration-300 shadow-xl z-20",
+      "h-screen shrink-0 bg-white flex flex-col border-r border-border/60 transition-all duration-300 shadow-xl z-20",
       collapsed ? "w-20" : "w-72"
     )}>
       <div className={cn("p-8 flex items-center justify-center border-b border-border/10 bg-white/50 backdrop-blur-sm", collapsed ? "p-4" : "p-8")}>
