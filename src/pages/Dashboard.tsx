@@ -1,7 +1,7 @@
 import { DollarSign, TrendingUp, Clock, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { format, startOfYear, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,7 +18,6 @@ const PIPELINE_COLORS: Record<string, string> = {
 
 const Dashboard = () => {
   const { isAdmin } = useAuth();
-  const currentYear = new Date().getFullYear();
   const currentMonthStart = startOfMonth(new Date());
   
   // 1. Fetch KPI Totals
@@ -135,10 +134,48 @@ const Dashboard = () => {
     );
   }
 
+  const annualValue = kpis?.annual || 0;
+  const monthlyValue = kpis?.monthly || 0;
+  const receivableValue = kpis?.receivable || 0;
+
+  const pipelineTotal = pipelineData?.reduce((acc, item) => acc + item.value, 0) || 0;
+  const pipelineWon = pipelineData?.find((item) => item.name === 'Fechados')?.value || 0;
+  const conversionRate = pipelineTotal > 0 ? (pipelineWon / pipelineTotal) * 100 : 0;
+
+  const monthlyProfit = (monthlyMetrics || []).map((m) => m.receitas - m.despesas);
+  const bestProfit = monthlyProfit.length > 0 ? Math.max(...monthlyProfit) : 0;
+  const avgRevenue = (monthlyMetrics || []).reduce((acc, m) => acc + m.receitas, 0) / 12;
+
+  const recentQuarterData = (monthlyMetrics || []).slice(-4);
+
   const kpiCards = [
-    { label: 'Faturamento Anual', value: formatCurrency(kpis?.annual || 0), icon: DollarSign, sensitive: true },
-    { label: 'Vendas do Mês', value: formatCurrency(kpis?.monthly || 0), icon: TrendingUp, sensitive: true },
-    { label: 'A Receber no Mês', value: formatCurrency(kpis?.receivable || 0), icon: Clock, sensitive: true },
+    {
+      label: 'Faturamento Anual',
+      value: formatCurrency(annualValue),
+      subValue: `${formatCurrency(avgRevenue)} media mensal`,
+      icon: DollarSign,
+      sensitive: true,
+      cardClass: 'from-amber-50 to-yellow-50 border-amber-200/50',
+      iconClass: 'bg-amber-100 text-amber-700',
+    },
+    {
+      label: 'Vendas do Mes',
+      value: formatCurrency(monthlyValue),
+      subValue: `${conversionRate.toFixed(1)}% taxa de conversao`,
+      icon: TrendingUp,
+      sensitive: true,
+      cardClass: 'from-blue-50 to-cyan-50 border-blue-200/50',
+      iconClass: 'bg-blue-100 text-blue-700',
+    },
+    {
+      label: 'A Receber no Mes',
+      value: formatCurrency(receivableValue),
+      subValue: `${pipelineTotal} oportunidades ativas`,
+      icon: Clock,
+      sensitive: true,
+      cardClass: 'from-emerald-50 to-teal-50 border-emerald-200/50',
+      iconClass: 'bg-emerald-100 text-emerald-700',
+    },
   ];
 
   return (
@@ -161,15 +198,16 @@ const Dashboard = () => {
           const restricted = kpi.sensitive && !isAdmin;
           const displayValue = restricted ? 'R$ ••••••••' : kpi.value;
           return (
-            <div key={kpi.label} className="bg-white premium-shadow rounded-2xl p-8 border border-border/40 hover:border-gold/30 transition-all duration-300 group relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gold/[0.03] rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
+            <div key={kpi.label} className={cn('premium-shadow rounded-2xl p-8 border bg-gradient-to-br hover:shadow-2xl transition-all duration-300 group relative overflow-hidden', kpi.cardClass)}>
+              <div className="absolute top-0 right-0 w-36 h-36 bg-white/50 rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform" />
               <div className="flex items-center justify-between relative z-10">
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.25em]">{kpi.label}</p>
-                  <p className={cn("text-4xl font-display text-foreground mt-3 tracking-tighter transition-all", restricted && "select-none")}>{displayValue}</p>
-                  {restricted && <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-2">Visao restrita para ADM</p>}
+                  <p className="text-[10px] text-foreground/70 uppercase font-black tracking-[0.25em]">{kpi.label}</p>
+                  <p className={cn('text-4xl font-display text-foreground mt-3 tracking-tighter transition-all', restricted && 'select-none')}>{displayValue}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/70 mt-2">{kpi.subValue}</p>
+                  {restricted && <p className="text-[10px] font-black uppercase tracking-widest text-foreground/80 mt-2">Visao restrita para ADM</p>}
                 </div>
-                <div className="w-14 h-14 rounded-2xl bg-secondary/30 flex items-center justify-center text-gold group-hover:bg-gold group-hover:text-white transition-all duration-500 shadow-sm">
+                <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm', kpi.iconClass)}>
                   <Icon size={28} />
                 </div>
               </div>
@@ -183,23 +221,32 @@ const Dashboard = () => {
         <div className="bg-white premium-shadow rounded-2xl p-10 border border-border/40 transition-all hover:shadow-2xl">
           <div className="flex items-center justify-between mb-10">
             <h3 className="text-xl font-display text-foreground tracking-tight uppercase">Performance Trimestral</h3>
-            <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
+            <div className="px-3 py-1 rounded-full bg-gold/10 text-gold text-[10px] uppercase font-black tracking-widest">Receitas</div>
           </div>
           <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyMetrics?.slice(0, 4)} barGap={8}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+              <BarChart data={recentQuarterData} barGap={10}>
+                <defs>
+                  <linearGradient id="quarterRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#C5A059" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#8E6C2E" stopOpacity={0.9} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="month" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 10 }} />
-                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
+                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
                 <Tooltip 
-                  cursor={{ fill: 'rgba(197, 160, 89, 0.05)' }}
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
-                  itemStyle={{ fontSize: '11px', color: '#C5A059', fontWeight: 'bold', textTransform: 'uppercase' }}
-                  labelStyle={{ fontWeight: 'bold', color: '#000', marginBottom: '4px' }}
+                  cursor={{ fill: 'rgba(197, 160, 89, 0.08)' }}
+                  formatter={(value: number) => [formatCurrency(value), 'Receita']}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.12)', padding: '12px' }}
                 />
-                <Bar dataKey="receitas" fill="#C5A059" radius={[6, 6, 0, 0]} barSize={45} />
+                <Bar dataKey="receitas" fill="url(#quarterRevenue)" radius={[10, 10, 0, 0]} barSize={44} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">Melhor lucro mensal</span>
+            <span className="font-display text-xl text-amber-900">{formatCurrency(bestProfit)}</span>
           </div>
         </div>
 
@@ -225,15 +272,17 @@ const Dashboard = () => {
                     <Cell key={idx} fill={PIPELINE_COLORS[entry.name] || GOLD_COLORS[idx % GOLD_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ativos</span>
-              <span className="text-2xl font-display text-foreground">{pipelineData?.reduce((a, b) => a + b.value, 0) || 0}</span>
-            </div>
+                 <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #f0f0f0', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} />
+               </PieChart>
+             </ResponsiveContainer>
+             <div className="absolute flex flex-col items-center justify-center pointer-events-none">
+               <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Ativos</span>
+               <span className="text-2xl font-display text-foreground">{pipelineTotal}</span>
+             </div>
+           </div>
+          <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Conversão de fechados</span>
+            <span className="font-display text-lg text-emerald-800">{conversionRate.toFixed(1)}%</span>
           </div>
           {/* Pipeline Table */}
           <div className="mt-6 border-t border-border/20 pt-4">
@@ -276,32 +325,43 @@ const Dashboard = () => {
           </div>
           <div className="flex gap-6 items-center">
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-gold" /><span className="text-[9px] font-black uppercase text-muted-foreground">Receitas</span></div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-border" /><span className="text-[9px] font-black uppercase text-muted-foreground">Despesas</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-rose-300" /><span className="text-[9px] font-black uppercase text-muted-foreground">Despesas</span></div>
           </div>
         </div>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthlyMetrics}>
+            <AreaChart data={monthlyMetrics}>
+              <defs>
+                <linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#C5A059" stopOpacity={0.45} />
+                  <stop offset="100%" stopColor="#C5A059" stopOpacity={0.04} />
+                </linearGradient>
+                <linearGradient id="expenseArea" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FB7185" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#FB7185" stopOpacity={0.03} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
               <XAxis dataKey="month" stroke="#666" fontSize={11} tickLine={false} axisLine={false} tick={{ dy: 15 }} />
-              <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$${Math.round(v / 1000)}k`} />
               <Tooltip 
+                formatter={(value: number) => formatCurrency(value)}
                 contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '16px' }}
               />
-              <Line type="stepAfter" dataKey="receitas" stroke="#C5A059" strokeWidth={4} dot={{ r: 0 }} activeDot={{ r: 6, fill: '#C5A059', stroke: '#fff' }} name="Receitas" />
-              <Line type="stepAfter" dataKey="despesas" stroke="#E2E8F0" strokeWidth={4} dot={{ r: 0 }} activeDot={{ r: 6, fill: '#CBD5E1', stroke: '#fff' }} name="Despesas" />
-            </LineChart>
+              <Area type="monotone" dataKey="receitas" stroke="#C5A059" strokeWidth={3} fill="url(#revenueArea)" name="Receitas" />
+              <Area type="monotone" dataKey="despesas" stroke="#FB7185" strokeWidth={3} fill="url(#expenseArea)" name="Despesas" />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* DRE Table */}
       <div className="bg-card premium-shadow rounded-2xl p-8 border border-border/40 overflow-hidden">
-        <h3 className="text-lg font-display text-foreground mb-6 underline decoration-gold/30">DRE Informativo - Resultados de Gestão</h3>
+        <h3 className="text-lg font-display text-foreground mb-6">DRE Informativo - Resultados de Gestão</h3>
         <div className="overflow-x-auto -mx-8 px-8">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/40">
+              <tr className="border-b border-border/40 bg-secondary/20">
                 {['Mês', 'Eventos', 'Receita Bruta', 'Despesas', 'Lucro Operacional', 'Margem', 'Status'].map(h => (
                   <th key={h} className="text-left py-4 px-4 text-muted-foreground font-black text-[9px] uppercase tracking-[0.2em]">{h}</th>
                 ))}
@@ -312,7 +372,7 @@ const Dashboard = () => {
                 const lucro = m.receitas - m.despesas;
                 const margem = m.receitas > 0 ? (lucro / m.receitas) * 100 : 0;
                 return (
-                  <tr key={m.month} className="hover:bg-secondary/20 transition-colors">
+                  <tr key={m.month} className="hover:bg-secondary/20 transition-colors even:bg-secondary/[0.08]">
                     <td className="py-4 px-4 text-foreground font-black uppercase text-[10px] tracking-widest">{m.month}</td>
                     <td className="py-4 px-4 text-foreground font-bold">{m.eventos}</td>
                     <td className="py-4 px-4 text-emerald-600 font-bold">{formatCurrency(m.receitas)}</td>
