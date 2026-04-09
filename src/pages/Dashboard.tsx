@@ -103,13 +103,19 @@ const Dashboard = () => {
       const { data: expenses } = await supabase.from('accounts_payable').select('amount, due_date');
 
       events?.forEach(e => {
-        const monthIdx = new Date(e.event_date).getMonth();
+        const eventDate = e.event_date ? new Date(e.event_date) : null;
+        if (!eventDate || Number.isNaN(eventDate.getTime())) return;
+        const monthIdx = eventDate.getMonth();
+        if (monthIdx < 0 || monthIdx > 11) return;
         data[monthIdx].receitas += Number(e.budget_value || 0);
         data[monthIdx].eventos++;
       });
 
       expenses?.forEach(ex => {
-        const monthIdx = new Date(ex.due_date).getMonth();
+        const dueDate = ex.due_date ? new Date(ex.due_date) : null;
+        if (!dueDate || Number.isNaN(dueDate.getTime())) return;
+        const monthIdx = dueDate.getMonth();
+        if (monthIdx < 0 || monthIdx > 11) return;
         data[monthIdx].despesas += Number(ex.amount || 0);
       });
 
