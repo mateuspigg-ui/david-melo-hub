@@ -89,10 +89,38 @@ const EquipePage = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       const link = `${window.location.origin}/convite/${data.token}`;
       navigator.clipboard.writeText(link);
-      toast({ title: 'Convite criado!', description: 'Link copiado para a área de transferência.' });
+
+      let emailSent = false;
+      if (data?.email) {
+        const { error } = await supabase.functions.invoke('send-team-invite-email', {
+          body: {
+            email: data.email,
+            inviteLink: link,
+            modules: data.modules || [],
+          },
+        });
+
+        if (!error) {
+          emailSent = true;
+        } else {
+          toast({
+            title: 'Convite criado, mas o e-mail falhou',
+            description: 'O link foi copiado. Verifique a configuração da função de e-mail.',
+            variant: 'destructive',
+          });
+        }
+      }
+
+      toast({
+        title: 'Convite criado!',
+        description: emailSent
+          ? 'Link enviado por e-mail e copiado para a área de transferência.'
+          : 'Link copiado para a área de transferência.',
+      });
+
       queryClient.invalidateQueries({ queryKey: ['team_invitations'] });
       setShowInviteDialog(false);
       setInviteEmail('');
