@@ -7,6 +7,14 @@ import { cn } from '@/lib/utils';
 
 const GOLD_COLORS = ['#C5A059', '#B89451', '#D4AF37', '#997F3D', '#E5C185'];
 
+const PIPELINE_COLORS: Record<string, string> = {
+  'Novo Contato': 'hsl(45, 70%, 50%)',       // gold (same as kanban)
+  'Orçamento Enviado': 'hsl(210, 60%, 50%)', // blue
+  'Em Negociação': 'hsl(35, 80%, 55%)',      // orange
+  'Fechados': 'hsl(142, 60%, 45%)',          // green
+  'Perdidos': 'hsl(0, 60%, 50%)',            // red
+};
+
 const Dashboard = () => {
   const currentYear = new Date().getFullYear();
   const currentMonthStart = startOfMonth(new Date());
