@@ -32,6 +32,8 @@ const EquipePage = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedModules, setSelectedModules] = useState<string[]>(['dashboard']);
   const [editModules, setEditModules] = useState<string[]>([]);
+  const [editModulesDirty, setEditModulesDirty] = useState(false);
+  const [editIsAdmin, setEditIsAdmin] = useState(false);
 
   // Check if current user is admin
   const { data: isAdmin } = useQuery({
@@ -101,10 +103,23 @@ const EquipePage = () => {
 
   // Update permissions
   const updatePermissions = useMutation({
-    mutationFn: async ({ userId, modules }: { userId: string; modules: string[] }) => {
-      // Delete existing
+    mutationFn: async ({ userId, modules, makeAdmin }: { userId: string; modules: string[]; makeAdmin: boolean }) => {
+      if (makeAdmin) {
+        const { error: adminError } = await supabase.from('user_roles').insert({ user_id: userId, role: 'admin' as any });
+        if (adminError && !adminError.message?.includes('duplicate key')) throw adminError;
+
+        await supabase.from('profiles').update({ role: 'admin' }).eq('id', userId);
+        return;
+      }
+
+      await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', 'admin');
+
+      const { error: memberError } = await supabase.from('user_roles').insert({ user_id: userId, role: 'team_member' as any });
+      if (memberError && !memberError.message?.includes('duplicate key')) throw memberError;
+
+      await supabase.from('profiles').update({ role: 'team_member' }).eq('id', userId);
+
       await supabase.from('module_permissions').delete().eq('user_id', userId);
-      // Insert new
       if (modules.length > 0) {
         const { error } = await supabase.from('module_permissions').insert(
           modules.map(m => ({ user_id: userId, module: m })) as any
@@ -114,8 +129,12 @@ const EquipePage = () => {
     },
     onSuccess: () => {
       toast({ title: 'Permissões atualizadas!' });
+      queryClient.invalidateQueries({ queryKey: ['team_members'] });
       queryClient.invalidateQueries({ queryKey: ['module_permissions'] });
       setShowPermissionsDialog(null);
+      setEditModules([]);
+      setEditModulesDirty(false);
+      setEditIsAdmin(false);
     },
   });
 
@@ -188,6 +207,8 @@ const EquipePage = () => {
                       onClick={() => {
                         setShowPermissionsDialog(member.id);
                         setEditModules([]);
+                        setEditModulesDirty(false);
+                        setEditIsAdmin(member.roles?.includes('admin') || false);
                       }}
                       className="text-muted-foreground hover:text-gold"
                     >
@@ -284,18 +305,42 @@ const EquipePage = () => {
       </Dialog>
 
       {/* Edit Permissions Dialog */}
-      <Dialog open={!!showPermissionsDialog} onOpenChange={() => setShowPermissionsDialog(null)}>
+      <Dialog
+        open={!!showPermissionsDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowPermissionsDialog(null);
+            setEditModules([]);
+            setEditModulesDirty(false);
+            setEditIsAdmin(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Permissões de Módulos</DialogTitle>
           </DialogHeader>
+          <div className="rounded-lg border border-border/60 p-3 bg-secondary/20">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <Checkbox
+                checked={editIsAdmin}
+                onCheckedChange={(value) => setEditIsAdmin(!!value)}
+              />
+              <span className="text-sm font-semibold">Administrador (acesso total)</span>
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Quando ativado, o colaborador tem acesso total ao sistema e pode gerenciar equipe e permissões.
+            </p>
+          </div>
           <div className="grid gap-2 max-h-60 overflow-y-auto">
             {ALL_MODULES.map(mod => (
               <label key={mod.key} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/30 cursor-pointer">
                 <Checkbox
-                  checked={(editModules.length > 0 ? editModules : userPermissions).includes(mod.key)}
+                  checked={(editModulesDirty ? editModules : userPermissions).includes(mod.key)}
+                  disabled={editIsAdmin}
                   onCheckedChange={() => {
-                    const current = editModules.length > 0 ? editModules : [...userPermissions];
+                    const current = editModulesDirty ? editModules : [...userPermissions];
+                    setEditModulesDirty(true);
                     toggleModule(current, setEditModules, mod.key);
                   }}
                 />
@@ -304,9 +349,23 @@ const EquipePage = () => {
             ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPermissionsDialog(null)}>Cancelar</Button>
             <Button
-              onClick={() => updatePermissions.mutate({ userId: showPermissionsDialog!, modules: editModules.length > 0 ? editModules : userPermissions })}
+              variant="outline"
+              onClick={() => {
+                setShowPermissionsDialog(null);
+                setEditModules([]);
+                setEditModulesDirty(false);
+                setEditIsAdmin(false);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => updatePermissions.mutate({
+                userId: showPermissionsDialog!,
+                modules: editModulesDirty ? editModules : userPermissions,
+                makeAdmin: editIsAdmin,
+              })}
               disabled={updatePermissions.isPending}
               className="bg-gradient-gold text-white"
             >

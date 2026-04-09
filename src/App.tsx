@@ -43,6 +43,15 @@ const ProtectedRoutes = () => {
   );
 };
 
+const ModuleRoute = ({ module, element }: { module: string; element: JSX.Element }) => {
+  const { isAdmin, hasModuleAccess, loading } = useAuth();
+
+  if (loading) return null;
+  if (isAdmin || hasModuleAccess(module)) return element;
+
+  return <Navigate to="/" replace />;
+};
+
 const AuthRoute = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -61,20 +70,20 @@ const App = () => (
             <Route path="/convite/:token" element={<InvitePage />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/contratos" element={<ContratosPage />} />
-              <Route path="/documentos" element={<DocumentosPage />} />
-              <Route path="/fornecedores" element={<FornecedoresPage />} />
-              <Route path="/clientes" element={<ClientesPage />} />
-              <Route path="/crm" element={<CRMPage />} />
-              <Route path="/eventos" element={<EventosPage />} />
-              <Route path="/agenda" element={<AgendaPage />} />
-              <Route path="/pagamentos" element={<PagamentosPage />} />
-              <Route path="/conciliacao" element={<ConciliacaoPage />} />
-              <Route path="/financeiro-dashboard" element={<FinancialDashboard />} />
-              <Route path="/contas-bancarias" element={<BankAccountsPage />} />
-              <Route path="/contas-pagar" element={<ContasPagarPage />} />
-              <Route path="/recebimentos" element={<RecebimentosPage />} />
-              <Route path="/equipe" element={<EquipePage />} />
+              <Route path="/contratos" element={<ModuleRoute module="contratos" element={<ContratosPage />} />} />
+              <Route path="/documentos" element={<ModuleRoute module="documentos" element={<DocumentosPage />} />} />
+              <Route path="/fornecedores" element={<ModuleRoute module="fornecedores" element={<FornecedoresPage />} />} />
+              <Route path="/clientes" element={<ModuleRoute module="clientes" element={<ClientesPage />} />} />
+              <Route path="/crm" element={<ModuleRoute module="crm" element={<CRMPage />} />} />
+              <Route path="/eventos" element={<ModuleRoute module="eventos" element={<EventosPage />} />} />
+              <Route path="/agenda" element={<ModuleRoute module="agenda" element={<AgendaPage />} />} />
+              <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<PagamentosPage />} />} />
+              <Route path="/conciliacao" element={<ModuleRoute module="financeiro" element={<ConciliacaoPage />} />} />
+              <Route path="/financeiro-dashboard" element={<ModuleRoute module="financeiro" element={<FinancialDashboard />} />} />
+              <Route path="/contas-bancarias" element={<ModuleRoute module="financeiro" element={<BankAccountsPage />} />} />
+              <Route path="/contas-pagar" element={<ModuleRoute module="financeiro" element={<ContasPagarPage />} />} />
+              <Route path="/recebimentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
+              <Route path="/equipe" element={<ModuleRoute module="equipe" element={<EquipePage />} />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

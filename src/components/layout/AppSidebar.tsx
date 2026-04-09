@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
   UserCog, FileText, Building2, ShoppingBag, CreditCard,
-  Landmark, Receipt, ArrowDownUp, ChevronDown
+  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -70,7 +70,7 @@ interface Props {
 
 const AppSidebar = ({ collapsed }: Props) => {
   const location = useLocation();
-  const { profile } = useAuth();
+  const { profile, hasModuleAccess, isAdmin } = useAuth();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map(s => [s.label, true]))
   );
@@ -112,6 +112,22 @@ const AppSidebar = ({ collapsed }: Props) => {
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
+                  const canAccess = isAdmin || item.path === '/' || hasModuleAccess(item.module);
+
+                  if (!canAccess) {
+                    return (
+                      <div
+                        key={item.path}
+                        className="flex items-center gap-4 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground/50 cursor-not-allowed"
+                        title={collapsed ? `${item.label} (sem acesso)` : undefined}
+                      >
+                        <Icon size={18} />
+                        {!collapsed && <span className="flex-1">{item.label}</span>}
+                        {!collapsed && <Lock size={13} className="opacity-70" />}
+                      </div>
+                    );
+                  }
+
                   return (
                     <NavLink
                       key={item.path}
