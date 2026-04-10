@@ -22,6 +22,7 @@ import BankAccountsPage from "@/pages/BankAccountsPage";
 import FinancialDashboard from "@/pages/FinancialDashboard";
 import EquipePage from "@/pages/EquipePage";
 import InvitePage from "@/pages/InvitePage";
+import FormularioPage from "@/pages/FormularioPage";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/fornecedores" element={<ModuleRoute module="fornecedores" element={<FornecedoresPage />} />} />
               <Route path="/clientes" element={<ModuleRoute module="clientes" element={<ClientesPage />} />} />
               <Route path="/crm" element={<ModuleRoute module="crm" element={<CRMPage />} />} />
+              <Route path="/formulario" element={<ModuleRoute module="crm" element={<FormularioPage />} />} />
               <Route path="/eventos" element={<ModuleRoute module="eventos" element={<EventosPage />} />} />
               <Route path="/agenda" element={<ModuleRoute module="agenda" element={<AgendaPage />} />} />
               <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<PagamentosPage />} />} />

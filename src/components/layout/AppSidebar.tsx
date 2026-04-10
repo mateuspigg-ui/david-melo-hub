@@ -36,6 +36,7 @@ const sections: NavSection[] = [
     items: [
       { label: 'Meus Clientes', path: '/clientes', icon: Users, module: 'clientes' },
       { label: 'Gestão de Clientes', path: '/crm', icon: Handshake, module: 'crm' },
+      { label: 'Formulário', path: '/formulario', icon: FileText, module: 'crm' },
     ],
   },
   {
