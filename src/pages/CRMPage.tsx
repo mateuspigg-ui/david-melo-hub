@@ -330,6 +330,7 @@ export default function CRMPage() {
       <LeadDetailDialog
         lead={detailLead}
         onClose={() => setDetailLead(null)}
+        onOpenLeadCard={setDetailLead}
         onEdit={(lead) => { setDetailLead(null); setEditingLead(lead); setIsFormOpen(true); }}
         clients={clients}
         teamMembers={teamMembers}

@@ -15,6 +15,7 @@ import type { Lead } from '@/pages/CRMPage';
 interface Props {
   lead: Lead | null;
   onClose: () => void;
+  onOpenLeadCard: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
   clients: { id: string; first_name: string; last_name: string }[];
   teamMembers: { id: string; full_name: string }[];
@@ -86,7 +87,7 @@ const showTaskCreatedSystemNotification = async ({
   }
 };
 
-export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, stages, eventTypes }: Props) {
+export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit, teamMembers, stages, eventTypes }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newTask, setNewTask] = useState('');
@@ -172,8 +173,12 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
             </p>
           </div>
         ),
-        className: 'border-l-4 border-l-emerald-500 bg-emerald-50/80',
+        className: 'border-l-4 border-l-emerald-500 bg-emerald-50/80 cursor-pointer',
         duration: 15000,
+        onClick: () => {
+          if (!lead) return;
+          onOpenLeadCard(lead);
+        },
       });
     },
     onError: (error: any) => {
