@@ -216,6 +216,7 @@ export default function PagamentosPage() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["installments"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({
         title: variables.currentStatus === 'paid' ? 'Baixa desfeita com sucesso' : 'Mês auditado e baixado com sucesso!',
         style: { backgroundColor: '#10b981', color: '#fff' }

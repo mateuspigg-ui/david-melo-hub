@@ -70,6 +70,8 @@ export default function RecebimentosPage() {
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["receivables"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({ title: variables.currentStatus === 'paid' ? 'Baixa desfeita com sucesso' : "Recebimento confirmado" });
     },
   });

@@ -21,55 +21,57 @@ const Dashboard = () => {
   const currentMonthStart = startOfMonth(new Date());
   const yearStart = format(startOfYear(new Date()), 'yyyy-MM-dd');
   const yearEnd = format(endOfYear(new Date()), 'yyyy-MM-dd');
+  const monthStart = format(currentMonthStart, 'yyyy-MM-dd');
+  const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
   
   // 1. Fetch KPI Totals
   const { data: kpis, isLoading: isLoadingKPIs } = useQuery({
     queryKey: ['dashboard_kpis'],
     queryFn: async () => {
-      // Annual Revenue
-      const { data: yearEvents } = await supabase
-        .from('events')
-        .select('budget_value')
-        .gte('event_date', yearStart)
-        .lte('event_date', yearEnd);
-      
-      const annualTotal = yearEvents?.reduce((acc, curr) => acc + Number(curr.budget_value || 0), 0) || 0;
+      // Faturamento baseado nos contratos de Pagamentos
+      const { data: yearPayments } = await supabase
+        .from('payments')
+        .select('total_event_value, created_at')
+        .gte('created_at', `${yearStart}T00:00:00`)
+        .lte('created_at', `${yearEnd}T23:59:59`);
 
-      // Monthly Revenue
-      const { data: monthEvents } = await supabase
-        .from('events')
-        .select('budget_value')
-        .gte('event_date', format(currentMonthStart, 'yyyy-MM-dd'))
-        .lte('event_date', format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-      
-      const monthlyTotal = monthEvents?.reduce((acc, curr) => acc + Number(curr.budget_value || 0), 0) || 0;
+      const annualTotal = (yearPayments || []).reduce(
+        (acc: number, curr: any) => acc + Number(curr.total_event_value || 0),
+        0
+      );
 
-      // Accounts Receivable in current month (predictability based on registered payments)
-      const monthStart = format(currentMonthStart, 'yyyy-MM-dd');
-      const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+      const { data: monthPayments } = await supabase
+        .from('payments')
+        .select('total_event_value, created_at')
+        .gte('created_at', `${monthStart}T00:00:00`)
+        .lte('created_at', `${monthEnd}T23:59:59`);
 
+      const monthlyTotal = (monthPayments || []).reduce(
+        (acc: number, curr: any) => acc + Number(curr.total_event_value || 0),
+        0
+      );
+
+      // Contas a receber projetadas (mesma base da tela de Recebimentos)
       const { data: pendingInstallments } = await supabase
+        .from('payment_installments')
+        .select('amount, status')
+        .in('status', ['pending', 'pendente']);
+
+      const { data: pendingMonthInstallments } = await supabase
         .from('payment_installments')
         .select('amount, due_date, status')
         .gte('due_date', monthStart)
         .lte('due_date', monthEnd)
         .in('status', ['pending', 'pendente']);
 
-      const { data: monthEntries } = await supabase
-        .from('payments')
-        .select('entry_amount, entry_date, has_entry_payment')
-        .eq('has_entry_payment', true)
-        .gte('entry_date', monthStart)
-        .lte('entry_date', monthEnd);
-
-      const installmentReceivable = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
-      const entryReceivable = monthEntries?.reduce((acc, curr) => acc + Number(curr.entry_amount || 0), 0) || 0;
-      const receivableTotal = installmentReceivable + entryReceivable;
+      const receivableTotal = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+      const receivableMonthTotal = pendingMonthInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
 
       return {
         annual: annualTotal,
         monthly: monthlyTotal,
-        receivable: receivableTotal
+        receivable: receivableTotal,
+        receivableMonth: receivableMonthTotal,
       };
     }
   });
@@ -189,6 +191,7 @@ const Dashboard = () => {
   const annualValue = kpis?.annual || 0;
   const monthlyValue = kpis?.monthly || 0;
   const receivableValue = kpis?.receivable || 0;
+  const receivableMonthValue = kpis?.receivableMonth || 0;
 
   const pipelineTotal = pipelineData?.reduce((acc, item) => acc + item.value, 0) || 0;
   const pipelineWon = pipelineData?.find((item) => item.name === 'Fechados')?.value || 0;
@@ -204,7 +207,7 @@ const Dashboard = () => {
   const annualProfit = totalRevenue - totalExpenses;
   const avgTicket = totalEvents > 0 ? totalRevenue / totalEvents : 0;
   const annualMargin = totalRevenue > 0 ? (annualProfit / totalRevenue) * 100 : 0;
-  const receivableCoverage = monthlyValue > 0 ? (receivableValue / monthlyValue) * 100 : 0;
+  const receivableCoverage = monthlyValue > 0 ? (receivableMonthValue / monthlyValue) * 100 : 0;
 
   const currentMonthIndex = new Date().getMonth();
   const quarterStartIndex = Math.max(0, currentMonthIndex - 3);
@@ -253,7 +256,7 @@ const Dashboard = () => {
       iconClass: 'bg-blue-100 text-blue-700',
     },
     {
-      label: 'A Receber no Mes',
+      label: 'A Receber Projetado',
       value: formatCurrency(receivableValue),
       subValue: `${pipelineTotal} oportunidades ativas`,
       icon: Clock,

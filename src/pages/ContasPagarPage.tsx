@@ -65,6 +65,7 @@ export default function ContasPagarPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
       setForm({ description: "", amount: "", due_date: "", supplier_id: "" });
       toast({ title: "Conta criada com sucesso" });
@@ -83,6 +84,7 @@ export default function ContasPagarPage() {
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({ title: variables.currentStatus === 'pago' ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
     },
   });
@@ -94,6 +96,7 @@ export default function ContasPagarPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({ title: "Conta excluída" });
     },
   });
