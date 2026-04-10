@@ -27,12 +27,16 @@ export default function DocumentosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [documentsTableMissing, setDocumentsTableMissing] = useState(false);
   const [form, setForm] = useState({
     title: '',
     category: 'operacional',
     description: '',
     file_url: ''
   });
+
+  const isMissingCompanyDocumentsTableError = (error: any) =>
+    /could not find the table ['"]public\.company_documents['"]/i.test(String(error?.message || ''));
 
   const handleFileUpload = async (file: File) => {
     try {
@@ -104,7 +108,14 @@ export default function DocumentosPage() {
         .from('company_documents')
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) throw error;
+      if (error) {
+        if (isMissingCompanyDocumentsTableError(error)) {
+          setDocumentsTableMissing(true);
+          return [];
+        }
+        throw error;
+      }
+      setDocumentsTableMissing(false);
       return data;
     }
   });
@@ -113,7 +124,12 @@ export default function DocumentosPage() {
     mutationFn: async () => {
       if (editingDoc) {
         const { error } = await supabase.from('company_documents').update(form).eq('id', editingDoc.id);
-        if (error) throw error;
+        if (error) {
+          if (isMissingCompanyDocumentsTableError(error)) {
+            return { degraded: true };
+          }
+          throw error;
+        }
       } else {
         const {
           data: { user },
@@ -125,10 +141,28 @@ export default function DocumentosPage() {
             created_by: user?.id || null,
           },
         ]);
-        if (error) throw error;
+        if (error) {
+          if (isMissingCompanyDocumentsTableError(error)) {
+            return { degraded: true };
+          }
+          throw error;
+        }
       }
+      return { degraded: false };
     },
-    onSuccess: () => {
+    onSuccess: (result: { degraded?: boolean } | undefined) => {
+      if (result?.degraded) {
+        setDocumentsTableMissing(true);
+        setDialogOpen(false);
+        resetForm();
+        toast({
+          title: 'Arquivo enviado ao storage',
+          description: 'A tabela company_documents não existe no banco. Aplique as migrations do Supabase para registrar documentos no painel.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       qc.invalidateQueries({ queryKey: ['company_documents'] });
       setDialogOpen(false);
       resetForm();
@@ -140,7 +174,10 @@ export default function DocumentosPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('company_documents').delete().eq('id', id);
-      if (error) throw error;
+      if (error) {
+        if (isMissingCompanyDocumentsTableError(error)) return;
+        throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['company_documents'] });
@@ -193,6 +230,12 @@ export default function DocumentosPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {documentsTableMissing && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/[0.06] px-4 py-3 text-sm text-destructive">
+          A tabela `company_documents` não existe no banco atual. Os arquivos podem ser enviados ao storage, mas não aparecerão nesta lista até aplicar as migrations do Supabase.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {isLoading ? (
