@@ -120,8 +120,8 @@ export default function CRMPage() {
   const [completingLeadId, setCompletingLeadId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 3 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
   );
 
   const collisionDetectionStrategy = (args: any) => {
@@ -413,7 +413,7 @@ export default function CRMPage() {
               ))}
             </div>
           </div>
-          <DragOverlay dropAnimation={null}>
+          <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
             {activeLead && <LeadCard lead={activeLead} isOverlay taskMeta={leadTaskMeta[activeLead.id]} />}
           </DragOverlay>
         </DndContext>

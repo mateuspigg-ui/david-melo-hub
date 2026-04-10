@@ -24,7 +24,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : transition,
   };
 
   const clientName = lead.clients 
@@ -39,11 +39,11 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`touch-pan-y select-none p-3.5 rounded-lg border cursor-grab active:cursor-grabbing transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] ${
-        isDragging ? 'opacity-40 grayscale' : ''
+      className={`touch-pan-y select-none p-3.5 rounded-lg border cursor-grab active:cursor-grabbing transition-shadow duration-150 hover:-translate-y-0.5 ${
+        isDragging ? 'opacity-30 scale-[0.97]' : ''
       } ${
         isOverlay
-          ? 'shadow-2xl border-gold bg-white rotate-1'
+          ? 'shadow-[0_12px_40px_-8px_rgba(0,0,0,0.25)] border-gold/60 bg-white rotate-[2deg] scale-[1.03]'
           : isOverdue
           ? 'border-red-500 bg-red-100/80 shadow-sm shadow-red-200 hover:border-red-600'
           : hasPendingTasks

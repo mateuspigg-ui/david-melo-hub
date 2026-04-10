@@ -19,9 +19,9 @@ export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTask
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[320px] max-w-[360px] flex-1 rounded-xl border transition-all duration-300 snap-start ${
+      className={`min-w-[320px] max-w-[360px] flex-1 rounded-xl border transition-colors duration-150 snap-start ${
         isOver 
-          ? 'border-gold bg-secondary/70 shadow-md shadow-gold/10' 
+          ? 'border-gold bg-gold/5 shadow-md shadow-gold/10' 
           : 'border-border/30 bg-secondary/60'
       }`}
     >
