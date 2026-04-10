@@ -216,7 +216,7 @@ export default function CRMPage() {
   const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
+    <div className="space-y-8 animate-fade-in max-w-[1900px] mx-auto p-2">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Gestão Comercial</h1>
@@ -257,14 +257,14 @@ export default function CRMPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-5 overflow-x-auto pb-6 px-1 snap-x snap-mandatory">
           {STAGES.map(s => (
-            <div key={s.id} className="min-w-[280px] flex-1 bg-card/50 rounded-xl p-4 border border-border/30 animate-pulse h-[400px]" />
+            <div key={s.id} className="min-w-[340px] flex-1 bg-card/50 rounded-xl p-4 border border-border/30 animate-pulse h-[420px]" />
           ))}
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex gap-5 overflow-x-auto pb-6 px-1 snap-x snap-mandatory">
             {STAGES.map(stage => (
               <KanbanColumn
                 key={stage.id}

@@ -36,7 +36,7 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`p-4 rounded-xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] ${
+      className={`p-5 rounded-xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] ${
         isDragging ? 'opacity-40 grayscale' : ''
       } ${
         isOverlay
@@ -65,47 +65,47 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
         </div>
       )}
 
-      <div className="flex justify-between items-start gap-2">
-        <h4 className="text-xs font-bold text-foreground leading-tight tracking-tight line-clamp-2 uppercase">{lead.title}</h4>
+      <div className="flex justify-between items-start gap-2.5">
+        <h4 className="text-sm font-bold text-foreground leading-tight tracking-tight line-clamp-2 uppercase">{lead.title}</h4>
         {lead.event_type && (
-          <span className="shrink-0 bg-gold/10 text-gold text-[8px] font-bold px-1.5 py-0.5 rounded uppercase border border-gold/10">
+          <span className="shrink-0 bg-gold/10 text-gold text-[9px] font-bold px-2 py-0.5 rounded uppercase border border-gold/10">
             {lead.event_type}
           </span>
         )}
       </div>
 
       {clientName && (
-        <p className="text-[10px] font-bold text-gold mt-1.5 truncate tracking-wide">{clientName}</p>
+        <p className="text-[11px] font-bold text-gold mt-2 truncate tracking-wide">{clientName}</p>
       )}
       {lead.phone && (
-        <p className="text-[9px] font-medium text-muted-foreground/60 mt-0.5 truncate">{lead.phone}</p>
+        <p className="text-[10px] font-medium text-muted-foreground/70 mt-0.5 truncate">{lead.phone}</p>
       )}
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4.5 space-y-2.5">
         {lead.event_date && (
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
-            <Calendar className="w-3 h-3 text-gold/60" />
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
+            <Calendar className="w-3.5 h-3.5 text-gold/60" />
             {format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMM, yyyy", { locale: ptBR })}
           </div>
         )}
         
         {lead.total_budget && (
-          <div className="flex items-center gap-2 text-[10px] font-bold text-foreground bg-secondary/30 w-fit px-2 py-1 rounded-md">
-            <DollarSign className="w-3 h-3 text-gold" />
+          <div className="flex items-center gap-2 text-[11px] font-bold text-foreground bg-secondary/30 w-fit px-2.5 py-1.5 rounded-md">
+            <DollarSign className="w-3.5 h-3.5 text-gold" />
             {Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex items-center gap-3 pt-1.5">
           {lead.event_location && (
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">
-              <MapPin className="w-3 h-3 shrink-0 text-gold/60" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium truncate max-w-[190px]">
+              <MapPin className="w-3.5 h-3.5 shrink-0 text-gold/60" />
               <span className="truncate">{lead.event_location}</span>
             </div>
           )}
           {lead.guest_count && (
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
-              <Users className="w-3 h-3 text-gold/60" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+              <Users className="w-3.5 h-3.5 text-gold/60" />
               {lead.guest_count}
             </div>
           )}

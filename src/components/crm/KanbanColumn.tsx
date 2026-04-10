@@ -17,24 +17,24 @@ export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[300px] flex-1 rounded-2xl border transition-all duration-300 ${
+      className={`min-w-[360px] max-w-[420px] flex-1 rounded-2xl border transition-all duration-300 snap-start ${
         isOver 
           ? 'border-gold bg-gold/5 shadow-lg shadow-gold/10' 
           : 'border-border/40 bg-secondary/10'
       }`}
     >
-      <div className="p-4 border-b border-border/20 bg-white/40 backdrop-blur-sm rounded-t-2xl">
+      <div className="p-5 border-b border-border/20 bg-white/40 backdrop-blur-sm rounded-t-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
-            <span className="text-xs font-bold text-foreground uppercase tracking-widest">{stage.label}</span>
+            <span className="text-[11px] font-bold text-foreground uppercase tracking-[0.15em]">{stage.label}</span>
           </div>
-          <span className="text-[10px] font-bold text-gold bg-gold/10 px-2.5 py-1 rounded-full border border-gold/10">
+          <span className="text-[11px] font-bold text-gold bg-gold/10 px-3 py-1 rounded-full border border-gold/10">
             {leads.length}
           </span>
         </div>
       </div>
-      <div className="p-3 space-y-3 min-h-[120px] max-h-[calc(100vh-350px)] overflow-y-auto no-scrollbar">
+      <div className="p-4 space-y-4 min-h-[140px] max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar">
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <LeadCard
