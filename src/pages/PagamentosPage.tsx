@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,52 @@ export default function PagamentosPage() {
     client_id: "",
     event_id: "",
   });
+  const [installmentPlan, setInstallmentPlan] = useState<Array<{ installment_number: number; due_date: string; amount: string }>>([]);
+
+  const parseMoney = (value: string | number) => Number(String(value).replace(',', '.'));
+
+  const buildDefaultInstallments = (count: number, remaining: number) => {
+    const today = new Date();
+    const perInstallment = count > 0 ? remaining / count : 0;
+    return Array.from({ length: count }, (_, i) => {
+      const due = new Date(today);
+      due.setMonth(due.getMonth() + i + 1);
+      return {
+        installment_number: i + 1,
+        due_date: due.toISOString().split("T")[0],
+        amount: (Math.round(perInstallment * 100) / 100).toFixed(2),
+      };
+    });
+  };
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+
+    const totalValue = parseMoney(form.total_event_value);
+    const count = Number(form.installment_count);
+    const hasEntry = form.has_entry_payment;
+    const entryAmount = hasEntry ? parseMoney(form.entry_amount) : 0;
+
+    if (!Number.isFinite(totalValue) || totalValue <= 0 || !Number.isInteger(count) || count < 1) {
+      setInstallmentPlan([]);
+      return;
+    }
+
+    const remaining = totalValue - (hasEntry ? entryAmount : 0);
+    if (!Number.isFinite(remaining) || remaining < 0) {
+      setInstallmentPlan([]);
+      return;
+    }
+
+    const defaults = buildDefaultInstallments(count, remaining);
+    setInstallmentPlan((prev) =>
+      defaults.map((item, idx) => ({
+        installment_number: item.installment_number,
+        due_date: prev[idx]?.due_date || item.due_date,
+        amount: prev[idx]?.amount || item.amount,
+      }))
+    );
+  }, [dialogOpen, form.total_event_value, form.installment_count, form.has_entry_payment, form.entry_amount]);
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["payments"],
@@ -79,10 +125,48 @@ export default function PagamentosPage() {
   const { data: events = [] } = useQuery({
     queryKey: ["events-select"],
     queryFn: async () => {
-      const { data } = await supabase.from("events").select("id, title").order("title");
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, client_id, budget_value, event_date")
+        .order("event_date", { ascending: false });
       return data || [];
     },
   });
+
+  const eventsByClient = useMemo(() => {
+    if (!form.client_id) return events;
+    return events.filter((evt: any) => evt.client_id === form.client_id);
+  }, [events, form.client_id]);
+
+  const autoApplyEvent = (eventId: string, clientId?: string) => {
+    const source = clientId ? events.filter((evt: any) => evt.client_id === clientId) : events;
+    const selectedEvent = source.find((evt: any) => evt.id === eventId) || null;
+
+    setForm((prev) => ({
+      ...prev,
+      event_id: eventId,
+      total_event_value:
+        selectedEvent && selectedEvent.budget_value != null
+          ? String(selectedEvent.budget_value)
+          : prev.total_event_value,
+    }));
+  };
+
+  const handleClientSelect = (clientId: string) => {
+    const clientEvents = events.filter((evt: any) => evt.client_id === clientId);
+    const preferredEvent =
+      clientEvents.find((evt: any) => Number(evt.budget_value || 0) > 0) || clientEvents[0] || null;
+
+    setForm((prev) => ({
+      ...prev,
+      client_id: clientId,
+      event_id: preferredEvent?.id || "",
+      total_event_value:
+        preferredEvent && preferredEvent.budget_value != null
+          ? String(preferredEvent.budget_value)
+          : prev.total_event_value,
+    }));
+  };
 
   const { data: installments = [] } = useQuery({
     queryKey: ["installments", expandedId],
@@ -100,10 +184,10 @@ export default function PagamentosPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const totalValue = Number(String(form.total_event_value).replace(',', '.'));
+      const totalValue = parseMoney(form.total_event_value);
       const count = Number(form.installment_count);
       const hasEntry = form.has_entry_payment;
-      const entryAmount = hasEntry ? Number(String(form.entry_amount).replace(',', '.')) : null;
+      const entryAmount = hasEntry ? parseMoney(form.entry_amount) : null;
 
       if (!Number.isFinite(totalValue) || totalValue <= 0) {
         throw new Error('Informe um valor total válido maior que zero.');
@@ -141,23 +225,30 @@ export default function PagamentosPage() {
         });
       if (error) throw error;
 
-      // Generate installments
       const remaining = hasEntry && entryAmount ? totalValue - entryAmount : totalValue;
       if (remaining < 0) {
         throw new Error('Não foi possível calcular as parcelas. Verifique os valores informados.');
       }
-      const perInstallment = remaining / count;
-      const today = new Date();
-      const installmentsData = Array.from({ length: count }, (_, i) => {
-        const due = new Date(today);
-        due.setMonth(due.getMonth() + i + 1);
-        return {
-          payment_id: paymentId,
-          installment_number: i + 1,
-          due_date: due.toISOString().split("T")[0],
-          amount: Math.round(perInstallment * 100) / 100,
-        };
-      });
+
+      const sourcePlan = installmentPlan.length === count ? installmentPlan : buildDefaultInstallments(count, remaining);
+      const installmentsData = sourcePlan.map((item) => ({
+        payment_id: paymentId,
+        installment_number: item.installment_number,
+        due_date: item.due_date,
+        amount: parseMoney(item.amount),
+      }));
+
+      const hasInvalidInstallments = installmentsData.some(
+        (item) => !item.due_date || !Number.isFinite(item.amount) || item.amount <= 0
+      );
+      if (hasInvalidInstallments) {
+        throw new Error('Preencha data e valor válidos para todas as parcelas.');
+      }
+
+      const installmentsSum = installmentsData.reduce((acc, curr) => acc + curr.amount, 0);
+      if (Math.abs(installmentsSum - remaining) > 0.01) {
+        throw new Error(`A soma das parcelas (${currencyFmt(installmentsSum)}) deve ser igual ao saldo a parcelar (${currencyFmt(remaining)}).`);
+      }
 
       const { error: instError } = await supabase.from('payment_installments').insert(installmentsData);
       if (instError) {
@@ -239,8 +330,16 @@ export default function PagamentosPage() {
     },
   });
 
-  const resetForm = () =>
+  const resetForm = () => {
     setForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "" });
+    setInstallmentPlan([]);
+  };
+
+  const updateInstallment = (index: number, field: 'due_date' | 'amount', value: string) => {
+    setInstallmentPlan((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
 
   const filtered = payments.filter((p) => {
     const clientName = p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "";
@@ -258,7 +357,7 @@ export default function PagamentosPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1 font-body font-medium">Controle estratégico de contratos e parcelas</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
+        <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
           <Plus className="w-4 h-4 mr-2" /> Novo Contrato
         </Button>
       </div>
@@ -393,7 +492,7 @@ export default function PagamentosPage() {
       )}
 
       {/* Create dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
         <DialogContent className="max-w-md max-h-[90vh] p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body flex flex-col">
           <div className="bg-gradient-gold p-8 text-white">
             <DialogHeader>
@@ -402,6 +501,34 @@ export default function PagamentosPage() {
             </DialogHeader>
           </div>
           <div className="p-6 md:p-8 space-y-6 overflow-y-auto min-h-0">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Titular do Contrato</Label>
+              <Select value={form.client_id} onValueChange={handleClientSelect}>
+                <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
+                  <SelectValue placeholder="Selecionar cliente" />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-2xl border-border/40">
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.first_name} {c.last_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Evento Relacionado</Label>
+              <Select value={form.event_id} onValueChange={(v) => autoApplyEvent(v, form.client_id)}>
+                <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
+                  <SelectValue placeholder={form.client_id ? "Vincular evento do cliente" : "Selecione o cliente primeiro"} />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-2xl border-border/40">
+                  {eventsByClient.map((e: any) => (
+                    <SelectItem key={e.id} value={e.id} className="font-bold text-xs uppercase">{e.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Total *</Label>
@@ -453,33 +580,34 @@ export default function PagamentosPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Titular do Contrato</Label>
-              <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-                <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
-                  <SelectValue placeholder="Selecionar cliente" />
-                </SelectTrigger>
-                <SelectContent className="bg-white shadow-2xl border-border/40">
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.first_name} {c.last_name}</SelectItem>
+            {installmentPlan.length > 0 && (
+              <div className="space-y-3 p-4 bg-secondary/10 rounded-xl border border-border/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Plano de Parcelas (Editar Data e Valor)</Label>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{installmentPlan.length} parcela{installmentPlan.length > 1 ? 's' : ''}</span>
+                </div>
+                <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
+                  {installmentPlan.map((item, index) => (
+                    <div key={item.installment_number} className="grid grid-cols-[88px_1fr_1fr] gap-2 items-center bg-white border border-border/20 rounded-lg p-2.5">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Parcela {item.installment_number.toString().padStart(2, '0')}</span>
+                      <Input
+                        type="date"
+                        value={item.due_date}
+                        onChange={(e) => updateInstallment(index, 'due_date', e.target.value)}
+                        className="h-9 text-xs bg-secondary/20"
+                      />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={item.amount}
+                        onChange={(e) => updateInstallment(index, 'amount', e.target.value)}
+                        className="h-9 text-xs font-bold bg-secondary/20"
+                      />
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Evento Relacionado</Label>
-              <Select value={form.event_id} onValueChange={(v) => setForm({ ...form, event_id: v })}>
-                <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
-                  <SelectValue placeholder="Vincular evento ativo" />
-                </SelectTrigger>
-                <SelectContent className="bg-white shadow-2xl border-border/40">
-                  {events.map((e) => (
-                    <SelectItem key={e.id} value={e.id} className="font-bold text-xs uppercase">{e.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
