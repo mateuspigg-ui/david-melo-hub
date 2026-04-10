@@ -30,6 +30,7 @@ export default function RecebimentosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("");
 
   const { data: installments = [], isLoading } = useQuery({
     queryKey: ["receivables"],
@@ -81,11 +82,13 @@ export default function RecebimentosPage() {
     const eventTitle = inst.payments?.events?.title || "";
     const matchSearch = `${clientName} ${eventTitle}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || inst.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchMonth = !monthFilter || (inst.due_date || "").startsWith(monthFilter);
+    return matchSearch && matchStatus && matchMonth;
   });
 
-  const totalPending = installments.filter((i) => i.status === "pending").reduce((s, i) => s + i.amount, 0);
-  const totalReceived = installments.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
+  const baseForTotals = monthFilter ? filtered : installments;
+  const totalPending = baseForTotals.filter((i) => i.status === "pending").reduce((s, i) => s + i.amount, 0);
+  const totalReceived = baseForTotals.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
@@ -122,6 +125,12 @@ export default function RecebimentosPage() {
             className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl shadow-sm" 
           />
         </div>
+        <Input
+          type="month"
+          value={monthFilter}
+          onChange={(e) => setMonthFilter(e.target.value)}
+          className="w-[190px] bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl shadow-sm"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
             <SelectValue />
