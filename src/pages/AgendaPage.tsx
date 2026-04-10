@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, isSameDay, isSameWeek, startOfWeek, addDays, isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarClock, Loader2, Plus, Pencil, CalendarDays, Trash2 } from 'lucide-react';
+import { CalendarClock, Loader2, Plus, Pencil, CalendarDays, Trash2, ClipboardCheck, Clock3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,21 @@ const AgendaPage = () => {
     },
   });
 
+  const { data: leadTasks = [] } = useQuery({
+    queryKey: ['agenda-lead-tasks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lead_tasks')
+        .select('id, title, due_date, status, assigned_to, assignee:assigned_to(full_name), lead:lead_id(title)')
+        .order('due_date', { ascending: true });
+      if (error) {
+        if (/could not find the table ['"]public\.lead_tasks['"]/i.test(String(error.message || ''))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
   const eventCountByDate = useMemo(() => {
     const map = new Map<string, number>();
     events.forEach((evt: any) => {
@@ -78,6 +93,16 @@ const AgendaPage = () => {
     }
     return events.filter((evt: any) => evt.event_date && isSameMonth(parseISO(evt.event_date), selectedDate));
   }, [events, selectedDate, view]);
+
+  const monthDayEvents = useMemo(
+    () => events.filter((evt: any) => evt.event_date && isSameDay(parseISO(evt.event_date), selectedDate)),
+    [events, selectedDate]
+  );
+
+  const monthDayTasks = useMemo(
+    () => leadTasks.filter((task: any) => task.due_date && isSameDay(parseISO(task.due_date), selectedDate)),
+    [leadTasks, selectedDate]
+  );
 
   const openNewEvent = (date: Date) => {
     setEditingEvent(null);
@@ -226,30 +251,97 @@ const AgendaPage = () => {
 
       <div className="bg-white rounded-2xl border border-border/40 premium-shadow p-4 md:p-6">
         {view === 'mes' && (
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            month={calendarMonth}
-            onMonthChange={setCalendarMonth}
-            onDayClick={(day) => openNewEvent(day)}
-            locale={ptBR}
-            components={{
-              DayContent: ({ date }) => {
-                const key = format(date, 'yyyy-MM-dd');
-                const count = eventCountByDate.get(key) || 0;
-                return (
-                  <div className="relative w-full h-full flex items-center justify-center">
-                    <span>{date.getDate()}</span>
-                    {count > 0 && (
-                      <span className="absolute -bottom-1 -right-1 text-[9px] rounded-full bg-gold text-white h-4 min-w-4 px-1 flex items-center justify-center font-bold">
-                        {count}
-                      </span>
-                    )}
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
+            <div className="rounded-xl border border-border/30 p-3 bg-white">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                onDayClick={(day) => setSelectedDate(day)}
+                locale={ptBR}
+                components={{
+                  DayContent: ({ date }) => {
+                    const key = format(date, 'yyyy-MM-dd');
+                    const count = eventCountByDate.get(key) || 0;
+                    return (
+                      <div className="relative w-full h-full flex items-center justify-center">
+                        <span>{date.getDate()}</span>
+                        {count > 0 && (
+                          <span className="absolute -bottom-1 -right-1 text-[9px] rounded-full bg-gold text-white h-4 min-w-4 px-1 flex items-center justify-center font-bold">
+                            {count}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  },
+                }}
+              />
+            </div>
+
+            <aside className="rounded-xl border border-border/30 bg-secondary/10 p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Selecionado</p>
+                  <p className="text-lg font-display text-foreground">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
+                </div>
+                <Button size="sm" className="bg-gradient-gold text-white" onClick={() => openNewEvent(selectedDate)}>
+                  <Plus className="w-4 h-4 mr-1" /> Novo
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground flex items-center gap-2">
+                  <CalendarDays className="w-3.5 h-3.5 text-gold" /> Eventos do dia
+                </p>
+                {monthDayEvents.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border/50 p-3 text-xs text-muted-foreground">Nenhum evento neste dia.</div>
+                ) : (
+                  <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                    {monthDayEvents.map((evt: any) => (
+                      <button
+                        key={evt.id}
+                        onClick={() => openEditEvent(evt)}
+                        className="w-full text-left rounded-lg border border-border/40 bg-white p-3 hover:border-gold/50 transition-colors"
+                      >
+                        <p className="text-xs font-black text-foreground truncate">{evt.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{evt.event_time || 'Sem horário'} • {evt.location || 'Sem local'}</p>
+                      </button>
+                    ))}
                   </div>
-                );
-              },
-            }}
-          />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground flex items-center gap-2">
+                  <ClipboardCheck className="w-3.5 h-3.5 text-gold" /> Tarefas do Kanban
+                </p>
+                {monthDayTasks.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border/50 p-3 text-xs text-muted-foreground">Nenhuma tarefa com vencimento neste dia.</div>
+                ) : (
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                    {monthDayTasks.map((task: any) => {
+                      const isDone = task.status === 'done';
+                      const leadTitle = Array.isArray(task.lead) ? task.lead[0]?.title : task.lead?.title;
+                      const assigneeName = Array.isArray(task.assignee) ? task.assignee[0]?.full_name : task.assignee?.full_name;
+                      return (
+                        <div key={task.id} className="rounded-lg border border-border/40 bg-white p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-xs font-black text-foreground leading-snug">{task.title}</p>
+                            <span className={cn('text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border', isDone ? 'border-emerald-300 text-emerald-700 bg-emerald-50' : 'border-amber-300 text-amber-700 bg-amber-50')}>
+                              {isDone ? 'Feita' : 'Pendente'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground mt-1 truncate">Lead: {leadTitle || 'Sem lead'}</p>
+                          <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1"><Clock3 className="w-3 h-3" /> {assigneeName || 'Sem responsável'}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
         )}
 
         {view === 'ano' && (
