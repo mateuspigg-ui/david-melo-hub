@@ -172,7 +172,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
             </p>
           </div>
         ),
-        className: 'border-l-4 border-l-[#C5A059]',
+        className: 'border-l-4 border-l-emerald-500 bg-emerald-50/80',
         duration: 15000,
       });
     },
