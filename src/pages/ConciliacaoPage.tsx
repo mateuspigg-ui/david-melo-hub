@@ -674,11 +674,11 @@ const ConciliacaoPage = () => {
                 </div>
 
                 <div className="rounded-xl border border-gold/20 bg-gold/5 p-4">
-                  <p className="text-[10px] uppercase tracking-widest text-gold font-bold">Equação Principal</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gold font-bold">Diferença entre saldos finais</p>
                   <p className="mt-1 text-sm text-foreground font-semibold">
-                    var-tot = Saldo Final Extrato ({formatCurrency(balances.statementFinal)}) - Saldo Final Contabilidade ({formatCurrency(balances.ledgerFinal)})
+                    Saldo Final do Extrato ({formatCurrency(balances.statementFinal)}) - Saldo Final da Contabilidade ({formatCurrency(balances.ledgerFinal)})
                   </p>
-                  <p className="text-xl font-display mt-2 text-foreground">var-tot: {formatCurrency(reconciliationData.varTot)}</p>
+                  <p className="text-xl font-display mt-2 text-foreground">Diferença de saldos finais: {formatCurrency(reconciliationData.varTot)}</p>
                 </div>
               </div>
 
@@ -697,7 +697,7 @@ const ConciliacaoPage = () => {
                   ))}
                 </div>
                 <div className="mt-3 pt-3 border-t border-border/20 flex justify-between text-sm font-semibold">
-                  <span>ext-dif-tot</span>
+                  <span>Total de pendências no extrato</span>
                   <span>{formatCurrency(reconciliationData.extDifTot)}</span>
                 </div>
               </div>
@@ -717,17 +717,17 @@ const ConciliacaoPage = () => {
                   ))}
                 </div>
                 <div className="mt-3 pt-3 border-t border-border/20 flex justify-between text-sm font-semibold">
-                  <span>cont-dif-tot</span>
+                  <span>Total de pendências na contabilidade</span>
                   <span>{formatCurrency(reconciliationData.contDifTot)}</span>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-gold/30 bg-gold/5 p-6">
                 <div className="flex items-center justify-between text-lg font-display text-foreground">
-                  <span>Total de Pendências (dif-tot)</span>
+                  <span>Resultado final das pendências</span>
                   <span>{formatCurrency(reconciliationData.difTot)}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">dif-tot = ext-dif-tot - cont-dif-tot</p>
+                <p className="text-xs text-muted-foreground mt-1">Total pendente no extrato - Total pendente na contabilidade</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
@@ -766,17 +766,17 @@ const ConciliacaoPage = () => {
                   <span className="text-gold font-bold">ATIVO</span>
                 </div>
                 <div className="flex justify-between items-center text-sm pt-2">
-                  <span className="text-muted-foreground font-medium">Regra 4.1 (dif-tot vs var-tot):</span>
+                  <span className="text-muted-foreground font-medium">Comparação final (pendências x diferença de saldos):</span>
                   <Badge variant={isValid ? "default" : "destructive"} className="px-3 py-1 font-bold">
                     {isValid ? "VÁLIDO" : "ERRO DE DIFERENÇA"}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center text-sm border-t border-border/10 pt-4">
-                  <span className="text-muted-foreground font-medium">dif-tot</span>
+                  <span className="text-muted-foreground font-medium">Resultado final das pendências</span>
                   <span className="font-bold text-foreground">{formatCurrency(reconciliationData.difTot)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground font-medium">var-tot</span>
+                  <span className="text-muted-foreground font-medium">Diferença entre saldos finais</span>
                   <span className="font-bold text-foreground">{formatCurrency(reconciliationData.varTot)}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
