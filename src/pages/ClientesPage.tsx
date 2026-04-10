@@ -71,11 +71,36 @@ const ClientesPage = () => {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
+      const unlinkClientReferences = async () => {
+        const updates = [
+          supabase.from('contracts').update({ client_id: null }).eq('client_id', id),
+          supabase.from('events').update({ client_id: null }).eq('client_id', id),
+          supabase.from('leads').update({ client_id: null }).eq('client_id', id),
+          supabase.from('payments').update({ client_id: null }).eq('client_id', id),
+        ];
+
+        const results = await Promise.all(updates);
+        const failed = results.find((result) => result.error);
+        if (failed?.error) throw failed.error;
+      };
+
       const { error } = await supabase.from('clients').delete().eq('id', id);
+
+      if (error && /foreign key|constraint|violates/i.test(error.message || '')) {
+        await unlinkClientReferences();
+        const retry = await supabase.from('clients').delete().eq('id', id);
+        if (retry.error) throw retry.error;
+        return;
+      }
+
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: ['contracts'] });
+      qc.invalidateQueries({ queryKey: ['events'] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
+      qc.invalidateQueries({ queryKey: ['payments'] });
       toast({ title: 'Cliente removido!' });
       setDeleteId(null);
     },
@@ -322,7 +347,7 @@ const ClientesPage = () => {
             </div>
             <AlertDialogHeader>
               <AlertDialogTitle className="text-foreground text-center font-display text-xl">Remover cliente?</AlertDialogTitle>
-              <AlertDialogDescription className="text-center font-medium mt-2">Esta operação é permanente e removerá todos os dados históricos deste cliente.</AlertDialogDescription>
+              <AlertDialogDescription className="text-center font-medium mt-2">Esta operação é permanente. Os vínculos com histórico serão removidos para permitir a exclusão.</AlertDialogDescription>
             </AlertDialogHeader>
             <div className="flex flex-col gap-2 mt-8">
               <AlertDialogAction
