@@ -44,13 +44,27 @@ const Dashboard = () => {
       
       const monthlyTotal = monthEvents?.reduce((acc, curr) => acc + Number(curr.budget_value || 0), 0) || 0;
 
-      // Accounts Receivable (Pending installments)
+      // Accounts Receivable in current month (predictability based on registered payments)
+      const monthStart = format(currentMonthStart, 'yyyy-MM-dd');
+      const monthEnd = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+
       const { data: pendingInstallments } = await supabase
         .from('payment_installments')
-        .select('amount')
-        .eq('status', 'pending');
-      
-      const receivableTotal = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+        .select('amount, due_date, status')
+        .gte('due_date', monthStart)
+        .lte('due_date', monthEnd)
+        .in('status', ['pending', 'pendente']);
+
+      const { data: monthEntries } = await supabase
+        .from('payments')
+        .select('entry_amount, entry_date, has_entry_payment')
+        .eq('has_entry_payment', true)
+        .gte('entry_date', monthStart)
+        .lte('entry_date', monthEnd);
+
+      const installmentReceivable = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+      const entryReceivable = monthEntries?.reduce((acc, curr) => acc + Number(curr.entry_amount || 0), 0) || 0;
+      const receivableTotal = installmentReceivable + entryReceivable;
 
       return {
         annual: annualTotal,
