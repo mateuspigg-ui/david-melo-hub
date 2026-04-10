@@ -54,6 +54,14 @@ const FinancialDashboard = () => {
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+  const formatCurrencyNoCents = (value: number) =>
+    new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+
   const kpiCards = [
     {
       label: 'Saldo Bancario Total',
@@ -173,7 +181,7 @@ const FinancialDashboard = () => {
               <BarChart data={chartData} barGap={16}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f2f2f2" vertical={false} />
                 <XAxis dataKey="name" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 15 }} />
-                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => `R$${v/1000}k`} />
+                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => formatCurrencyNoCents(Number(v))} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(197, 160, 89, 0.05)' }}
                   contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '16px' }}

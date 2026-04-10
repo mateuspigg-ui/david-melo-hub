@@ -179,6 +179,14 @@ const Dashboard = () => {
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+  const formatCurrencyNoCents = (val: number) =>
+    new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val || 0);
+
   if (isLoadingKPIs || isLoadingCRM || isLoadingMetrics) {
     return (
       <div className="h-[80vh] flex flex-col items-center justify-center gap-6">
@@ -390,7 +398,7 @@ const Dashboard = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="4 4" stroke="#f0f0f0" vertical={false} />
                 <XAxis dataKey="month" stroke="#666" fontSize={11} axisLine={false} tickLine={false} tick={{ dy: 10 }} />
-                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => (isAdmin ? `R$${Math.round(v / 1000)}k` : 'R$ •••')} />
+                <YAxis stroke="#666" fontSize={11} axisLine={false} tickLine={false} tickFormatter={(v) => (isAdmin ? formatCurrencyNoCents(Number(v)) : 'R$ •••')} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(197, 160, 89, 0.08)' }}
                   formatter={(value: number) => [maskCurrency(value), 'Receita']}
@@ -499,7 +507,7 @@ const Dashboard = () => {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
               <XAxis dataKey="month" stroke="#666" fontSize={11} tickLine={false} axisLine={false} tick={{ dy: 15 }} />
-              <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => (isAdmin ? `R$${Math.round(v / 1000)}k` : 'R$ •••')} />
+              <YAxis stroke="#666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => (isAdmin ? formatCurrencyNoCents(Number(v)) : 'R$ •••')} />
               <Tooltip 
                 formatter={(value: number) => maskCurrency(value)}
                 contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '16px' }}
