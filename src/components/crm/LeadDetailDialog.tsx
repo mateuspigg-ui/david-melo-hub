@@ -28,6 +28,12 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
   const [newTask, setNewTask] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
+  const [isLeadTasksUnavailable, setIsLeadTasksUnavailable] = useState(false);
+
+  const isLeadTasksMissingTableError = (error: any) => {
+    const message = String(error?.message || '');
+    return /could not find the table ['"]public\.lead_tasks['"]/i.test(message);
+  };
 
   useEffect(() => {
     setNewTaskAssignee(lead?.assigned_to || '');
@@ -42,7 +48,14 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
         .select('*, assignee:assigned_to(full_name)')
         .eq('lead_id', lead.id)
         .order('created_at', { ascending: true });
-      if (error) throw error;
+      if (error) {
+        if (isLeadTasksMissingTableError(error)) {
+          setIsLeadTasksUnavailable(true);
+          return [];
+        }
+        throw error;
+      }
+      setIsLeadTasksUnavailable(false);
       return data;
     },
     enabled: !!lead,
@@ -71,6 +84,15 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       toast({ title: 'Tarefa confirmada!' });
     },
     onError: (error: any) => {
+      if (isLeadTasksMissingTableError(error)) {
+        setIsLeadTasksUnavailable(true);
+        toast({
+          title: 'Módulo de tarefas indisponível',
+          description: 'A tabela de tarefas não foi aplicada no banco. Rode as migrations do Supabase para ativar.',
+          variant: 'destructive',
+        });
+        return;
+      }
       toast({
         title: 'Erro ao confirmar tarefa',
         description: error?.message || 'Não foi possível salvar a tarefa.',
@@ -89,6 +111,18 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
+    },
+    onError: (error: any) => {
+      if (isLeadTasksMissingTableError(error)) {
+        setIsLeadTasksUnavailable(true);
+        toast({
+          title: 'Módulo de tarefas indisponível',
+          description: 'A tabela de tarefas não foi aplicada no banco. Rode as migrations do Supabase para ativar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      toast({ title: 'Erro ao atualizar tarefa', description: error?.message || 'Tente novamente.', variant: 'destructive' });
     },
   });
 
@@ -131,6 +165,15 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
   const todayTasks = tasks.filter(t => getTaskDueStatus(t) === 'today');
 
   const handleTaskSubmit = () => {
+    if (isLeadTasksUnavailable) {
+      toast({
+        title: 'Módulo de tarefas indisponível',
+        description: 'A tabela de tarefas não foi aplicada no banco. Rode as migrations do Supabase para ativar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const taskTitle = newTask.trim();
     if (!taskTitle) {
       toast({
@@ -268,6 +311,12 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
             </h4>
 
             <div className="space-y-3 max-h-[250px] overflow-y-auto no-scrollbar">
+              {isLeadTasksUnavailable && (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/[0.06] p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-destructive">Tarefas indisponíveis</p>
+                  <p className="text-xs text-destructive/80 mt-1 font-medium">A tabela `lead_tasks` não foi encontrada no banco. Rode as migrations do Supabase para habilitar este recurso.</p>
+                </div>
+              )}
               {tasks.length === 0 && <p className="text-center py-6 text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">Nenhuma tarefa agendada</p>}
               {tasks.map(task => {
                 const dueStatus = getTaskDueStatus(task);
