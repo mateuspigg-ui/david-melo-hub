@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,6 +110,41 @@ const ConciliacaoPage = () => {
     ledgerFinal: 0,
   });
   const isDemoAccount = selectedAccount === DEMO_ACCOUNT.id;
+
+  const clearReconciliationMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedAccount) throw new Error('Selecione a conta para limpar a conciliação.');
+      if (!period.start || !period.end) throw new Error('Defina o período antes de limpar os dados.');
+
+      const { error: bankError } = await (supabase as any)
+        .from('bank_transactions')
+        .delete()
+        .eq('bank_account_id', selectedAccount)
+        .gte('transaction_date', period.start)
+        .lte('transaction_date', period.end);
+
+      if (bankError) throw bankError;
+
+      const { error: accountingError } = await (supabase as any)
+        .from('accounting_entries')
+        .delete()
+        .eq('bank_account_id', selectedAccount)
+        .gte('entry_date', period.start)
+        .lte('entry_date', period.end);
+
+      if (accountingError) throw accountingError;
+    },
+    onSuccess: () => {
+      refetchBank();
+      refetchAcc();
+      setImportedArtifacts([]);
+      setCurrentStep(1);
+      toast({ title: 'Conciliação limpa', description: 'Dados do período foram removidos. Você pode começar do zero.' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao limpar', description: error?.message || 'Não foi possível limpar a conciliação.', variant: 'destructive' });
+    },
+  });
   
   // Data for reconciliation
   const { data: accounts } = useQuery({
@@ -401,6 +436,16 @@ const ConciliacaoPage = () => {
                     />
                   </div>
                 </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => clearReconciliationMutation.mutate()}
+                  disabled={isDemoAccount || !selectedAccount || !period.start || !period.end || clearReconciliationMutation.isPending}
+                  className="text-xs border-destructive/40 text-destructive hover:bg-destructive hover:text-white transition-all"
+                >
+                  {clearReconciliationMutation.isPending ? 'Limpando...' : 'Limpar conciliação deste período'}
+                </Button>
 
                 <div className="space-y-3 rounded-xl border border-border/20 bg-secondary/10 p-5">
                   <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Parâmetros de validação</h4>
