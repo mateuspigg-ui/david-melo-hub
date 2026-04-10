@@ -120,7 +120,7 @@ export default function CRMPage() {
   const [completingLeadId, setCompletingLeadId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 3 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 1 } })
   );
 
   const collisionDetectionStrategy = (args: any) => {
@@ -231,16 +231,33 @@ export default function CRMPage() {
       if (error) throw error;
       return { id, stage, previousStage };
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard_pipeline'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+    onMutate: async ({ id, stage }) => {
+      await queryClient.cancelQueries({ queryKey: ['leads'] });
+      const previousLeads = queryClient.getQueryData<Lead[]>(['leads']) || [];
 
+      queryClient.setQueryData<Lead[]>(['leads'], previousLeads.map((item) => {
+        if (item.id !== id) return item;
+        return { ...item, stage };
+      }));
+
+      return { previousLeads };
+    },
+    onSuccess: (data) => {
       if (data.stage === 'fechados' && data.previousStage !== 'fechados') {
         celebrateLeadClosed(data.id);
       }
     },
-    onError: () => toast({ title: 'Erro ao mover lead', variant: 'destructive' }),
+    onError: (_error, _variables, context) => {
+      if (context?.previousLeads) {
+        queryClient.setQueryData(['leads'], context.previousLeads);
+      }
+      toast({ title: 'Erro ao mover lead', variant: 'destructive' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_pipeline'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+    },
   });
 
   const completeLeadTasksMutation = useMutation({
