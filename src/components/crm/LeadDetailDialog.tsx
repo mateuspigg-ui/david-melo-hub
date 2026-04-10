@@ -22,6 +22,38 @@ interface Props {
   eventTypes: { value: string; label: string }[];
 }
 
+const playTaskCreatedAlert = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.2);
+
+    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.2, audioContext.currentTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.25);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.25);
+    oscillator.onended = () => {
+      void audioContext.close();
+    };
+  } catch {
+    return;
+  }
+};
+
 export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, stages, eventTypes }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -73,7 +105,14 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      const assigneeName = variables.assigned_to
+        ? teamMembers.find(member => member.id === variables.assigned_to)?.full_name || 'Responsável não encontrado'
+        : 'Sem responsável definido';
+      const targetClientName = lead?.clients
+        ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim()
+        : `${lead?.first_name || ''} ${lead?.last_name || ''}`.trim() || lead?.title || 'Cliente não informado';
+
       queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
@@ -82,7 +121,11 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       setNewTaskDueDate('');
       setNewTaskAssignee(lead?.assigned_to || '');
       onClose();
-      toast({ title: 'Tarefa confirmada!' });
+      playTaskCreatedAlert();
+      toast({
+        title: 'Tarefa criada com sucesso',
+        description: `Responsável: ${assigneeName} | Cliente: ${targetClientName}`,
+      });
     },
     onError: (error: any) => {
       if (isLeadTasksMissingTableError(error)) {
