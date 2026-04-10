@@ -55,6 +55,8 @@ export default function RecebimentosPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [monthFilter, setMonthFilter] = useState("");
+  const isMissingEntryPaidAtColumnError = (error: any) =>
+    /column .*entry_paid_at.* does not exist/i.test(String(error?.message || ''));
 
   const { data: installments = [], isLoading } = useQuery({
     queryKey: ["receivables"],
@@ -75,7 +77,12 @@ export default function RecebimentosPage() {
           .from("payments")
           .update({ entry_paid_at: currentStatus === 'paid' ? null : new Date().toISOString() })
           .eq("id", id);
-        if (error) throw error;
+        if (error) {
+          if (isMissingEntryPaidAtColumnError(error)) {
+            throw new Error('A coluna entry_paid_at ainda não existe no banco. Aplique as migrations do Supabase para habilitar baixa da entrada.');
+          }
+          throw error;
+        }
         return;
       }
 
@@ -120,7 +127,19 @@ export default function RecebimentosPage() {
         .eq("has_entry_payment", true)
         .not("entry_amount", "is", null)
         .order("entry_date", { ascending: true });
-      if (error) throw error;
+      if (error) {
+        if (!isMissingEntryPaidAtColumnError(error)) throw error;
+
+        const fallback = await (supabase as any)
+          .from("payments")
+          .select("id, entry_amount, entry_date, clients(first_name, last_name), events(title)")
+          .eq("has_entry_payment", true)
+          .not("entry_amount", "is", null)
+          .order("entry_date", { ascending: true });
+
+        if (fallback.error) throw fallback.error;
+        return ((fallback.data || []) as any[]).map((row) => ({ ...row, entry_paid_at: null })) as EntryRow[];
+      }
       return (data || []) as EntryRow[];
     },
   });

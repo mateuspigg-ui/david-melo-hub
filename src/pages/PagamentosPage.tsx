@@ -68,12 +68,15 @@ export default function PagamentosPage() {
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
 
   const parseMoney = (value: string | number) => Number(String(value).replace(',', '.'));
+  const isMissingEntryPaidAtColumnError = (error: any) =>
+    /column .*entry_paid_at.* does not exist/i.test(String(error?.message || ''));
 
-  const buildDefaultInstallments = (count: number, remaining: number) => {
-    const today = new Date();
+  const buildDefaultInstallments = (count: number, remaining: number, baseDate?: string) => {
+    const anchor = baseDate ? new Date(`${baseDate}T12:00:00`) : new Date();
+    const safeAnchor = Number.isNaN(anchor.getTime()) ? new Date() : anchor;
     const perInstallment = count > 0 ? remaining / count : 0;
     return Array.from({ length: count }, (_, i) => {
-      const due = new Date(today);
+      const due = new Date(safeAnchor);
       due.setMonth(due.getMonth() + i + 1);
       return {
         installment_number: i + 1,
@@ -104,9 +107,13 @@ export default function PagamentosPage() {
       return;
     }
 
-    const defaults = buildDefaultInstallments(count, remaining);
+    const defaults = buildDefaultInstallments(
+      count,
+      remaining,
+      hasEntry && form.entry_date ? form.entry_date : undefined
+    );
     setInstallmentPlan(defaults);
-  }, [dialogOpen, form.total_event_value, form.installment_count, form.has_entry_payment, form.entry_amount]);
+  }, [dialogOpen, form.total_event_value, form.installment_count, form.has_entry_payment, form.entry_amount, form.entry_date]);
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["payments"],
@@ -222,11 +229,10 @@ export default function PagamentosPage() {
           .from('payments')
           .update({
             total_event_value: totalValue,
-            installment_count: count,
+          installment_count: count,
           has_entry_payment: hasEntry,
           entry_amount: entryAmount,
           entry_date: hasEntry && form.entry_date ? form.entry_date : null,
-          entry_paid_at: hasEntry ? (editingPayment?.entry_paid_at || null) : null,
           client_id: form.client_id || null,
           event_id: form.event_id || null,
         })
@@ -242,7 +248,6 @@ export default function PagamentosPage() {
             has_entry_payment: hasEntry,
             entry_amount: entryAmount,
             entry_date: hasEntry && form.entry_date ? form.entry_date : null,
-            entry_paid_at: null,
             client_id: form.client_id || null,
             event_id: form.event_id || null,
           });
@@ -254,7 +259,9 @@ export default function PagamentosPage() {
         throw new Error('Não foi possível calcular as parcelas. Verifique os valores informados.');
       }
 
-      const sourcePlan = installmentPlan.length === count ? installmentPlan : buildDefaultInstallments(count, remaining);
+      const sourcePlan = installmentPlan.length === count
+        ? installmentPlan
+        : buildDefaultInstallments(count, remaining, hasEntry && form.entry_date ? form.entry_date : undefined);
       const installmentsData = sourcePlan.map((item) => ({
         payment_id: paymentId,
         installment_number: item.installment_number,
@@ -356,7 +363,12 @@ export default function PagamentosPage() {
         .from('payments')
         .update({ entry_paid_at: currentPaidAt ? null : new Date().toISOString() } as any)
         .eq('id', id);
-      if (error) throw error;
+      if (error) {
+        if (isMissingEntryPaidAtColumnError(error)) {
+          throw new Error('A coluna entry_paid_at ainda não existe no banco. Aplique as migrations do Supabase para habilitar baixa da entrada.');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
