@@ -18,6 +18,7 @@ interface Props {
 
 export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, taskMeta }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
+  const hasPendingTasks = (taskMeta?.pendingCount || 0) > 0;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -43,6 +44,8 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
           ? 'shadow-2xl border-gold bg-white rotate-1'
           : isOverdue
           ? 'border-red-300 bg-red-50/70 shadow-sm hover:border-red-400'
+          : hasPendingTasks
+          ? 'border-emerald-400 bg-emerald-50/40 shadow-sm hover:border-emerald-500'
           : 'border-border/30 bg-white shadow-sm hover:border-border/50 hover:shadow-md'
       }`}
     >
@@ -54,12 +57,27 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
         </div>
       )}
 
+      {hasPendingTasks && !isOverdue && (
+        <div className="flex items-center gap-1.5 mb-3 bg-emerald-100 border border-emerald-200 rounded-lg px-3 py-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-700">Tarefa ativa</span>
+        </div>
+      )}
+
       {taskMeta && taskMeta.pendingCount > 0 && (
-        <div className="flex items-center justify-between gap-2 mb-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-          <span className="text-[9px] font-black uppercase tracking-widest text-blue-700">
+        <div className={`flex items-center justify-between gap-2 mb-3 rounded-lg px-3 py-1.5 border ${
+          isOverdue
+            ? 'bg-red-100 border-red-200'
+            : 'bg-emerald-50 border-emerald-200'
+        }`}>
+          <span className={`text-[9px] font-black uppercase tracking-widest ${
+            isOverdue ? 'text-red-700' : 'text-emerald-700'
+          }`}>
             {taskMeta.pendingCount} tarefa{taskMeta.pendingCount > 1 ? 's' : ''} ativa{taskMeta.pendingCount > 1 ? 's' : ''}
           </span>
-          <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 truncate max-w-[120px]" title={taskMeta.assignees.join(', ') || 'Responsavel nao definido'}>
+          <span className={`text-[9px] font-black uppercase tracking-widest truncate max-w-[120px] ${
+            isOverdue ? 'text-red-600' : 'text-emerald-600'
+          }`} title={taskMeta.assignees.join(', ') || 'Responsavel nao definido'}>
             Resp: {taskMeta.assignees.length > 0 ? `${taskMeta.assignees[0]}${taskMeta.assignees.length > 1 ? ` +${taskMeta.assignees.length - 1}` : ''}` : 'NAO DEFINIDO'}
           </span>
         </div>
