@@ -376,8 +376,9 @@ const ClientesPage = () => {
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                    placeholder="cliente@email.com"
+                    placeholder="cliente@email.com (opcional)"
                   />
+                  <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">Você pode salvar sem preencher este campo.</p>
                 </div>
                 <div className="sm:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Opcional)</Label>
@@ -385,8 +386,9 @@ const ClientesPage = () => {
                     value={form.instagram}
                     onChange={(e) => setForm({ ...form, instagram: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                    placeholder="@usuario"
+                    placeholder="@usuario (opcional)"
                   />
+                  <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">Você pode salvar sem preencher este campo.</p>
                 </div>
               </div>
             </form>
