@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Loader2, BarChart3, ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, BarChart3, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const Auth = () => {
@@ -49,9 +49,11 @@ const Auth = () => {
           <div className="absolute bottom-0 left-0 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
 
           <div className="relative z-10 space-y-6">
-            <img src={logo} alt="David Melo" className="h-28 w-auto" />
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/25 bg-white/10 px-5 py-3 backdrop-blur-sm">
+              <img src={logo} alt="David Melo" className="h-36 w-auto drop-shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
+            </div>
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold/90">CRM Premium</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold/90">Plataforma Oficial David Melo</p>
               <h1 className="text-4xl font-display leading-tight tracking-tight">Gestão Comercial Inteligente para equipes de alta performance</h1>
               <p className="text-sm text-white/75 max-w-[420px]">
                 Visual moderno, pipeline organizado e decisões rápidas em um hub único de operação.
@@ -87,8 +89,8 @@ const Auth = () => {
                   {isLogin ? 'Acesse seu CRM com segurança.' : 'Ative seu acesso para começar a operar.'}
                 </p>
               </div>
-              <div className="hidden md:flex h-12 w-12 items-center justify-center rounded-2xl bg-gold/10 text-gold">
-                <Sparkles className="h-5 w-5" />
+              <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold/10 text-gold overflow-hidden">
+                <img src={logo} alt="Logo David Melo" className="h-14 w-auto" />
               </div>
             </div>
 
@@ -176,7 +178,7 @@ const Auth = () => {
             </div>
 
             <div className="mt-8 text-center lg:hidden">
-              <img src={logo} alt="David Melo" className="h-24 w-auto mx-auto" />
+              <img src={logo} alt="David Melo" className="h-32 w-auto mx-auto" />
               <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-gold">Gestão Comercial Integrada</p>
             </div>
 
