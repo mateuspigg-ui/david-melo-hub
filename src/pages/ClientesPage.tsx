@@ -370,7 +370,7 @@ const ClientesPage = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço de E-mail</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço de E-mail (Opcional)</Label>
                   <Input
                     type="email"
                     value={form.email}
@@ -380,7 +380,7 @@ const ClientesPage = () => {
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Username)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Opcional)</Label>
                   <Input
                     value={form.instagram}
                     onChange={(e) => setForm({ ...form, instagram: e.target.value })}
