@@ -10,7 +10,7 @@ const TopBar = ({ onToggleSidebar }: Props) => {
   const { profile, signOut } = useAuth();
 
   return (
-    <header className="h-20 border-b border-border/40 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 z-10">
+    <header className="h-20 border-b border-border/30 bg-white/65 backdrop-blur-xl flex items-center justify-between px-6 md:px-8 z-10">
       <div className="flex items-center gap-6">
         <button
           onClick={onToggleSidebar}
@@ -19,8 +19,8 @@ const TopBar = ({ onToggleSidebar }: Props) => {
           <Menu size={20} />
         </button>
         <div className="hidden lg:flex flex-col">
-          <p className="text-[10px] font-black uppercase text-gold tracking-widest leading-none">Status do Sistema</p>
-          <p className="text-xs font-bold text-foreground mt-1">Operacional • Latência 24ms</p>
+          <p className="text-[10px] font-black uppercase text-gold tracking-[0.22em] leading-none">David Melo Hub</p>
+          <p className="text-xs font-bold text-foreground/85 mt-1">Sistema operacional • Performance estável</p>
         </div>
       </div>
 

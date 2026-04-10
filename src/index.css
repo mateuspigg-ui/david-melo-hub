@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -54,7 +54,7 @@
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 37 42% 52%;
 
-    font-family: 'Inter', sans-serif;
+    font-family: 'Manrope', sans-serif;
   }
 
   .dark {
@@ -87,10 +87,18 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background-image:
+      radial-gradient(circle at 8% 0%, hsl(var(--gold) / 0.12), transparent 34%),
+      radial-gradient(circle at 100% 100%, hsl(var(--gold) / 0.1), transparent 30%),
+      linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
+    background-attachment: fixed;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
     @apply tracking-tight font-semibold;
+  }
+  input, textarea, select, button {
+    font-family: 'Manrope', sans-serif;
   }
 }
 
@@ -111,6 +119,10 @@
   }
   .premium-shadow {
     box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02);
+  }
+  .app-surface {
+    @apply rounded-[28px] border border-border/30 bg-white/65 backdrop-blur-sm;
+    box-shadow: 0 25px 60px -35px rgba(15, 23, 42, 0.3);
   }
 }
 
