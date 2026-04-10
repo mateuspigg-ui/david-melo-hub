@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 type ViewMode = 'ano' | 'mes' | 'semana' | 'dia';
 
-const EVENT_TYPES = ['Casamento', 'Formatura', '15 Anos', 'Corporativo', 'Aniversario', 'Outro'];
+const INTERNAL_ACTIVITY_TYPES = ['Reunião', 'Degustação', 'Atendimento ao Cliente', 'Formatação de Festas'];
 
 const AgendaPage = () => {
   const { toast } = useToast();
@@ -104,11 +104,18 @@ const AgendaPage = () => {
     [leadTasks, selectedDate]
   );
 
+  const activityTypeOptions = useMemo(() => {
+    if (form.event_type && !INTERNAL_ACTIVITY_TYPES.includes(form.event_type)) {
+      return [form.event_type, ...INTERNAL_ACTIVITY_TYPES];
+    }
+    return INTERNAL_ACTIVITY_TYPES;
+  }, [form.event_type]);
+
   const openNewEvent = (date: Date) => {
     setEditingEvent(null);
     setSelectedDate(date);
     setForm({
-      event_type: 'Casamento',
+      event_type: INTERNAL_ACTIVITY_TYPES[0],
       client_id: '',
       event_date: format(date, 'yyyy-MM-dd'),
       event_time: '',
@@ -244,7 +251,7 @@ const AgendaPage = () => {
             </Button>
           ))}
           <Button className="bg-gradient-gold text-white" onClick={() => openNewEvent(selectedDate)}>
-            <Plus className="w-4 h-4 mr-2" /> Novo Evento
+            <Plus className="w-4 h-4 mr-2" /> Nova Atividade Interna
           </Button>
         </div>
       </div>
@@ -285,9 +292,6 @@ const AgendaPage = () => {
                   <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Selecionado</p>
                   <p className="text-lg font-display text-foreground">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
                 </div>
-                <Button size="sm" className="bg-gradient-gold text-white" onClick={() => openNewEvent(selectedDate)}>
-                  <Plus className="w-4 h-4 mr-1" /> Novo
-                </Button>
               </div>
 
               <div className="space-y-2">
@@ -425,9 +429,6 @@ const AgendaPage = () => {
                 <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">Visao diaria</p>
                 <p className="text-xl font-display text-foreground">{format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}</p>
               </div>
-              <Button onClick={() => openNewEvent(selectedDate)} className="bg-gradient-gold text-white">
-                <Plus className="w-4 h-4 mr-2" /> Adicionar Evento
-              </Button>
             </div>
             <div className="space-y-3">
               {eventsForSelectedView.length === 0 ? (
@@ -504,13 +505,13 @@ const AgendaPage = () => {
 
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2">
-              <Label>tipo_de_evento</Label>
+              <Label>tipo_de_atividade</Label>
               <select
                 value={form.event_type}
                 onChange={(e) => setForm((prev) => ({ ...prev, event_type: e.target.value }))}
                 className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/20 px-3 text-sm"
               >
-                {EVENT_TYPES.map((type) => (
+                {activityTypeOptions.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
               </select>
