@@ -6,7 +6,6 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
 
 interface Props {
   open: boolean;
@@ -39,20 +38,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
       });
     });
 
-  const parseXlsxFile = async (selectedFile: File) => {
-    const buffer = await selectedFile.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) return [];
-    const worksheet = workbook.Sheets[firstSheetName];
-    return XLSX.utils.sheet_to_json(worksheet, { defval: '' }) as any[];
-  };
-
-  const parseFileRows = async (selectedFile: File) => {
-    const ext = getFileExtension(selectedFile.name);
-    if (ext === 'xlsx') return parseXlsxFile(selectedFile);
-    return parseCsvFile(selectedFile);
-  };
+  const parseFileRows = async (selectedFile: File) => parseCsvFile(selectedFile);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -60,8 +46,8 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
     const selectedFile = e.target.files[0];
     const ext = getFileExtension(selectedFile.name);
 
-    if (!['pdf', 'xlsx'].includes(ext)) {
-      toast({ title: 'Formato inválido', description: 'Selecione um arquivo PDF ou XLSX.', variant: 'destructive' });
+    if (!['pdf', 'csv'].includes(ext)) {
+      toast({ title: 'Formato inválido', description: 'Selecione um arquivo PDF ou CSV.', variant: 'destructive' });
       return;
     }
 
@@ -133,7 +119,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
   const handleImport = async () => {
     if (!file || !bankAccountId) return;
     if (getFileExtension(file.name) === 'pdf') {
-      toast({ title: 'PDF sem processamento automático', description: 'Para importação automática de transações, use um arquivo XLSX.', variant: 'destructive' });
+      toast({ title: 'PDF sem processamento automático', description: 'Para importação automática de transações, use um arquivo CSV.', variant: 'destructive' });
       return;
     }
 
@@ -193,7 +179,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
             <DialogTitle className="text-2xl font-display text-white flex items-center gap-2">
               <Upload className="w-6 h-6" /> Importar Extrato Bancário
             </DialogTitle>
-            <p className="text-white/80 text-sm mt-1">Carregue um arquivo PDF ou XLSX para ingestão de extrato.</p>
+            <p className="text-white/80 text-sm mt-1">Carregue um arquivo PDF ou CSV para ingestão de extrato.</p>
           </DialogHeader>
         </div>
 
@@ -202,14 +188,14 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
             <div className="border-3 border-dashed border-border/60 rounded-2xl p-16 text-center hover:border-gold/50 transition-all cursor-pointer relative bg-secondary/10 group">
               <input 
                 type="file" 
-                accept=".pdf,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" 
+                accept=".pdf,.csv,application/pdf,text/csv" 
                 onChange={handleFileChange} 
                 className="absolute inset-0 opacity-0 cursor-pointer z-10" 
               />
               <div className="relative z-0 group-hover:scale-105 transition-transform duration-300">
                 <FileText className="w-16 h-16 text-gold/30 mx-auto mb-4 group-hover:text-gold/50" />
-                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste arquivo PDF ou XLSX</p>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">Para importação automática de lançamentos, prefira XLSX</p>
+                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste arquivo PDF ou CSV</p>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">Para importação automática de lançamentos, prefira CSV</p>
               </div>
             </div>
           ) : (
@@ -276,7 +262,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
                   <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                   <div className="text-sm text-amber-800">
                     <p className="font-bold">Arquivo PDF selecionado</p>
-                    <p className="mt-1">O processamento automático de lançamentos está disponível para XLSX.</p>
+                    <p className="mt-1">O processamento automático de lançamentos está disponível para CSV.</p>
                   </div>
                 </div>
               )}
