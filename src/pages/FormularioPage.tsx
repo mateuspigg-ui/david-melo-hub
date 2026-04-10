@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { ClipboardList, Send } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EVENT_TYPES = [
   { value: 'casamento', label: 'Casamento' },
@@ -45,10 +46,15 @@ const initialState: FormState = {
   notes: '',
 };
 
-export default function FormularioPage() {
+interface Props {
+  publicView?: boolean;
+}
+
+export default function FormularioPage({ publicView = false }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [form, setForm] = useState<FormState>(initialState);
 
   const mutation = useMutation({
@@ -79,8 +85,13 @@ export default function FormularioPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setForm(initialState);
-      toast({ title: 'Formulário enviado', description: 'Lead criado no Kanban em Novo Contato.' });
-      setTimeout(() => navigate('/crm'), 700);
+      toast({
+        title: 'Formulário enviado',
+        description: user ? 'Lead criado no Kanban em Novo Contato.' : 'Recebemos seu pedido de orçamento. Em breve entraremos em contato.',
+      });
+      if (user && !publicView) {
+        setTimeout(() => navigate('/crm'), 700);
+      }
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao enviar', description: error?.message || 'Não foi possível registrar o formulário.', variant: 'destructive' });
@@ -99,7 +110,9 @@ export default function FormularioPage() {
         </div>
         <div>
           <h1 className="text-3xl font-display text-foreground tracking-tight">Formulário de Orçamento</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold mt-1">Cadastro de dados do evento</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold mt-1">
+            {publicView ? 'Preencha para solicitar proposta' : 'Cadastro de dados do evento'}
+          </p>
         </div>
       </div>
 

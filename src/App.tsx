@@ -69,6 +69,7 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AuthRoute />} />
             <Route path="/convite/:token" element={<InvitePage />} />
+            <Route path="/formulario-publico" element={<FormularioPage publicView />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/contratos" element={<ModuleRoute module="contratos" element={<ContratosPage />} />} />
