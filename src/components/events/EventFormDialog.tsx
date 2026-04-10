@@ -88,8 +88,8 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     if (!selectedLead) return;
 
     const matchedClientByName = clients?.find((client: any) => {
-      const leadFirst = String(selectedLead.first_name || '').trim().toLowerCase();
-      const leadLast = String(selectedLead.last_name || '').trim().toLowerCase();
+      const leadFirst = String(selectedLead.clients?.first_name || '').trim().toLowerCase();
+      const leadLast = String(selectedLead.clients?.last_name || '').trim().toLowerCase();
       if (!leadFirst || !leadLast) return false;
       return (
         String(client.first_name || '').trim().toLowerCase() === leadFirst &&
@@ -251,7 +251,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               >
                 <option value="">-- Selecionar Lead Fechado --</option>
                 {leads?.map((l: any) => {
-                  const leadName = `${l.first_name || ''} ${l.last_name || ''}`.trim();
+                  const leadName = `${l.clients?.first_name || ''} ${l.clients?.last_name || ''}`.trim();
                   return (
                     <option key={l.id} value={l.id}>
                       {l.title} {leadName ? `• ${leadName}` : ''}
