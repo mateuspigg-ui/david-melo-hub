@@ -26,6 +26,15 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     notes: ''
   });
 
+  const leadTypeToEventType: Record<string, string> = {
+    casamento: 'Casamento',
+    '15_anos': '15 Anos',
+    formatura: 'Formatura',
+    aniversario: 'Aniversário',
+    bodas: 'Bodas',
+    corporativo: 'Corporativo',
+  };
+
   useEffect(() => {
     if (event && open) {
       setForm({
@@ -58,15 +67,38 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
   });
 
   const { data: leads } = useQuery({
-    queryKey: ['leads-options'],
+    queryKey: ['closed-leads-options'],
     queryFn: async () => {
-      const { data } = await supabase.from('leads').select('id, title');
+      const { data } = await supabase
+        .from('leads')
+        .select('id, title, stage, client_id, event_type, event_location, event_date, event_time, total_budget, notes')
+        .eq('stage', 'fechados')
+        .order('updated_at', { ascending: false });
       return data || [];
     }
   });
 
   const handleChange = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const applyClosedLead = (leadId: string) => {
+    handleChange('lead_id', leadId);
+    const selectedLead = leads?.find((lead: any) => lead.id === leadId);
+    if (!selectedLead) return;
+
+    setForm((prev) => ({
+      ...prev,
+      lead_id: leadId,
+      title: selectedLead.title || prev.title,
+      event_type: leadTypeToEventType[selectedLead.event_type || ''] || selectedLead.event_type || prev.event_type,
+      event_date: selectedLead.event_date || prev.event_date,
+      event_time: selectedLead.event_time || prev.event_time,
+      location: selectedLead.event_location || prev.location,
+      budget_value: selectedLead.total_budget ?? prev.budget_value,
+      notes: selectedLead.notes || prev.notes,
+      client_id: selectedLead.client_id || prev.client_id,
+    }));
   };
 
   const handleSave = async () => {
@@ -280,13 +312,13 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Origem do Atendimento (Lead)</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Importar de Lead Fechado</Label>
               <select 
                 value={form.lead_id}
-                onChange={e => handleChange('lead_id', e.target.value)}
+                onChange={e => applyClosedLead(e.target.value)}
                 className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
               >
-                <option value="">-- Vincular Lead --</option>
+                <option value="">-- Selecionar Lead Fechado --</option>
                 {leads?.map((l: any) => (
                   <option key={l.id} value={l.id}>{l.title}</option>
                 ))}
