@@ -166,10 +166,15 @@ const ClientesPage = () => {
     const selected = closedLeads.find((lead) => lead.id === leadId);
     if (!selected) return;
 
+    const parsedName = (selected.title || '').trim();
+    const titleParts = parsedName.split(/\s+/).filter(Boolean);
+    const fallbackFirstName = titleParts[0] || '';
+    const fallbackLastName = titleParts.slice(1).join(' ');
+
     setForm((prev) => ({
       ...prev,
-      first_name: selected.first_name || prev.first_name,
-      last_name: selected.last_name || prev.last_name,
+      first_name: selected.first_name || fallbackFirstName || prev.first_name,
+      last_name: selected.last_name || fallbackLastName || prev.last_name,
       phone: selected.phone || prev.phone,
     }));
   };
