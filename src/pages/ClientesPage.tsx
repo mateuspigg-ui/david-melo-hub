@@ -175,7 +175,7 @@ const ClientesPage = () => {
       ...prev,
       first_name: selected.first_name || fallbackFirstName || prev.first_name,
       last_name: selected.last_name || fallbackLastName || prev.last_name,
-      phone: selected.phone || prev.phone,
+      phone: selected.phone || '',
     }));
   };
 
