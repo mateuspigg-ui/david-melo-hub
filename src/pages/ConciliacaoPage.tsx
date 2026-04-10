@@ -22,11 +22,31 @@ const steps = [
   { id: 4, title: 'Validação', icon: ShieldCheck },
 ];
 
+const DEMO_ACCOUNT = {
+  id: 'demo-account-001',
+  description: 'Conta Ficticia - Operacional',
+  bank_name: 'Banco Exemplo',
+  account_number: '99999-0',
+};
+
+const DEMO_BANK_TRANSACTIONS = [
+  { id: 'demo-bank-1', description: 'Recebimento Contrato Evento A', transaction_date: '2026-04-05', amount: 8500, status: 'pendente' },
+  { id: 'demo-bank-2', description: 'Pagamento Fornecedor Buffet', transaction_date: '2026-04-06', amount: -2300, status: 'pendente' },
+  { id: 'demo-bank-3', description: 'Recebimento Entrada Evento B', transaction_date: '2026-04-08', amount: 4200, status: 'pendente' },
+];
+
+const DEMO_ACCOUNTING_ENTRIES = [
+  { id: 'demo-acc-1', description: 'Receita Contrato Evento A', entry_date: '2026-04-05', amount: 8500, status: 'pendente' },
+  { id: 'demo-acc-2', description: 'Despesa Buffet Evento A', entry_date: '2026-04-06', amount: -2000, status: 'pendente' },
+  { id: 'demo-acc-3', description: 'Receita Entrada Evento B', entry_date: '2026-04-08', amount: 4200, status: 'pendente' },
+];
+
 const ConciliacaoPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [period, setPeriod] = useState({ start: '', end: '' });
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const isDemoAccount = selectedAccount === DEMO_ACCOUNT.id;
   
   // Data for reconciliation
   const { data: accounts } = useQuery({
@@ -39,7 +59,7 @@ const ConciliacaoPage = () => {
 
   const { data: bankTransactions, refetch: refetchBank } = useQuery({
     queryKey: ['reconciliation_bank_tx', selectedAccount],
-    enabled: !!selectedAccount,
+    enabled: !!selectedAccount && !isDemoAccount,
     queryFn: async () => {
       const { data } = await (supabase as any).from('bank_transactions')
         .select('*')
@@ -51,7 +71,7 @@ const ConciliacaoPage = () => {
 
   const { data: accountingEntries, refetch: refetchAcc } = useQuery({
     queryKey: ['reconciliation_acc_entries', selectedAccount],
-    enabled: !!selectedAccount,
+    enabled: !!selectedAccount && !isDemoAccount,
     queryFn: async () => {
       const { data } = await (supabase as any).from('accounting_entries')
         .select('*')
@@ -64,9 +84,13 @@ const ConciliacaoPage = () => {
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+  const accountsWithDemo = [DEMO_ACCOUNT, ...(accounts || [])];
+  const effectiveBankTransactions = isDemoAccount ? DEMO_BANK_TRANSACTIONS : (bankTransactions || []);
+  const effectiveAccountingEntries = isDemoAccount ? DEMO_ACCOUNTING_ENTRIES : (accountingEntries || []);
+
   const calculateTotals = () => {
-    const bankTotal = bankTransactions?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
-    const accTotal = accountingEntries?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
+    const bankTotal = effectiveBankTransactions.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+    const accTotal = effectiveAccountingEntries.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
     return { bankTotal, accTotal, diff: bankTotal - accTotal };
   };
 
@@ -137,13 +161,26 @@ const ConciliacaoPage = () => {
                     className="flex h-12 w-full rounded-md bg-secondary/50 border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none transition-all"
                   >
                     <option value="">Selecione uma conta...</option>
-                    {accounts?.map((acc: any) => (
+                    {accountsWithDemo.map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
                         {(acc.description && acc.description.trim()) || acc.bank_name}
                         {acc.account_number ? ` - ${acc.account_number}` : ''}
+                        {acc.id === DEMO_ACCOUNT.id ? ' (exemplo)' : ''}
                       </option>
                     ))}
                   </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-2 text-xs border-gold/40 text-gold hover:bg-gold hover:text-white"
+                    onClick={() => {
+                      setSelectedAccount(DEMO_ACCOUNT.id);
+                      setPeriod({ start: '2026-04-01', end: '2026-04-30' });
+                      toast({ title: 'Exemplo carregado', description: 'Conta e movimentações fictícias aplicadas para demonstração.' });
+                    }}
+                  >
+                    Carregar exemplo fictício
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -190,10 +227,16 @@ const ConciliacaoPage = () => {
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-display text-foreground">Cruzamento de Dados</h2>
                 <div className="flex gap-2">
+                  {isDemoAccount && (
+                    <Badge variant="outline" className="text-[10px] border-gold text-gold bg-gold/5 px-3">
+                      Dados fictícios ativos
+                    </Badge>
+                  )}
                   <Button 
                     variant="outline" 
                     className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
                     onClick={() => setImportDialogOpen(true)}
+                    disabled={isDemoAccount}
                   >
                     Importar Extrato
                   </Button>
@@ -205,14 +248,14 @@ const ConciliacaoPage = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="bg-white border-border/40 premium-shadow">
-                  <CardHeader className="py-3 border-b border-border/20 bg-secondary/30">
+                    <CardHeader className="py-3 border-b border-border/20 bg-secondary/30">
                     <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground uppercase tracking-wider">
                       <Landmark size={16} className="text-gold" /> Extrato Bancário
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="max-h-[350px] overflow-y-auto">
-                      {bankTransactions?.map((tx: any) => (
+                      {effectiveBankTransactions.map((tx: any) => (
                         <div key={tx.id} className="p-4 border-b border-border/10 flex items-center justify-between hover:bg-secondary/30 transition-colors">
                           <div className="space-y-0.5">
                             <p className="text-xs font-bold text-foreground">{tx.description}</p>
@@ -236,7 +279,7 @@ const ConciliacaoPage = () => {
                   </CardHeader>
                   <CardContent className="p-0">
                     <div className="max-h-[350px] overflow-y-auto">
-                      {accountingEntries?.map((entry: any) => (
+                      {effectiveAccountingEntries.map((entry: any) => (
                         <div key={entry.id} className="p-4 border-b border-border/10 flex items-center justify-between hover:bg-secondary/30 transition-colors">
                           <div className="space-y-0.5">
                             <p className="text-xs font-bold text-foreground">{entry.description}</p>
