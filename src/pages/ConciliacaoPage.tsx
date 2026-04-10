@@ -46,6 +46,7 @@ const ConciliacaoPage = () => {
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [period, setPeriod] = useState({ start: '', end: '' });
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importMode, setImportMode] = useState<'bank' | 'accounting'>('bank');
   const isDemoAccount = selectedAccount === DEMO_ACCOUNT.id;
   
   // Data for reconciliation
@@ -235,10 +236,24 @@ const ConciliacaoPage = () => {
                   <Button 
                     variant="outline" 
                     className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
-                    onClick={() => setImportDialogOpen(true)}
-                    disabled={isDemoAccount}
+                    onClick={() => {
+                      setImportMode('bank');
+                      setImportDialogOpen(true);
+                    }}
+                    disabled={isDemoAccount || !selectedAccount}
                   >
-                    Importar Extrato
+                    Upload PDF Extrato
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
+                    onClick={() => {
+                      setImportMode('accounting');
+                      setImportDialogOpen(true);
+                    }}
+                    disabled={isDemoAccount || !selectedAccount}
+                  >
+                    Importar CSV Razão
                   </Button>
                   <Button variant="outline" className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm">
                     Rodar Inteligência de Matching
@@ -406,8 +421,10 @@ const ConciliacaoPage = () => {
         open={importDialogOpen} 
         onOpenChange={setImportDialogOpen} 
         bankAccountId={selectedAccount}
+        mode={importMode}
         onImported={() => {
           refetchBank();
+          refetchAcc();
         }}
       />
     </div>

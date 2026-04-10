@@ -11,10 +11,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bankAccountId: string;
+  mode?: 'bank' | 'accounting';
   onImported: () => void;
 }
 
-export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, onImported }: Props) => {
+export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mode = 'bank', onImported }: Props) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -27,6 +28,11 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
   });
 
   const getFileExtension = (filename: string) => filename.split('.').pop()?.toLowerCase() || '';
+  const isAccountingMode = mode === 'accounting';
+  const allowsPdf = !isAccountingMode;
+  const acceptedTypesText = allowsPdf ? 'PDF ou CSV' : 'CSV';
+  const dialogTitle = isAccountingMode ? 'Importar Razão Contábil' : 'Importar Extrato Bancário';
+  const mappedDateLabel = isAccountingMode ? 'Lançamento' : 'Data';
   const isMissingCompanyDocumentsTableError = (error: any) => {
     const message = String(error?.message || '');
     return /could not find the table ['"]public\.company_documents['"]/i.test(message);
@@ -50,15 +56,15 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
     const selectedFile = e.target.files[0];
     const ext = getFileExtension(selectedFile.name);
 
-    if (!['pdf', 'csv'].includes(ext)) {
-      toast({ title: 'Formato inválido', description: 'Selecione um arquivo PDF ou CSV.', variant: 'destructive' });
+    if (allowsPdf ? !['pdf', 'csv'].includes(ext) : ext !== 'csv') {
+      toast({ title: 'Formato inválido', description: `Selecione um arquivo ${acceptedTypesText}.`, variant: 'destructive' });
       return;
     }
 
     setFile(selectedFile);
     setColumns({ date: '', amount: '', description: '' });
 
-    if (ext === 'pdf') {
+    if (ext === 'pdf' && allowsPdf) {
       setParsedRows([]);
       setPreview([]);
       return;
@@ -125,7 +131,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
 
     setLoading(true);
     try {
-      if (getFileExtension(file.name) === 'pdf') {
+      if (getFileExtension(file.name) === 'pdf' && allowsPdf) {
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -188,22 +194,40 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
       }
 
       const rawData = parsedRows.length > 0 ? parsedRows : await parseFileRows(file);
-      const transactions = rawData.map(row => ({
-            bank_account_id: bankAccountId,
-            transaction_date: parseDate(row[columns.date]),
-            amount: parseAmount(row[columns.amount]),
-            description: row[columns.description] || 'S/D',
-            status: 'pendente'
-          })).filter(tx => tx.transaction_date && !isNaN(tx.amount));
+      const records = rawData.map((row) => {
+        const base = {
+          bank_account_id: bankAccountId,
+          amount: parseAmount(row[columns.amount]),
+          description: row[columns.description] || 'S/D',
+          status: 'pendente',
+        } as any;
 
-      if (transactions.length === 0) {
-        throw new Error('Nenhuma transação válida foi encontrada no arquivo.');
+        if (isAccountingMode) {
+          base.entry_date = parseDate(row[columns.date]);
+        } else {
+          base.transaction_date = parseDate(row[columns.date]);
+        }
+
+        return base;
+      }).filter((record: any) => {
+        const dateField = isAccountingMode ? record.entry_date : record.transaction_date;
+        return dateField && !isNaN(record.amount);
+      });
+
+      if (records.length === 0) {
+        throw new Error('Nenhum registro válido foi encontrado no arquivo.');
       }
 
-      const { error } = await (supabase as any).from('bank_transactions').insert(transactions);
+      const tableName = isAccountingMode ? 'accounting_entries' : 'bank_transactions';
+      const { error } = await (supabase as any).from(tableName).insert(records);
       if (error) throw error;
 
-      toast({ title: 'Sucesso', description: `${transactions.length} transações importadas!` });
+      toast({
+        title: 'Sucesso',
+        description: isAccountingMode
+          ? `${records.length} lançamentos contábeis importados!`
+          : `${records.length} transações bancárias importadas!`,
+      });
       onImported();
       onOpenChange(false);
       setFile(null);
@@ -216,7 +240,8 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
     }
   };
 
-  const parseDate = (dateStr: string) => {
+  const parseDate = (dateVal: any) => {
+    const dateStr = String(dateVal || '').trim();
     if (!dateStr) return null;
     // Tenta converter DD/MM/AAAA para AAAA-MM-DD
     const parts = dateStr.split(/[-/.]/);
@@ -239,9 +264,9 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
         <div className="bg-gradient-gold p-6 text-white">
           <DialogHeader>
             <DialogTitle className="text-2xl font-display text-white flex items-center gap-2">
-              <Upload className="w-6 h-6" /> Importar Extrato Bancário
+              <Upload className="w-6 h-6" /> {dialogTitle}
             </DialogTitle>
-            <p className="text-white/80 text-sm mt-1">Carregue um arquivo PDF ou CSV para ingestão de extrato.</p>
+            <p className="text-white/80 text-sm mt-1">Carregue um arquivo {acceptedTypesText} para importação dos dados da conciliação.</p>
           </DialogHeader>
         </div>
 
@@ -250,14 +275,16 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
             <div className="border-3 border-dashed border-border/60 rounded-2xl p-16 text-center hover:border-gold/50 transition-all cursor-pointer relative bg-secondary/10 group">
               <input 
                 type="file" 
-                accept=".pdf,.csv,application/pdf,text/csv" 
+                accept={allowsPdf ? '.pdf,.csv,application/pdf,text/csv' : '.csv,text/csv'}
                 onChange={handleFileChange} 
                 className="absolute inset-0 opacity-0 cursor-pointer z-10" 
               />
               <div className="relative z-0 group-hover:scale-105 transition-transform duration-300">
                 <FileText className="w-16 h-16 text-gold/30 mx-auto mb-4 group-hover:text-gold/50" />
-                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste arquivo PDF ou CSV</p>
-                <p className="text-xs text-muted-foreground mt-2 font-medium">Para importação automática de lançamentos, prefira CSV</p>
+                <p className="text-base text-foreground font-bold uppercase tracking-wide">Clique ou arraste arquivo {acceptedTypesText}</p>
+                <p className="text-xs text-muted-foreground mt-2 font-medium">
+                  {isAccountingMode ? 'Importação automática da razão contábil via CSV.' : 'Para importação automática de lançamentos, prefira CSV.'}
+                </p>
               </div>
             </div>
           ) : (
@@ -281,7 +308,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
                     <Label className="text-[10px] uppercase text-gold/80 font-bold tracking-[0.2em]">Inteligência de Mapeamento</Label>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
-                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Data</p>
+                        <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">{mappedDateLabel}</p>
                         <p className="text-xs font-bold text-foreground truncate">{columns.date}</p>
                       </div>
                       <div className="p-3 bg-secondary/20 rounded-xl border border-border/20">
@@ -319,12 +346,20 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : getFileExtension(file.name) === 'pdf' ? (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
                   <div className="text-sm text-amber-800">
                     <p className="font-bold">Arquivo PDF selecionado</p>
                     <p className="mt-1">O processamento automático de lançamentos está disponível para CSV.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-bold">Nenhum registro legível encontrado</p>
+                    <p className="mt-1">Verifique o cabeçalho e o delimitador do CSV para seguir com a importação.</p>
                   </div>
                 </div>
               )}
