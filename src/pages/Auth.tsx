@@ -50,7 +50,7 @@ const Auth = () => {
 
           <div className="relative z-10 space-y-6">
             <div className="flex justify-center">
-              <img src={logo} alt="David Melo" className="h-36 w-auto drop-shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
+              <img src={logo} alt="David Melo" className="h-44 w-auto drop-shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
             </div>
             <div className="space-y-3">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold/90">Plataforma Oficial David Melo</p>
@@ -88,9 +88,6 @@ const Auth = () => {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {isLogin ? 'Acesse seu CRM com segurança.' : 'Ative seu acesso para começar a operar.'}
                 </p>
-              </div>
-              <div className="hidden md:flex h-16 w-16 items-center justify-center rounded-2xl border border-gold/30 bg-gold/10 text-gold overflow-hidden">
-                <img src={logo} alt="Logo David Melo" className="h-14 w-auto" />
               </div>
             </div>
 
