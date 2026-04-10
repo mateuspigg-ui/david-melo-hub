@@ -71,7 +71,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     queryFn: async () => {
       const { data } = await supabase
         .from('leads')
-        .select('id, title, stage, client_id, event_type, event_location, event_date, event_time, total_budget, notes')
+        .select('id, title, stage, client_id, first_name, last_name, event_type, event_location, event_date, event_time, total_budget, notes')
         .eq('stage', 'fechados')
         .order('updated_at', { ascending: false });
       return data || [];
@@ -87,6 +87,18 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     const selectedLead = leads?.find((lead: any) => lead.id === leadId);
     if (!selectedLead) return;
 
+    const matchedClientByName = clients?.find((client: any) => {
+      const leadFirst = String(selectedLead.first_name || '').trim().toLowerCase();
+      const leadLast = String(selectedLead.last_name || '').trim().toLowerCase();
+      if (!leadFirst || !leadLast) return false;
+      return (
+        String(client.first_name || '').trim().toLowerCase() === leadFirst &&
+        String(client.last_name || '').trim().toLowerCase() === leadLast
+      );
+    });
+
+    const resolvedClientId = selectedLead.client_id || matchedClientByName?.id || '';
+
     setForm((prev) => ({
       ...prev,
       lead_id: leadId,
@@ -97,8 +109,10 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
       location: selectedLead.event_location || prev.location,
       budget_value: selectedLead.total_budget ?? prev.budget_value,
       notes: selectedLead.notes || prev.notes,
-      client_id: selectedLead.client_id || prev.client_id,
+      client_id: resolvedClientId || prev.client_id,
     }));
+
+    toast({ title: 'Lead fechado aplicado', description: 'Campos do evento preenchidos automaticamente.' });
   };
 
   const handleSave = async () => {
@@ -228,6 +242,25 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               />
             </div>
 
+            <div className="space-y-2 md:col-span-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Importar de Lead Fechado</Label>
+              <select 
+                value={form.lead_id}
+                onChange={e => applyClosedLead(e.target.value)}
+                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
+              >
+                <option value="">-- Selecionar Lead Fechado --</option>
+                {leads?.map((l: any) => {
+                  const leadName = `${l.first_name || ''} ${l.last_name || ''}`.trim();
+                  return (
+                    <option key={l.id} value={l.id}>
+                      {l.title} {leadName ? `• ${leadName}` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Evento</Label>
               <select 
@@ -311,19 +344,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
               </select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Importar de Lead Fechado</Label>
-              <select 
-                value={form.lead_id}
-                onChange={e => applyClosedLead(e.target.value)}
-                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-[11px] font-black uppercase tracking-widest focus:border-gold text-foreground outline-none transition-all shadow-sm"
-              >
-                <option value="">-- Selecionar Lead Fechado --</option>
-                {leads?.map((l: any) => (
-                  <option key={l.id} value={l.id}>{l.title}</option>
-                ))}
-              </select>
-            </div>
+            
 
             <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Notas e Observações Operacionais</Label>
