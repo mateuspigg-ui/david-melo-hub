@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, pointerWithin, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,8 +120,14 @@ export default function CRMPage() {
   const [completingLeadId, setCompletingLeadId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 3 } })
   );
+
+  const collisionDetectionStrategy = (args: any) => {
+    const pointerIntersections = pointerWithin(args);
+    if (pointerIntersections.length > 0) return pointerIntersections;
+    return closestCorners(args);
+  };
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -373,7 +378,7 @@ export default function CRMPage() {
           </div>
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="rounded-2xl border border-border/30 bg-secondary/20 p-3">
             <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
               {STAGES.map(stage => (

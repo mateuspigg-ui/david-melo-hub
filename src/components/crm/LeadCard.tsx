@@ -39,7 +39,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`p-3.5 rounded-lg border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] ${
+      className={`touch-none select-none p-3.5 rounded-lg border cursor-grab active:cursor-grabbing transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] ${
         isDragging ? 'opacity-40 grayscale' : ''
       } ${
         isOverlay
