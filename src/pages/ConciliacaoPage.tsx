@@ -138,7 +138,10 @@ const ConciliacaoPage = () => {
                   >
                     <option value="">Selecione uma conta...</option>
                     {accounts?.map((acc: any) => (
-                      <option key={acc.id} value={acc.id}>{acc.bank_name} - {acc.account_number}</option>
+                      <option key={acc.id} value={acc.id}>
+                        {(acc.description && acc.description.trim()) || acc.bank_name}
+                        {acc.account_number ? ` - ${acc.account_number}` : ''}
+                      </option>
                     ))}
                   </select>
                 </div>
