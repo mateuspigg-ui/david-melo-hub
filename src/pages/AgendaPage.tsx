@@ -11,10 +11,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 type ViewMode = 'ano' | 'mes' | 'semana' | 'dia';
 
 const INTERNAL_ACTIVITY_TYPES = ['Reunião', 'Degustação', 'Atendimento ao Cliente', 'Formatação de Festas'];
+
+const extractResponsibleId = (notes: string | null) => {
+  const match = String(notes || '').match(/\[RESPONSAVEL_ID:([^\]]+)\]/i);
+  return match?.[1] || '';
+};
+
+const cleanNotesText = (notes: string | null) =>
+  String(notes || '')
+    .replace(/\[RESPONSAVEL_ID:[^\]]+\]/gi, '')
+    .replace(/^Respons[aá]vel:\s.*$/gim, '')
+    .trim();
 
 const AgendaPage = () => {
   const { toast } = useToast();
@@ -27,13 +39,12 @@ const AgendaPage = () => {
   const [editingEvent, setEditingEvent] = useState<any>(null);
 
   const [form, setForm] = useState({
-    event_type: 'Casamento',
+    event_type: INTERNAL_ACTIVITY_TYPES[0],
     client_id: '',
     event_date: '',
     event_time: '',
-    title: '',
-    location: '',
-    budget_value: '',
+    assigned_to: '',
+    notes: '',
   });
 
   const { data: events = [], isLoading } = useQuery({
@@ -52,6 +63,15 @@ const AgendaPage = () => {
     queryKey: ['agenda-clients'],
     queryFn: async () => {
       const { data, error } = await supabase.from('clients').select('id, first_name, last_name').order('first_name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['agenda-team-members'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, full_name').order('full_name');
       if (error) throw error;
       return data || [];
     },
@@ -119,9 +139,8 @@ const AgendaPage = () => {
       client_id: '',
       event_date: format(date, 'yyyy-MM-dd'),
       event_time: '',
-      title: '',
-      location: '',
-      budget_value: '',
+      assigned_to: '',
+      notes: '',
     });
     setDialogOpen(true);
   };
@@ -129,28 +148,39 @@ const AgendaPage = () => {
   const openEditEvent = (event: any) => {
     setEditingEvent(event);
     setForm({
-      event_type: event.event_type || 'Casamento',
+      event_type: event.event_type || INTERNAL_ACTIVITY_TYPES[0],
       client_id: event.client_id || '',
       event_date: event.event_date || '',
       event_time: event.event_time || '',
-      title: event.title || '',
-      location: event.location || '',
-      budget_value: event.budget_value != null ? String(event.budget_value) : '',
+      assigned_to: extractResponsibleId(event.notes),
+      notes: cleanNotesText(event.notes),
     });
     setDialogOpen(true);
   };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!form.title || !form.event_date) throw new Error('Preencha titulo e data_do_evento.');
+      if (!form.event_date) throw new Error('Preencha a data.');
+
+      const selectedClient = clients.find((client: any) => client.id === form.client_id);
+      const selectedResponsible = teamMembers.find((member: any) => member.id === form.assigned_to);
+      const isInternalActivity = INTERNAL_ACTIVITY_TYPES.includes(form.event_type);
+      const generatedTitle = `${form.event_type || 'Atividade Interna'}${selectedClient ? ` - ${selectedClient.first_name} ${selectedClient.last_name}` : ''}`;
+      const noteLines = [
+        form.assigned_to ? `[RESPONSAVEL_ID:${form.assigned_to}]` : '',
+        selectedResponsible?.full_name ? `Responsável: ${selectedResponsible.full_name}` : '',
+        form.notes?.trim() || '',
+      ].filter(Boolean);
+
       const payload = {
-        title: form.title,
+        title: isInternalActivity ? generatedTitle : (editingEvent?.title || generatedTitle),
         event_type: form.event_type,
         client_id: form.client_id || null,
         event_date: form.event_date,
         event_time: form.event_time || null,
-        location: form.location || null,
-        budget_value: form.budget_value === '' ? 0 : Number(form.budget_value),
+        location: isInternalActivity ? null : (editingEvent?.location || null),
+        budget_value: isInternalActivity ? 0 : Number(editingEvent?.budget_value || 0),
+        notes: noteLines.length ? noteLines.join('\n') : null,
       };
 
       if (editingEvent?.id) {
@@ -498,7 +528,7 @@ const AgendaPage = () => {
         <DialogContent className="max-w-2xl bg-white border-border/40 text-foreground rounded-2xl p-0 overflow-hidden">
           <div className="p-6 bg-gradient-gold text-white">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-display tracking-tight">{editingEvent ? 'Editar Evento' : 'Novo Evento'}</DialogTitle>
+              <DialogTitle className="text-2xl font-display tracking-tight">{editingEvent ? 'Editar Atividade' : 'Nova Atividade Interna'}</DialogTitle>
               <p className="text-[10px] uppercase tracking-widest font-black opacity-80">Agenda Integrada</p>
             </DialogHeader>
           </div>
@@ -532,28 +562,37 @@ const AgendaPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>data_do_evento</Label>
+              <Label>data</Label>
               <Input type="date" value={form.event_date} onChange={(e) => setForm((prev) => ({ ...prev, event_date: e.target.value }))} />
             </div>
 
             <div className="space-y-2">
-              <Label>hora_do_evento</Label>
+              <Label>horário</Label>
               <Input type="time" value={form.event_time} onChange={(e) => setForm((prev) => ({ ...prev, event_time: e.target.value }))} />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>titulo</Label>
-              <Input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Ex: Cerimonia no campo" />
+              <Label>responsável</Label>
+              <select
+                value={form.assigned_to}
+                onChange={(e) => setForm((prev) => ({ ...prev, assigned_to: e.target.value }))}
+                className="flex h-11 w-full rounded-xl bg-secondary/20 border border-border/20 px-3 text-sm"
+              >
+                <option value="">Selecione</option>
+                {teamMembers.map((member: any) => (
+                  <option key={member.id} value={member.id}>{member.full_name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>local</Label>
-              <Input value={form.location} onChange={(e) => setForm((prev) => ({ ...prev, location: e.target.value }))} placeholder="Local do evento" />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label>valor_do_orcamento</Label>
-              <Input type="number" value={form.budget_value} onChange={(e) => setForm((prev) => ({ ...prev, budget_value: e.target.value }))} placeholder="0,00" />
+              <Label>anotações</Label>
+              <Textarea
+                value={form.notes}
+                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="Detalhes importantes da atividade"
+                className="min-h-[120px]"
+              />
             </div>
           </div>
 
