@@ -27,6 +27,10 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
   });
 
   const getFileExtension = (filename: string) => filename.split('.').pop()?.toLowerCase() || '';
+  const isMissingCompanyDocumentsTableError = (error: any) => {
+    const message = String(error?.message || '');
+    return /could not find the table ['"]public\.company_documents['"]/i.test(message);
+  };
 
   const parseCsvFile = (selectedFile: File) =>
     new Promise<any[]>((resolve, reject) => {
@@ -163,12 +167,19 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
           },
         ]);
 
-        if (docError) throw docError;
+        if (docError && !isMissingCompanyDocumentsTableError(docError)) throw docError;
 
-        toast({
-          title: 'PDF enviado com sucesso',
-          description: 'Arquivo registrado para conferência manual. Para importação automática, use CSV.',
-        });
+        if (docError && isMissingCompanyDocumentsTableError(docError)) {
+          toast({
+            title: 'PDF enviado com sucesso',
+            description: 'Arquivo salvo no storage. A tabela company_documents ainda nao existe para registrar o link.',
+          });
+        } else {
+          toast({
+            title: 'PDF enviado com sucesso',
+            description: 'Arquivo registrado para conferência manual. Para importação automática, use CSV.',
+          });
+        }
         onOpenChange(false);
         setFile(null);
         setParsedRows([]);
