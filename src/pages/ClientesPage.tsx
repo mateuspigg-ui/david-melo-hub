@@ -62,7 +62,6 @@ const ClientesPage = () => {
         .from('leads')
         .select('id, title, first_name, last_name, phone, client_id, event_date')
         .eq('stage', 'fechados')
-        .is('client_id', null)
         .order('event_date', { ascending: false });
       if (error) throw error;
       return (data || []) as ClosedLead[];
@@ -330,8 +329,9 @@ const ClientesPage = () => {
                       <option value="">Selecionar lead fechado</option>
                       {closedLeads.map((lead) => (
                         <option key={lead.id} value={lead.id}>
-                          {(lead.first_name || '').trim()} {(lead.last_name || '').trim()}
+                          {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || `Sem nome (${lead.title})`}
                           {lead.phone ? ` • ${lead.phone}` : ''}
+                          {lead.client_id ? ' • já vinculado' : ''}
                         </option>
                       ))}
                     </select>
