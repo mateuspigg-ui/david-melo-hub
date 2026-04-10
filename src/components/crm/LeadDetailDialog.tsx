@@ -33,22 +33,54 @@ const playTaskCreatedAlert = () => {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
 
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.2);
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(960, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(740, audioContext.currentTime + 0.4);
+    oscillator.frequency.setValueAtTime(960, audioContext.currentTime + 0.55);
+    oscillator.frequency.exponentialRampToValueAtTime(680, audioContext.currentTime + 1);
 
     gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.2, audioContext.currentTime + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.25);
+    gainNode.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.03);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.45);
+    gainNode.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.58);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 1.05);
 
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
     oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.25);
+    oscillator.stop(audioContext.currentTime + 1.1);
     oscillator.onended = () => {
       void audioContext.close();
     };
+  } catch {
+    return;
+  }
+};
+
+const showTaskCreatedSystemNotification = async ({
+  assigneeName,
+  clientName,
+}: {
+  assigneeName: string;
+  clientName: string;
+}) => {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+
+  const body = `Responsavel: ${assigneeName} | Cliente: ${clientName}`;
+
+  try {
+    if (Notification.permission === 'granted') {
+      new Notification('Nova tarefa criada', { body });
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        new Notification('Nova tarefa criada', { body });
+      }
+    }
   } catch {
     return;
   }
@@ -122,9 +154,26 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       setNewTaskAssignee(lead?.assigned_to || '');
       onClose();
       playTaskCreatedAlert();
+      void showTaskCreatedSystemNotification({
+        assigneeName,
+        clientName: targetClientName,
+      });
       toast({
-        title: 'Tarefa criada com sucesso',
-        description: `Responsável: ${assigneeName} | Cliente: ${targetClientName}`,
+        title: 'Nova tarefa criada',
+        description: (
+          <div className="space-y-1.5">
+            <p>
+              <span className="font-black uppercase tracking-wide text-[10px] text-foreground/60">Responsável</span>
+              <span className="block font-bold text-foreground">{assigneeName}</span>
+            </p>
+            <p>
+              <span className="font-black uppercase tracking-wide text-[10px] text-foreground/60">Cliente</span>
+              <span className="block font-bold text-foreground">{targetClientName}</span>
+            </p>
+          </div>
+        ),
+        className: 'border-l-4 border-l-[#C5A059]',
+        duration: 15000,
       });
     },
     onError: (error: any) => {
