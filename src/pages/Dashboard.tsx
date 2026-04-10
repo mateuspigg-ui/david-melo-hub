@@ -134,11 +134,17 @@ const Dashboard = () => {
         .gte('event_date', yearStart)
         .lte('event_date', yearEnd);
 
-      const { data: expenses } = await supabase
-        .from('accounts_payable')
-        .select('amount, due_date')
-        .gte('due_date', yearStart)
-        .lte('due_date', yearEnd);
+      let expenses: { amount: number; due_date: string }[] | null = null;
+      try {
+        const res = await supabase
+          .from('accounts_payable')
+          .select('amount, due_date')
+          .gte('due_date', yearStart)
+          .lte('due_date', yearEnd);
+        if (!res.error) expenses = res.data;
+      } catch {
+        // table may not exist in schema cache
+      }
 
       installments?.forEach((inst) => {
         const refDate = inst.status === 'paid' && inst.paid_at ? new Date(inst.paid_at) : new Date(inst.due_date);

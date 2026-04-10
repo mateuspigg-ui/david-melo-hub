@@ -452,6 +452,7 @@ export type Database = {
           created_at: string
           entry_amount: number | null
           entry_date: string | null
+          entry_paid_at: string | null
           event_id: string | null
           has_entry_payment: boolean | null
           id: string
@@ -463,6 +464,7 @@ export type Database = {
           created_at?: string
           entry_amount?: number | null
           entry_date?: string | null
+          entry_paid_at?: string | null
           event_id?: string | null
           has_entry_payment?: boolean | null
           id?: string
@@ -474,6 +476,7 @@ export type Database = {
           created_at?: string
           entry_amount?: number | null
           entry_date?: string | null
+          entry_paid_at?: string | null
           event_id?: string | null
           has_entry_payment?: boolean | null
           id?: string
