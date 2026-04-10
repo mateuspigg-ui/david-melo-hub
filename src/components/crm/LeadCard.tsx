@@ -36,14 +36,14 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`p-5 rounded-xl border cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-[0.98] ${
+      className={`p-3.5 rounded-lg border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] ${
         isDragging ? 'opacity-40 grayscale' : ''
       } ${
         isOverlay
-          ? 'shadow-2xl border-gold bg-card rotate-2'
+          ? 'shadow-2xl border-gold bg-white rotate-1'
           : isOverdue
-          ? 'border-red-300 bg-red-50/60 shadow-red-100 shadow-md hover:border-red-400'
-          : 'border-border/40 bg-card premium-shadow hover:border-gold/40 hover:shadow-gold/10'
+          ? 'border-red-300 bg-red-50/70 shadow-sm hover:border-red-400'
+          : 'border-border/30 bg-white shadow-sm hover:border-border/50 hover:shadow-md'
       }`}
     >
       {/* Alerta de tarefas em atraso */}
@@ -59,52 +59,52 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
           <span className="text-[9px] font-black uppercase tracking-widest text-blue-700">
             {taskMeta.pendingCount} tarefa{taskMeta.pendingCount > 1 ? 's' : ''} ativa{taskMeta.pendingCount > 1 ? 's' : ''}
           </span>
-          <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 truncate max-w-[140px]" title={taskMeta.assignees.join(', ') || 'Responsavel nao definido'}>
+          <span className="text-[9px] font-black uppercase tracking-widest text-blue-600 truncate max-w-[120px]" title={taskMeta.assignees.join(', ') || 'Responsavel nao definido'}>
             Resp: {taskMeta.assignees.length > 0 ? `${taskMeta.assignees[0]}${taskMeta.assignees.length > 1 ? ` +${taskMeta.assignees.length - 1}` : ''}` : 'NAO DEFINIDO'}
           </span>
         </div>
       )}
 
       <div className="flex justify-between items-start gap-2.5">
-        <h4 className="text-sm font-bold text-foreground leading-tight tracking-tight line-clamp-2 uppercase">{lead.title}</h4>
+        <h4 className="text-[13px] font-semibold text-foreground leading-snug tracking-tight line-clamp-2">{lead.title}</h4>
         {lead.event_type && (
-          <span className="shrink-0 bg-gold/10 text-gold text-[9px] font-bold px-2 py-0.5 rounded uppercase border border-gold/10">
+          <span className="shrink-0 bg-gold/10 text-gold text-[9px] font-bold px-2 py-0.5 rounded-md border border-gold/10">
             {lead.event_type}
           </span>
         )}
       </div>
 
       {clientName && (
-        <p className="text-[11px] font-bold text-gold mt-2 truncate tracking-wide">{clientName}</p>
+        <p className="text-[11px] font-semibold text-gold mt-1.5 truncate">{clientName}</p>
       )}
       {lead.phone && (
         <p className="text-[10px] font-medium text-muted-foreground/70 mt-0.5 truncate">{lead.phone}</p>
       )}
 
-      <div className="mt-4.5 space-y-2.5">
+      <div className="mt-3.5 space-y-2">
         {lead.event_date && (
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-medium">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
             <Calendar className="w-3.5 h-3.5 text-gold/60" />
             {format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMM, yyyy", { locale: ptBR })}
           </div>
         )}
         
         {lead.total_budget && (
-          <div className="flex items-center gap-2 text-[11px] font-bold text-foreground bg-secondary/30 w-fit px-2.5 py-1.5 rounded-md">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-foreground bg-secondary/40 w-fit px-2.5 py-1.5 rounded-md">
             <DollarSign className="w-3.5 h-3.5 text-gold" />
             {Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-1.5">
+        <div className="flex items-center gap-2.5 pt-1">
           {lead.event_location && (
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium truncate max-w-[190px]">
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium truncate max-w-[150px]">
               <MapPin className="w-3.5 h-3.5 shrink-0 text-gold/60" />
               <span className="truncate">{lead.event_location}</span>
             </div>
           )}
           {lead.guest_count && (
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
               <Users className="w-3.5 h-3.5 text-gold/60" />
               {lead.guest_count}
             </div>

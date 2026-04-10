@@ -17,24 +17,24 @@ export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[360px] max-w-[420px] flex-1 rounded-2xl border transition-all duration-300 snap-start ${
+      className={`min-w-[320px] max-w-[360px] flex-1 rounded-xl border transition-all duration-300 snap-start ${
         isOver 
-          ? 'border-gold bg-gold/5 shadow-lg shadow-gold/10' 
-          : 'border-border/40 bg-secondary/10'
+          ? 'border-gold bg-secondary/70 shadow-md shadow-gold/10' 
+          : 'border-border/30 bg-secondary/60'
       }`}
     >
-      <div className="p-5 border-b border-border/20 bg-white/40 backdrop-blur-sm rounded-t-2xl">
+      <div className="p-3.5 border-b border-border/20 bg-secondary/40 rounded-t-xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
-            <span className="text-[11px] font-bold text-foreground uppercase tracking-[0.15em]">{stage.label}</span>
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: stage.color }} />
+            <span className="text-[12px] font-bold text-foreground tracking-tight">{stage.label}</span>
           </div>
-          <span className="text-[11px] font-bold text-gold bg-gold/10 px-3 py-1 rounded-full border border-gold/10">
+          <span className="text-[11px] font-bold text-foreground/80 bg-white/70 px-2 py-0.5 rounded-md border border-border/30">
             {leads.length}
           </span>
         </div>
       </div>
-      <div className="p-4 space-y-4 min-h-[140px] max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar">
+      <div className="p-2.5 space-y-2.5 min-h-[140px] max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar">
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <LeadCard
@@ -47,9 +47,9 @@ export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds
           ))}
         </SortableContext>
         {leads.length === 0 && (
-          <div className="text-center py-12 flex flex-col items-center justify-center opacity-30 grayscale">
+          <div className="text-center py-10 flex flex-col items-center justify-center opacity-40">
             <div className="w-8 h-8 rounded-full border-2 border-dashed border-foreground/30 mb-2" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground">Vazio</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-foreground">Sem cards</p>
           </div>
         )}
       </div>

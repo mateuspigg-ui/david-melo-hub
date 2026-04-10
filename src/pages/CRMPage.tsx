@@ -257,24 +257,28 @@ export default function CRMPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex gap-5 overflow-x-auto pb-6 px-1 snap-x snap-mandatory">
+        <div className="rounded-2xl border border-border/30 bg-secondary/20 p-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
           {STAGES.map(s => (
-            <div key={s.id} className="min-w-[340px] flex-1 bg-card/50 rounded-xl p-4 border border-border/30 animate-pulse h-[420px]" />
+              <div key={s.id} className="min-w-[320px] flex-1 bg-card/70 rounded-xl p-4 border border-border/30 animate-pulse h-[420px]" />
           ))}
+          </div>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex gap-5 overflow-x-auto pb-6 px-1 snap-x snap-mandatory">
-            {STAGES.map(stage => (
-              <KanbanColumn
-                key={stage.id}
-                stage={stage}
-                leads={leadsByStage[stage.id] || []}
-                onCardClick={setDetailLead}
-                overdueLeadIds={overdueLeadIds}
-                leadTaskMeta={leadTaskMeta}
-              />
-            ))}
+          <div className="rounded-2xl border border-border/30 bg-secondary/20 p-3">
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
+              {STAGES.map(stage => (
+                <KanbanColumn
+                  key={stage.id}
+                  stage={stage}
+                  leads={leadsByStage[stage.id] || []}
+                  onCardClick={setDetailLead}
+                  overdueLeadIds={overdueLeadIds}
+                  leadTaskMeta={leadTaskMeta}
+                />
+              ))}
+            </div>
           </div>
           <DragOverlay>
             {activeLead && <LeadCard lead={activeLead} isOverlay taskMeta={leadTaskMeta[activeLead.id]} />}
