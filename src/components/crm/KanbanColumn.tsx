@@ -7,11 +7,13 @@ interface Props {
   stage: { id: string; label: string; color: string };
   leads: Lead[];
   onCardClick: (lead: Lead) => void;
+  onCompleteTasks: (leadId: string) => void;
+  completingLeadId: string | null;
   overdueLeadIds: Set<string>;
   leadTaskMeta: Record<string, { pendingCount: number; assignees: string[] }>;
 }
 
-export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds, leadTaskMeta }: Props) {
+export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTasks, completingLeadId, overdueLeadIds, leadTaskMeta }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   return (
@@ -41,6 +43,8 @@ export default function KanbanColumn({ stage, leads, onCardClick, overdueLeadIds
               key={lead.id}
               lead={lead}
               onClick={() => onCardClick(lead)}
+              onCompleteTasks={() => onCompleteTasks(lead.id)}
+              isCompleting={completingLeadId === lead.id}
               isOverdue={overdueLeadIds.has(lead.id)}
               taskMeta={leadTaskMeta[lead.id]}
             />

@@ -61,6 +61,7 @@ export default function CRMPage() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [completingLeadId, setCompletingLeadId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -156,6 +157,34 @@ export default function CRMPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
     },
     onError: () => toast({ title: 'Erro ao mover lead', variant: 'destructive' }),
+  });
+
+  const completeLeadTasksMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await supabase
+        .from('lead_tasks')
+        .update({ status: 'done' })
+        .eq('lead_id', leadId)
+        .neq('status', 'done');
+      if (error) throw error;
+      return leadId;
+    },
+    onMutate: (leadId: string) => {
+      setCompletingLeadId(leadId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead_tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast({ title: 'Tarefas marcadas como feitas!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao concluir tarefas', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+    onSettled: () => {
+      setCompletingLeadId(null);
+    },
   });
 
   const filteredLeads = useMemo(() => {
@@ -272,11 +301,13 @@ export default function CRMPage() {
                 <KanbanColumn
                   key={stage.id}
                   stage={stage}
-                  leads={leadsByStage[stage.id] || []}
-                  onCardClick={setDetailLead}
-                  overdueLeadIds={overdueLeadIds}
-                  leadTaskMeta={leadTaskMeta}
-                />
+                leads={leadsByStage[stage.id] || []}
+                onCardClick={setDetailLead}
+                onCompleteTasks={(leadId) => completeLeadTasksMutation.mutate(leadId)}
+                completingLeadId={completingLeadId}
+                overdueLeadIds={overdueLeadIds}
+                leadTaskMeta={leadTaskMeta}
+              />
               ))}
             </div>
           </div>

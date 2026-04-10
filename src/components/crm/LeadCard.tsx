@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Lead } from '@/pages/CRMPage';
@@ -8,6 +8,8 @@ import type { Lead } from '@/pages/CRMPage';
 interface Props {
   lead: Lead;
   onClick?: () => void;
+  onCompleteTasks?: () => void;
+  isCompleting?: boolean;
   isOverlay?: boolean;
   isOverdue?: boolean;
   taskMeta?: {
@@ -16,7 +18,7 @@ interface Props {
   };
 }
 
-export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, taskMeta }: Props) {
+export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting = false, isOverlay, isOverdue = false, taskMeta }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
   const hasPendingTasks = (taskMeta?.pendingCount || 0) > 0;
 
@@ -81,6 +83,22 @@ export default function LeadCard({ lead, onClick, isOverlay, isOverdue = false, 
             Resp: {taskMeta.assignees.length > 0 ? `${taskMeta.assignees[0]}${taskMeta.assignees.length > 1 ? ` +${taskMeta.assignees.length - 1}` : ''}` : 'NAO DEFINIDO'}
           </span>
         </div>
+      )}
+
+      {hasPendingTasks && onCompleteTasks && !isOverlay && (
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCompleteTasks();
+          }}
+          disabled={isCompleting}
+          className="w-full mb-3 h-8 rounded-md bg-foreground text-background text-[10px] font-black uppercase tracking-widest disabled:opacity-60"
+        >
+          {isCompleting ? <Loader2 className="w-3.5 h-3.5 inline mr-1 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 inline mr-1" />}
+          Marcar como feita
+        </button>
       )}
 
       <div className="flex justify-between items-start gap-2.5">
