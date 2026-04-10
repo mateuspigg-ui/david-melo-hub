@@ -614,6 +614,26 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: undefined
       }
+      get_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          invited_by: string
+          modules: string[]
+          status: string
+          token: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "team_invitations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

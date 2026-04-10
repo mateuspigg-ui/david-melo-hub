@@ -24,9 +24,7 @@ const InvitePage = () => {
   useEffect(() => {
     const fetchInvitation = async () => {
       const { data, error } = await supabase
-        .from('team_invitations')
-        .select('*')
-        .eq('token', token!)
+        .rpc('get_invitation_by_token', { p_token: token! })
         .single();
 
       if (error || !data || data.status !== 'pending') {
