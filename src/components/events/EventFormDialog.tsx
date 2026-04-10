@@ -71,7 +71,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     queryFn: async () => {
       const { data } = await supabase
         .from('leads')
-        .select('id, title, stage, client_id, first_name, last_name, event_type, event_location, event_date, event_time, total_budget, notes')
+        .select('id, title, stage, client_id, event_type, event_location, event_date, event_time, total_budget, notes, clients(first_name, last_name)')
         .eq('stage', 'fechados')
         .order('updated_at', { ascending: false });
       return data || [];
