@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle, CheckCircle2, Loader2, GripVertical } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Lead } from '@/pages/CRMPage';
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting = false, isOverlay, isOverdue = false, taskMeta }: Props) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lead.id });
   const hasPendingTasks = (taskMeta?.pendingCount || 0) > 0;
 
   const style = {
@@ -37,8 +37,9 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
     <div
       ref={!isOverlay ? setNodeRef : undefined}
       style={!isOverlay ? style : undefined}
+      {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`relative touch-none select-none p-3.5 rounded-lg border cursor-pointer transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] ${
+      className={`touch-none select-none p-3.5 rounded-lg border cursor-grab active:cursor-grabbing transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.99] ${
         isDragging ? 'opacity-40 grayscale' : ''
       } ${
         isOverlay
@@ -50,21 +51,6 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
           : 'border-border/30 bg-white shadow-sm hover:border-border/50 hover:shadow-md'
       }`}
     >
-      {!isOverlay && (
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-          className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border/40 bg-white/90 text-foreground/55 cursor-grab active:cursor-grabbing hover:text-foreground hover:border-gold/40"
-          title="Arrastar card"
-          aria-label="Arrastar card"
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
-      )}
-
       {/* Alerta de tarefas em atraso */}
       {isOverdue && (
         <div className="flex items-center gap-1.5 mb-3 bg-red-200 border border-red-400 rounded-lg px-3 py-1.5">
@@ -115,7 +101,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
         </button>
       )}
 
-      <div className="flex justify-between items-start gap-2.5 pr-7">
+      <div className="flex justify-between items-start gap-2.5">
         <h4 className="text-[13px] font-semibold text-foreground leading-snug tracking-tight line-clamp-2">{lead.title}</h4>
         {lead.event_type && (
           <span className="shrink-0 bg-gold/10 text-gold text-[9px] font-bold px-2 py-0.5 rounded-md border border-gold/10">
