@@ -14,6 +14,24 @@ import { format, isPast, isToday } from "date-fns";
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+const PAID_STATUS_VALUES = ["pago", "paid"] as const;
+const PENDING_STATUS_VALUES = ["nao_pago", "pending", "pendente"] as const;
+
+const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
+const isAccountPaid = (status: string | null | undefined, paidAt?: string | null) =>
+  PAID_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PAID_STATUS_VALUES)[number]) || !!paidAt;
+const isAccountPending = (status: string | null | undefined, paidAt?: string | null) => {
+  if (isAccountPaid(status, paidAt)) return false;
+  return PENDING_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PENDING_STATUS_VALUES)[number]) || !status;
+};
+
+const parseCurrencyInput = (value: string) => {
+  const normalized = value.includes(",")
+    ? value.replace(/\./g, "").replace(",", ".")
+    : value;
+  return Number(normalized);
+};
+
 type AccountPayable = {
   id: string;
   description: string;
@@ -55,13 +73,36 @@ export default function ContasPagarPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("accounts_payable").insert({
-        description: form.description,
-        amount: parseFloat(form.amount),
+      const parsedAmount = parseCurrencyInput(form.amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        throw new Error("Informe um valor válido maior que zero para a despesa.");
+      }
+
+      const payload = {
+        description: form.description.trim(),
+        amount: parsedAmount,
         due_date: form.due_date,
         supplier_id: form.supplier_id || null,
-      });
-      if (error) throw error;
+        payment_status: "nao_pago",
+        paid_at: null,
+      };
+
+      const { error } = await supabase.from("accounts_payable").insert(payload as any);
+      if (!error) return;
+
+      const looksLikeStatusMismatch = /status|pending|pendente|pago|nao_pago|paid/i.test(String(error.message || ""));
+      if (!looksLikeStatusMismatch) throw error;
+
+      let lastError: any = error;
+      for (const status of PENDING_STATUS_VALUES) {
+        const { error: fallbackError } = await supabase
+          .from("accounts_payable")
+          .insert({ ...payload, payment_status: status } as any);
+        if (!fallbackError) return;
+        lastError = fallbackError;
+      }
+
+      throw lastError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
@@ -70,23 +111,51 @@ export default function ContasPagarPage() {
       setForm({ description: "", amount: "", due_date: "", supplier_id: "" });
       toast({ title: "Conta criada com sucesso" });
     },
-    onError: () => toast({ title: "Erro ao criar conta", variant: "destructive" }),
+    onError: (e: any) => toast({
+      title: "Erro ao criar conta",
+      description: e?.message || "Não foi possível programar a despesa.",
+      variant: "destructive",
+    }),
   });
 
   const togglePaidMutation = useMutation({
     mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
-      const isPaid = currentStatus === 'pago';
-      const { error } = await supabase
-        .from("accounts_payable")
-        .update({ payment_status: isPaid ? "nao_pago" : "pago", paid_at: isPaid ? null : new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
+      if (isAccountPaid(currentStatus)) {
+        let lastError: any = null;
+
+        for (const pendingStatus of PENDING_STATUS_VALUES) {
+          const { error } = await supabase
+            .from("accounts_payable")
+            .update({ payment_status: pendingStatus, paid_at: null } as any)
+            .eq("id", id);
+          if (!error) return;
+          lastError = error;
+        }
+
+        if (lastError) throw lastError;
+        return;
+      }
+
+      const paidAt = new Date().toISOString();
+      let lastError: any = null;
+
+      for (const paidStatus of PAID_STATUS_VALUES) {
+        const { error } = await supabase
+          .from("accounts_payable")
+          .update({ payment_status: paidStatus, paid_at: paidAt } as any)
+          .eq("id", id);
+        if (!error) return;
+        lastError = error;
+      }
+
+      if (lastError) throw lastError;
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
-      toast({ title: variables.currentStatus === 'pago' ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
+      toast({ title: isAccountPaid(variables.currentStatus) ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
     },
+    onError: (e: any) => toast({ title: 'Erro ao atualizar conta', description: e?.message || 'Não foi possível efetivar baixa.', variant: 'destructive' }),
   });
 
   const deleteMutation = useMutation({
@@ -103,12 +172,14 @@ export default function ContasPagarPage() {
 
   const filtered = items.filter((item) => {
     const matchSearch = `${item.description} ${item.suppliers?.company_name || ""}`.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "all" || item.payment_status === statusFilter;
+    const matchStatus = statusFilter === "all"
+      || (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
+      || (statusFilter === "nao_pago" && isAccountPending(item.payment_status, item.paid_at));
     return matchSearch && matchStatus;
   });
 
-  const totalPending = items.filter((i) => i.payment_status === "nao_pago").reduce((s, i) => s + i.amount, 0);
-  const totalOverdue = items.filter((i) => i.payment_status === "nao_pago" && isPast(new Date(i.due_date + "T23:59:59")) && !isToday(new Date(i.due_date + "T12:00:00"))).reduce((s, i) => s + i.amount, 0);
+  const totalPending = items.filter((i) => isAccountPending(i.payment_status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
+  const totalOverdue = items.filter((i) => isAccountPending(i.payment_status, i.paid_at) && isPast(new Date(i.due_date + "T23:59:59")) && !isToday(new Date(i.due_date + "T12:00:00"))).reduce((s, i) => s + i.amount, 0);
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
@@ -175,7 +246,7 @@ export default function ContasPagarPage() {
       ) : (
         <div className="space-y-4">
           {filtered.map((item) => {
-            const overdue = item.payment_status === "nao_pago" && isPast(new Date(item.due_date + "T23:59:59")) && !isToday(new Date(item.due_date + "T12:00:00"));
+            const overdue = isAccountPending(item.payment_status, item.paid_at) && isPast(new Date(item.due_date + "T23:59:59")) && !isToday(new Date(item.due_date + "T12:00:00"));
             return (
               <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border transition-all duration-300 hover:scale-[1.01] hover:shadow-xl group ${overdue ? "border-destructive/30 bg-destructive/[0.02]" : "border-border/40 premium-shadow"}`}>
                 <div className="flex items-center gap-4">
@@ -203,7 +274,7 @@ export default function ContasPagarPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {item.payment_status === "pago" ? (
+                    {isAccountPaid(item.payment_status, item.paid_at) ? (
                       <Button
                         size="sm"
                         variant="outline"
