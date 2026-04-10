@@ -30,6 +30,63 @@ const EVENT_TYPES = [
   { value: 'corporativo', label: 'Corporativo' },
 ];
 
+const playLeadClosedCelebrationAlert = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.2);
+    oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.45);
+    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.62);
+    oscillator.frequency.exponentialRampToValueAtTime(990, audioContext.currentTime + 1.05);
+
+    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.03);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.52);
+    gainNode.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.66);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 1.15);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 1.2);
+    oscillator.onended = () => {
+      void audioContext.close();
+    };
+  } catch {
+    return;
+  }
+};
+
+const showLeadClosedSystemNotification = async () => {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+
+  try {
+    if (Notification.permission === 'granted') {
+      new Notification('Novo cliente fechado! 🎉');
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        new Notification('Novo cliente fechado! 🎉');
+      }
+    }
+  } catch {
+    return;
+  }
+};
+
 export type Lead = {
   id: string;
   title: string;
@@ -146,15 +203,37 @@ export default function CRMPage() {
     retry: false, // não retentar em caso de erro
   });
 
+  const celebrateLeadClosed = (leadId?: string) => {
+    playLeadClosedCelebrationAlert();
+    void showLeadClosedSystemNotification();
+
+    toast({
+      title: 'Novo cliente fechado! 🎉',
+      className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/15 cursor-pointer',
+      duration: 15000,
+      onClick: () => {
+        if (!leadId) return;
+        const cachedLeads = queryClient.getQueryData<Lead[]>(['leads']) || leads;
+        const closedLead = cachedLeads.find(item => item.id === leadId);
+        if (closedLead) setDetailLead(closedLead);
+      },
+    });
+  };
+
   const updateStageMutation = useMutation({
-    mutationFn: async ({ id, stage }: { id: string; stage: string }) => {
+    mutationFn: async ({ id, stage, previousStage }: { id: string; stage: string; previousStage: string }) => {
       const { error } = await supabase.from('leads').update({ stage }).eq('id', id);
       if (error) throw error;
+      return { id, stage, previousStage };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_pipeline'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+
+      if (data.stage === 'fechados' && data.previousStage !== 'fechados') {
+        celebrateLeadClosed(data.id);
+      }
     },
     onError: () => toast({ title: 'Erro ao mover lead', variant: 'destructive' }),
   });
@@ -238,7 +317,7 @@ export default function CRMPage() {
 
     const lead = leads.find(l => l.id === leadId);
     if (lead && lead.stage !== newStage) {
-      updateStageMutation.mutate({ id: leadId, stage: newStage });
+      updateStageMutation.mutate({ id: leadId, stage: newStage, previousStage: lead.stage });
     }
   };
 
@@ -321,6 +400,7 @@ export default function CRMPage() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         lead={editingLead}
+        onLeadClosedCelebration={celebrateLeadClosed}
         clients={clients}
         teamMembers={teamMembers}
         stages={STAGES}

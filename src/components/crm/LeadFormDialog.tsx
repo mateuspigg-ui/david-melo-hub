@@ -15,6 +15,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lead: Lead | null;
+  onLeadClosedCelebration?: (leadId?: string) => void;
   clients: { id: string; first_name: string; last_name: string }[];
   teamMembers: { id: string; full_name: string }[];
   stages: { id: string; label: string }[];
@@ -38,7 +39,7 @@ interface FormData {
   assigned_to: string;
 }
 
-export default function LeadFormDialog({ open, onOpenChange, lead, clients, teamMembers, stages, eventTypes }: Props) {
+export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedCelebration, clients, teamMembers, stages, eventTypes }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormData>();
@@ -89,14 +90,24 @@ export default function LeadFormDialog({ open, onOpenChange, lead, clients, team
       if (lead) {
         const { error } = await supabase.from('leads').update(payload as any).eq('id', lead.id);
         if (error) throw error;
+        return lead.id;
       } else {
-        const { error } = await supabase.from('leads').insert(payload as any);
+        const { data: createdLead, error } = await supabase.from('leads').insert(payload as any).select('id').single();
         if (error) throw error;
+        return createdLead.id as string;
       }
     },
-    onSuccess: () => {
+    onSuccess: (savedLeadId, variables) => {
+      const movedToClosedStage = variables.stage === 'fechados' && (!lead || lead.stage !== 'fechados');
+
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       onOpenChange(false);
+
+      if (movedToClosedStage) {
+        onLeadClosedCelebration?.(savedLeadId);
+        return;
+      }
+
       toast({ title: lead ? 'Lead atualizado' : 'Lead criado com sucesso' });
     },
     onError: (err: unknown) => {
