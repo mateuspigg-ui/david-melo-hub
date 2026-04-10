@@ -118,13 +118,64 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, on
 
   const handleImport = async () => {
     if (!file || !bankAccountId) return;
-    if (getFileExtension(file.name) === 'pdf') {
-      toast({ title: 'PDF sem processamento automático', description: 'Para importação automática de transações, use um arquivo CSV.', variant: 'destructive' });
-      return;
-    }
 
     setLoading(true);
     try {
+      if (getFileExtension(file.name) === 'pdf') {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        const fileExt = getFileExtension(file.name);
+        const fileBaseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s+/g, '-').toLowerCase();
+        const filePath = `reconciliacao/${bankAccountId}/${Date.now()}-${fileBaseName}.${fileExt}`;
+
+        const bucketCandidates = ['documents', 'documentos'];
+        let uploadedBucket = '';
+        let uploadError: any = null;
+
+        for (const bucket of bucketCandidates) {
+          const { error } = await supabase.storage
+            .from(bucket)
+            .upload(filePath, file, { upsert: true, contentType: file.type || 'application/pdf' });
+          if (!error) {
+            uploadedBucket = bucket;
+            break;
+          }
+          uploadError = error;
+        }
+
+        if (!uploadedBucket) {
+          throw new Error(uploadError?.message || 'Nao foi possivel enviar o PDF para o storage.');
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(uploadedBucket).getPublicUrl(filePath);
+
+        const { error: docError } = await supabase.from('company_documents').insert([
+          {
+            title: `Extrato bancario - ${file.name.replace(/\.[^/.]+$/, '')}`,
+            category: 'financeiro',
+            description: `Extrato PDF enviado na conciliacao bancaria (conta: ${bankAccountId}).`,
+            file_url: publicUrl || `${uploadedBucket}/${filePath}`,
+            created_by: user?.id || null,
+          },
+        ]);
+
+        if (docError) throw docError;
+
+        toast({
+          title: 'PDF enviado com sucesso',
+          description: 'Arquivo registrado para conferência manual. Para importação automática, use CSV.',
+        });
+        onOpenChange(false);
+        setFile(null);
+        setParsedRows([]);
+        setPreview([]);
+        return;
+      }
+
       const rawData = parsedRows.length > 0 ? parsedRows : await parseFileRows(file);
       const transactions = rawData.map(row => ({
             bank_account_id: bankAccountId,
