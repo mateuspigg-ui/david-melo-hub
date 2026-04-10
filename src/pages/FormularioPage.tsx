@@ -80,7 +80,6 @@ export default function FormularioPage({ publicView = false }: Props) {
       if (!eventDate) throw new Error('Informe a data do evento.');
       if (!eventTime) throw new Error('Informe o horário do evento.');
       if (!guestCountRaw) throw new Error('Informe a quantidade de convidados.');
-      if (!notes) throw new Error('Informe a observação do evento.');
 
       const guestCount = Number(guestCountRaw);
       if (!Number.isFinite(guestCount) || guestCount <= 0) {
@@ -97,7 +96,7 @@ export default function FormularioPage({ publicView = false }: Props) {
         event_date: eventDate,
         event_time: eventTime,
         guest_count: guestCount,
-        notes,
+        notes: notes || null,
         total_budget: null,
         stage: 'novo_contato',
       };
@@ -217,8 +216,8 @@ export default function FormularioPage({ publicView = false }: Props) {
           </div>
 
           <div className="md:col-span-2 space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Observação *</Label>
-            <Textarea required value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={5} placeholder="Detalhes adicionais do evento, preferências e informações importantes..." className="bg-secondary/20 border-border/10 focus:border-gold rounded-xl resize-none" />
+            <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Observação</Label>
+            <Textarea value={form.notes} onChange={(e) => updateField('notes', e.target.value)} rows={5} placeholder="Detalhes adicionais do evento, preferências e informações importantes..." className="bg-secondary/20 border-border/10 focus:border-gold rounded-xl resize-none" />
           </div>
         </div>
 
