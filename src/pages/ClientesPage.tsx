@@ -166,15 +166,10 @@ const ClientesPage = () => {
     const selected = closedLeads.find((lead) => lead.id === leadId);
     if (!selected) return;
 
-    const parsedName = (selected.title || '').trim();
-    const titleParts = parsedName.split(/\s+/).filter(Boolean);
-    const fallbackFirstName = titleParts[0] || '';
-    const fallbackLastName = titleParts.slice(1).join(' ');
-
     setForm((prev) => ({
       ...prev,
-      first_name: selected.first_name || fallbackFirstName || prev.first_name,
-      last_name: selected.last_name || fallbackLastName || prev.last_name,
+      first_name: selected.first_name || '',
+      last_name: selected.last_name || '',
       phone: selected.phone || '',
     }));
   };
@@ -324,16 +319,6 @@ const ClientesPage = () => {
           <div className="flex-1 overflow-y-auto p-8 bg-white/50 backdrop-blur-sm">
             <form id="client-form" onSubmit={(e) => { e.preventDefault(); upsert.mutate(); }} className="space-y-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
-                  <Input
-                    required
-                    value={form.first_name}
-                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                    placeholder="Ex: David"
-                  />
-                </div>
                 {!editingClient && (
                   <div className="sm:col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Importar de Lead Fechado (Opcional)</Label>
@@ -345,12 +330,23 @@ const ClientesPage = () => {
                       <option value="">Selecionar lead fechado</option>
                       {closedLeads.map((lead) => (
                         <option key={lead.id} value={lead.id}>
-                          {lead.title} {lead.event_date ? `• ${new Date(lead.event_date).toLocaleDateString('pt-BR')}` : ''}
+                          {(lead.first_name || '').trim()} {(lead.last_name || '').trim()}
+                          {lead.phone ? ` • ${lead.phone}` : ''}
                         </option>
                       ))}
                     </select>
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Primeiro Nome *</Label>
+                  <Input
+                    required
+                    value={form.first_name}
+                    onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="Ex: David"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
                   <Input
