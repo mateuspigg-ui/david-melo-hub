@@ -48,6 +48,13 @@ type InstallmentPlanItem = {
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+const PAID_STATUS_VALUES = ["paid", "pago"] as const;
+const PENDING_STATUS_VALUES = ["pending", "pendente"] as const;
+
+const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
+const isInstallmentPaid = (status: string | null | undefined, paidAt?: string | null) =>
+  PAID_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PAID_STATUS_VALUES)[number]) || !!paidAt;
+
 export default function PagamentosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -323,36 +330,50 @@ export default function PagamentosPage() {
 
   const togglePaidMutation = useMutation({
     mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
-      if (currentStatus === 'paid') {
-        const { error } = await supabase
-          .from("payment_installments")
-          .update({ status: "pending", paid_at: null })
-          .eq("id", id);
+      if (isInstallmentPaid(currentStatus)) {
+        let lastError: any = null;
 
-        if (!error) return;
+        for (const fallbackStatus of PENDING_STATUS_VALUES) {
+          const { error } = await supabase
+            .from("payment_installments")
+            .update({ status: fallbackStatus, paid_at: null } as any)
+            .eq("id", id);
+          if (!error) return;
+          lastError = error;
+        }
 
-        const { error: fallbackError } = await supabase
-          .from("payment_installments")
-          .update({ status: "pendente", paid_at: null } as any)
-          .eq("id", id);
-
-        if (fallbackError) throw fallbackError;
+        if (lastError) throw lastError;
         return;
       }
 
-      const { error } = await supabase
-        .from("payment_installments")
-        .update({ status: "paid", paid_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
+      const paidAt = new Date().toISOString();
+      let lastError: any = null;
+
+      for (const fallbackStatus of PAID_STATUS_VALUES) {
+        const { error } = await supabase
+          .from("payment_installments")
+          .update({ status: fallbackStatus, paid_at: paidAt } as any)
+          .eq("id", id);
+        if (!error) return;
+        lastError = error;
+      }
+
+      if (lastError) throw lastError;
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["installments"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({
-        title: variables.currentStatus === 'paid' ? 'Baixa desfeita com sucesso' : 'Mês auditado e baixado com sucesso!',
+        title: isInstallmentPaid(variables.currentStatus) ? 'Baixa desfeita com sucesso' : 'Mês auditado e baixado com sucesso!',
         style: { backgroundColor: '#10b981', color: '#fff' }
+      });
+    },
+    onError: (e: any) => {
+      toast({
+        title: 'Erro ao efetivar baixa',
+        description: e?.message || 'Não foi possível atualizar o status da parcela.',
+        variant: 'destructive',
       });
     },
   });
@@ -604,14 +625,14 @@ export default function PagamentosPage() {
                             </div>
                             <div>
                               <p className="text-xs font-bold text-foreground uppercase tracking-tight">Parcela {inst.installment_number.toString().padStart(2, '0')}</p>
-                              <p className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${inst.status === 'paid' ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                              <p className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${isInstallmentPaid(inst.status, inst.paid_at) ? 'text-emerald-500' : 'text-muted-foreground'}`}>
                                 {format(new Date(inst.due_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <span className="font-bold text-sm tracking-tighter">{currencyFmt(inst.amount)}</span>
-                            {inst.status === "paid" ? (
+                            {isInstallmentPaid(inst.status, inst.paid_at) ? (
                               <Button
                                 size="sm"
                                 variant="outline"
