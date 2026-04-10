@@ -373,7 +373,7 @@ export default function PagamentosPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 border-gold/30 text-gold hover:bg-gold text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all"
+                                className="h-8 border-amber-500/50 text-amber-700 hover:bg-amber-600 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all"
                                 onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
                               >
                                 Baixar / OK
