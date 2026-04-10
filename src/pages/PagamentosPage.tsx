@@ -75,8 +75,12 @@ export default function PagamentosPage() {
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
 
   const parseMoney = (value: string | number) => Number(String(value).replace(',', '.'));
-  const isMissingEntryPaidAtColumnError = (error: any) =>
-    /column .*entry_paid_at.* does not exist/i.test(String(error?.message || ''));
+  const isMissingEntryPaidAtColumnError = (error: any) => {
+    const message = String(error?.message || '');
+    return /column .*entry_paid_at.* does not exist/i.test(message)
+      || /entry_paid_at.*schema cache/i.test(message)
+      || /could not find.*entry_paid_at.*payments/i.test(message);
+  };
 
   const buildDefaultInstallments = (count: number, remaining: number, baseDate?: string) => {
     const anchor = baseDate ? new Date(`${baseDate}T12:00:00`) : new Date();
