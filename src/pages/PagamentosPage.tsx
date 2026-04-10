@@ -493,7 +493,7 @@ export default function PagamentosPage() {
 
       {/* Create dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="max-w-md max-h-[90vh] p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[90vh] p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden font-body flex flex-col">
           <div className="bg-gradient-gold p-8 text-white">
             <DialogHeader>
               <DialogTitle className="text-2xl font-display text-white">Novo Contrato Comercial</DialogTitle>
@@ -586,22 +586,22 @@ export default function PagamentosPage() {
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Plano de Parcelas (Editar Data e Valor)</Label>
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{installmentPlan.length} parcela{installmentPlan.length > 1 ? 's' : ''}</span>
                 </div>
-                <div className="space-y-2 max-h-[230px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
                   {installmentPlan.map((item, index) => (
-                    <div key={item.installment_number} className="grid grid-cols-[88px_1fr_1fr] gap-2 items-center bg-white border border-border/20 rounded-lg p-2.5">
+                    <div key={item.installment_number} className="grid grid-cols-1 md:grid-cols-[120px_1fr_180px] gap-2 items-center bg-white border border-border/20 rounded-lg p-3">
                       <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Parcela {item.installment_number.toString().padStart(2, '0')}</span>
                       <Input
                         type="date"
                         value={item.due_date}
                         onChange={(e) => updateInstallment(index, 'due_date', e.target.value)}
-                        className="h-9 text-xs bg-secondary/20"
+                        className="h-10 text-sm bg-secondary/20"
                       />
                       <Input
                         type="number"
                         step="0.01"
                         value={item.amount}
                         onChange={(e) => updateInstallment(index, 'amount', e.target.value)}
-                        className="h-9 text-xs font-bold bg-secondary/20"
+                        className="h-10 text-base font-bold bg-secondary/20"
                       />
                     </div>
                   ))}
