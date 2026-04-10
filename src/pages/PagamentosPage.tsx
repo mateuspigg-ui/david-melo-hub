@@ -93,13 +93,7 @@ export default function PagamentosPage() {
     }
 
     const defaults = buildDefaultInstallments(count, remaining);
-    setInstallmentPlan((prev) =>
-      defaults.map((item, idx) => ({
-        installment_number: item.installment_number,
-        due_date: prev[idx]?.due_date || item.due_date,
-        amount: prev[idx]?.amount || item.amount,
-      }))
-    );
+    setInstallmentPlan(defaults);
   }, [dialogOpen, form.total_event_value, form.installment_count, form.has_entry_payment, form.entry_amount]);
 
   const { data: payments = [], isLoading } = useQuery({
