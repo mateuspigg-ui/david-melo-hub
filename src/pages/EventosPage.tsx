@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { EventCard } from '@/components/events/EventCard';
 import { EventFormDialog } from '@/components/events/EventFormDialog';
 
+const INTERNAL_ACTIVITY_TYPES = ['Reunião', 'Degustação', 'Atendimento ao Cliente', 'Formatação de Festas'];
+
 const EventosPage = () => {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -29,10 +31,15 @@ const EventosPage = () => {
     }
   });
 
-  const filteredEvents = events?.filter(evt => 
-    evt.title?.toLowerCase().includes(search.toLowerCase()) || 
-    evt.event_type?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredEvents = events?.filter((evt) => {
+    const isInternal = INTERNAL_ACTIVITY_TYPES.includes(evt.event_type || '');
+    if (isInternal) return false;
+
+    return (
+      evt.title?.toLowerCase().includes(search.toLowerCase()) ||
+      evt.event_type?.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   return (
     <div className="p-6 space-y-8 max-w-[1600px] mx-auto animate-fade-in">
