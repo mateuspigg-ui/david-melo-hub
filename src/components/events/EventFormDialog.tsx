@@ -6,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 
 export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({
     title: '',
     event_type: 'Casamento',
@@ -112,18 +113,74 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     }
   };
 
+  const handleDelete = async () => {
+    if (!event?.id) return;
+
+    setDeleting(true);
+    try {
+      const eventId = event.id as string;
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+
+      if (error && /foreign key|constraint|violates/i.test(error.message || '')) {
+        const [contractsResult, paymentsResult] = await Promise.all([
+          supabase.from('contracts').update({ event_id: null }).eq('event_id', eventId),
+          supabase.from('payments').update({ event_id: null }).eq('event_id', eventId),
+        ]);
+
+        if (contractsResult.error) throw contractsResult.error;
+        if (paymentsResult.error) throw paymentsResult.error;
+
+        const retry = await supabase.from('events').delete().eq('id', eventId);
+        if (retry.error) throw retry.error;
+      } else if (error) {
+        throw error;
+      }
+
+      toast({ title: 'Sucesso', description: 'Evento excluído com sucesso!', style: { backgroundColor: '#DAA520', color: '#000' } });
+
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['agenda-events'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_metrics'] });
+
+      onSaved();
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error(error);
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(open) => { if (!open && !loading) onOpenChange(false); }}>
+    <Dialog open={open} onOpenChange={(open) => { if (!open && !loading && !deleting) onOpenChange(false); }}>
       <DialogContent className="bg-white border-border/40 max-w-2xl text-foreground font-body h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] overflow-hidden">
         {/* Header - Fixed */}
         <div className="bg-gradient-gold p-6 text-white relative flex-none">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-display text-white tracking-tight">
-              {event ? 'Refinar Evento' : 'Novo Projeto de Evento'}
-            </DialogTitle>
-            <p className="text-white/80 text-[9px] font-black uppercase tracking-[0.2em] mt-1">Gestão Executiva David Melo</p>
-          </DialogHeader>
+          <div className="flex items-start justify-between gap-4">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-display text-white tracking-tight">
+                {event ? 'Refinar Evento' : 'Novo Projeto de Evento'}
+              </DialogTitle>
+              <p className="text-white/80 text-[9px] font-black uppercase tracking-[0.2em] mt-1">Gestão Executiva David Melo</p>
+            </DialogHeader>
+            {event?.id && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDelete}
+                disabled={loading || deleting}
+                className="border-white/50 bg-white/10 text-white hover:bg-white hover:text-destructive whitespace-nowrap"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Excluir
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Form Body - Scrollable */}
@@ -249,11 +306,22 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
         </div>
 
         {/* Footer - Fixed */}
-        <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading} className="h-11 px-8 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50">
+        <div className="p-6 bg-white border-t border-border/10 flex-none flex flex-wrap justify-end items-center gap-3">
+          {event?.id && (
+            <Button
+              variant="outline"
+              onClick={handleDelete}
+              disabled={loading || deleting}
+              className="h-11 px-5 border-destructive/30 text-destructive hover:bg-destructive hover:text-white font-black uppercase text-[10px] tracking-[0.2em] rounded-xl"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Excluir Evento
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading || deleting} className="h-11 px-5 text-muted-foreground font-black uppercase text-[10px] tracking-[0.2em] rounded-xl hover:bg-secondary/50">
             Descartar
           </Button>
-          <Button onClick={handleSave} disabled={loading} className="bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300">
+          <Button onClick={handleSave} disabled={loading || deleting} className="bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300">
             {loading ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : null}
             {event ? 'Atualizar Evento' : 'Publicar Evento'}
           </Button>
