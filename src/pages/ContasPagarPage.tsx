@@ -32,6 +32,17 @@ const parseCurrencyInput = (value: string) => {
   return Number(normalized);
 };
 
+const getFriendlyAccountsPayableError = (error: any) => {
+  const message = String(error?.message || "");
+  if (/schema cache|could not find.*accounts_payable/i.test(message)) {
+    return "A tabela de contas a pagar ainda não foi aplicada no banco. Execute as migrations do Supabase.";
+  }
+  if (/row-level security|permission denied/i.test(message)) {
+    return "Seu usuário não tem permissão para cadastrar despesas. Solicite perfil administrador ou gerente.";
+  }
+  return message || "Não foi possível programar a despesa.";
+};
+
 type AccountPayable = {
   id: string;
   description: string;
@@ -113,7 +124,7 @@ export default function ContasPagarPage() {
     },
     onError: (e: any) => toast({
       title: "Erro ao criar conta",
-      description: e?.message || "Não foi possível programar a despesa.",
+      description: getFriendlyAccountsPayableError(e),
       variant: "destructive",
     }),
   });
