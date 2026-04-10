@@ -49,7 +49,7 @@ const Auth = () => {
           <div className="absolute bottom-0 left-0 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
 
           <div className="relative z-10 space-y-6">
-            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/25 bg-white/10 px-5 py-3 backdrop-blur-sm">
+            <div className="flex justify-center">
               <img src={logo} alt="David Melo" className="h-36 w-auto drop-shadow-[0_10px_24px_rgba(0,0,0,0.35)]" />
             </div>
             <div className="space-y-3">
