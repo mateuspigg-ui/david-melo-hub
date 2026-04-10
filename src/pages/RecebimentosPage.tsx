@@ -26,6 +26,30 @@ type InstallmentRow = {
   } | null;
 };
 
+type EntryRow = {
+  id: string;
+  entry_amount: number | null;
+  entry_date: string | null;
+  entry_paid_at: string | null;
+  clients: { first_name: string; last_name: string } | null;
+  events: { title: string } | null;
+};
+
+type ReceivableUnifiedRow = {
+  id: string;
+  kind: 'installment' | 'entry';
+  installment_number: number | null;
+  due_date: string;
+  amount: number;
+  status: string;
+  paid_at: string | null;
+  payment_id: string;
+  payments: {
+    clients: { first_name: string; last_name: string } | null;
+    events: { title: string } | null;
+  } | null;
+};
+
 export default function RecebimentosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -45,7 +69,16 @@ export default function RecebimentosPage() {
   });
 
   const togglePaidMutation = useMutation({
-    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+    mutationFn: async ({ id, currentStatus, kind }: { id: string; currentStatus: string; kind: 'installment' | 'entry' }) => {
+      if (kind === 'entry') {
+        const { error } = await (supabase as any)
+          .from("payments")
+          .update({ entry_paid_at: currentStatus === 'paid' ? null : new Date().toISOString() })
+          .eq("id", id);
+        if (error) throw error;
+        return;
+      }
+
       if (currentStatus === 'paid') {
         const { error } = await supabase
           .from("payment_installments")
@@ -71,13 +104,61 @@ export default function RecebimentosPage() {
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["receivables"] });
+      qc.invalidateQueries({ queryKey: ["receivable_entries"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({ title: variables.currentStatus === 'paid' ? 'Baixa desfeita com sucesso' : "Recebimento confirmado" });
     },
   });
 
-  const filtered = installments.filter((inst) => {
+  const { data: entries = [], isLoading: isLoadingEntries } = useQuery({
+    queryKey: ["receivable_entries"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("payments")
+        .select("id, entry_amount, entry_date, entry_paid_at, clients(first_name, last_name), events(title)")
+        .eq("has_entry_payment", true)
+        .not("entry_amount", "is", null)
+        .order("entry_date", { ascending: true });
+      if (error) throw error;
+      return (data || []) as EntryRow[];
+    },
+  });
+
+  const unifiedRows: ReceivableUnifiedRow[] = [
+    ...installments.map((inst) => ({
+      id: inst.id,
+      kind: 'installment' as const,
+      installment_number: inst.installment_number,
+      due_date: inst.due_date,
+      amount: inst.amount,
+      status: inst.status,
+      paid_at: inst.paid_at,
+      payment_id: inst.payment_id,
+      payments: {
+        clients: inst.payments?.clients || null,
+        events: inst.payments?.events || null,
+      },
+    })),
+    ...entries
+      .filter((entry) => Number(entry.entry_amount || 0) > 0 && !!entry.entry_date)
+      .map((entry) => ({
+        id: entry.id,
+        kind: 'entry' as const,
+        installment_number: null,
+        due_date: entry.entry_date || '',
+        amount: Number(entry.entry_amount || 0),
+        status: entry.entry_paid_at ? 'paid' : 'pending',
+        paid_at: entry.entry_paid_at,
+        payment_id: entry.id,
+        payments: {
+          clients: entry.clients,
+          events: entry.events,
+        },
+      })),
+  ];
+
+  const filtered = unifiedRows.filter((inst) => {
     const clientName = inst.payments?.clients ? `${inst.payments.clients.first_name} ${inst.payments.clients.last_name}` : "";
     const eventTitle = inst.payments?.events?.title || "";
     const matchSearch = `${clientName} ${eventTitle}`.toLowerCase().includes(search.toLowerCase());
@@ -86,7 +167,7 @@ export default function RecebimentosPage() {
     return matchSearch && matchStatus && matchMonth;
   });
 
-  const baseForTotals = monthFilter ? filtered : installments;
+  const baseForTotals = monthFilter ? filtered : unifiedRows;
   const totalPending = baseForTotals.filter((i) => i.status === "pending").reduce((s, i) => s + i.amount, 0);
   const totalReceived = baseForTotals.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
 
@@ -143,7 +224,7 @@ export default function RecebimentosPage() {
         </Select>
       </div>
 
-      {isLoading ? (
+      {isLoading || isLoadingEntries ? (
         <div className="space-y-4">{[1, 2, 3, 4].map((i) => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse border border-border/40 premium-shadow" />)}</div>
       ) : filtered.length === 0 ? (
         <div className="bg-white premium-shadow rounded-2xl p-20 border border-border/40 text-center flex flex-col items-center justify-center">
@@ -172,7 +253,7 @@ export default function RecebimentosPage() {
                       </p>
                       <span className="text-muted-foreground/30 text-[10px]">•</span>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-60">
-                        Parcela {inst.installment_number.toString().padStart(2, '0')}
+                        {inst.kind === 'entry' ? 'Entrada' : `Parcela ${String(inst.installment_number || 0).padStart(2, '0')}`}
                       </p>
                       <span className="text-muted-foreground/30 text-[10px]">•</span>
                       <p className={`text-[10px] font-bold uppercase tracking-wider ${overdue ? "text-destructive" : "text-muted-foreground opacity-60"}`}>
@@ -194,7 +275,7 @@ export default function RecebimentosPage() {
                         size="sm"
                         variant="outline"
                         className="h-9 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm"
-                        onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                        onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status, kind: inst.kind })}
                       >
                         Desfazer Baixa
                       </Button>
@@ -203,7 +284,7 @@ export default function RecebimentosPage() {
                         size="sm"
                         variant="outline"
                         className="h-9 border-amber-500/50 text-amber-700 hover:bg-amber-600 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg px-4 transition-all shadow-sm"
-                        onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                        onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status, kind: inst.kind })}
                       >
                         <Check className="w-3 h-3 mr-2" /> Efetivar Baixa
                       </Button>

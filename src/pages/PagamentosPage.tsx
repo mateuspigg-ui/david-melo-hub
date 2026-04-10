@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, DollarSign, Calendar, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Plus, Search, DollarSign, Calendar, ChevronDown, ChevronUp, Trash2, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -19,6 +19,7 @@ type Payment = {
   has_entry_payment: boolean | null;
   entry_amount: number | null;
   entry_date: string | null;
+  entry_paid_at: string | null;
   client_id: string | null;
   event_id: string | null;
   created_at: string;
@@ -36,6 +37,14 @@ type Installment = {
   paid_at: string | null;
 };
 
+type InstallmentPlanItem = {
+  installment_number: number;
+  due_date: string;
+  amount: string;
+  status?: string;
+  paid_at?: string | null;
+};
+
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
@@ -44,6 +53,7 @@ export default function PagamentosPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
 
   // form state
   const [form, setForm] = useState({
@@ -55,7 +65,7 @@ export default function PagamentosPage() {
     client_id: "",
     event_id: "",
   });
-  const [installmentPlan, setInstallmentPlan] = useState<Array<{ installment_number: number; due_date: string; amount: string }>>([]);
+  const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
 
   const parseMoney = (value: string | number) => Number(String(value).replace(',', '.'));
 
@@ -69,6 +79,8 @@ export default function PagamentosPage() {
         installment_number: i + 1,
         due_date: due.toISOString().split("T")[0],
         amount: (Math.round(perInstallment * 100) / 100).toFixed(2),
+        status: 'pending',
+        paid_at: null,
       };
     });
   };
@@ -176,7 +188,7 @@ export default function PagamentosPage() {
     },
   });
 
-  const createMutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: async () => {
       const totalValue = parseMoney(form.total_event_value);
       const count = Number(form.installment_count);
@@ -203,21 +215,39 @@ export default function PagamentosPage() {
         }
       }
 
-      const paymentId = crypto.randomUUID();
+      const paymentId = editingPayment?.id || crypto.randomUUID();
 
-      const { error } = await supabase
-        .from('payments')
-        .insert({
-          id: paymentId,
-          total_event_value: totalValue,
-          installment_count: count,
+      if (editingPayment?.id) {
+        const { error } = await supabase
+          .from('payments')
+          .update({
+            total_event_value: totalValue,
+            installment_count: count,
           has_entry_payment: hasEntry,
           entry_amount: entryAmount,
           entry_date: hasEntry && form.entry_date ? form.entry_date : null,
+          entry_paid_at: hasEntry ? (editingPayment?.entry_paid_at || null) : null,
           client_id: form.client_id || null,
           event_id: form.event_id || null,
-        });
-      if (error) throw error;
+        })
+          .eq('id', editingPayment.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('payments')
+          .insert({
+            id: paymentId,
+            total_event_value: totalValue,
+            installment_count: count,
+            has_entry_payment: hasEntry,
+            entry_amount: entryAmount,
+            entry_date: hasEntry && form.entry_date ? form.entry_date : null,
+            entry_paid_at: null,
+            client_id: form.client_id || null,
+            event_id: form.event_id || null,
+          });
+        if (error) throw error;
+      }
 
       const remaining = hasEntry && entryAmount ? totalValue - entryAmount : totalValue;
       if (remaining < 0) {
@@ -230,6 +260,8 @@ export default function PagamentosPage() {
         installment_number: item.installment_number,
         due_date: item.due_date,
         amount: parseMoney(item.amount),
+        status: item.status || 'pending',
+        paid_at: item.paid_at || null,
       }));
 
       const hasInvalidInstallments = installmentsData.some(
@@ -244,7 +276,12 @@ export default function PagamentosPage() {
         throw new Error(`A soma das parcelas (${currencyFmt(installmentsSum)}) deve ser igual ao saldo a parcelar (${currencyFmt(remaining)}).`);
       }
 
-      const { error: instError } = await supabase.from('payment_installments').insert(installmentsData);
+      if (editingPayment?.id) {
+        const { error: deleteInstallmentsError } = await supabase.from('payment_installments').delete().eq('payment_id', paymentId);
+        if (deleteInstallmentsError) throw deleteInstallmentsError;
+      }
+
+      const { error: instError } = await supabase.from('payment_installments').insert(installmentsData as any);
       if (instError) {
         const looksLikeStatusMismatch = /status|pending|pendente/i.test(instError.message || '');
 
@@ -252,11 +289,15 @@ export default function PagamentosPage() {
           const retryData = installmentsData.map((item) => ({ ...item, status: 'pendente' }));
           const { error: retryError } = await supabase.from('payment_installments').insert(retryData as any);
           if (!retryError) return;
-          await supabase.from('payments').delete().eq('id', paymentId);
+          if (!editingPayment?.id) {
+            await supabase.from('payments').delete().eq('id', paymentId);
+          }
           throw retryError;
         }
 
-        await supabase.from('payments').delete().eq('id', paymentId);
+        if (!editingPayment?.id) {
+          await supabase.from('payments').delete().eq('id', paymentId);
+        }
         throw instError;
       }
     },
@@ -268,9 +309,9 @@ export default function PagamentosPage() {
       
       setDialogOpen(false);
       resetForm();
-      toast({ title: "Pagamento criado com sucesso", style: { backgroundColor: '#C5A059', color: '#fff' } });
+      toast({ title: editingPayment ? "Contrato atualizado com sucesso" : "Pagamento criado com sucesso", style: { backgroundColor: '#C5A059', color: '#fff' } });
     },
-    onError: (e: any) => toast({ title: "Erro ao criar pagamento", description: e?.message || 'Verifique os dados informados.', variant: "destructive" }),
+    onError: (e: any) => toast({ title: editingPayment ? "Erro ao atualizar contrato" : "Erro ao criar pagamento", description: e?.message || 'Verifique os dados informados.', variant: "destructive" }),
   });
 
   const togglePaidMutation = useMutation({
@@ -309,6 +350,23 @@ export default function PagamentosPage() {
     },
   });
 
+  const toggleEntryPaidMutation = useMutation({
+    mutationFn: async ({ id, currentPaidAt }: { id: string; currentPaidAt: string | null }) => {
+      const { error } = await supabase
+        .from('payments')
+        .update({ entry_paid_at: currentPaidAt ? null : new Date().toISOString() } as any)
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      toast({ title: 'Entrada atualizada com sucesso' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao atualizar entrada', description: e?.message || 'Tente novamente.', variant: 'destructive' }),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await supabase.from("payment_installments").delete().eq("payment_id", id);
@@ -327,6 +385,43 @@ export default function PagamentosPage() {
   const resetForm = () => {
     setForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "" });
     setInstallmentPlan([]);
+    setEditingPayment(null);
+  };
+
+  const openEditDialog = async (payment: Payment) => {
+    setEditingPayment(payment);
+    setForm({
+      total_event_value: String(payment.total_event_value ?? ''),
+      installment_count: String(payment.installment_count ?? 1),
+      has_entry_payment: !!payment.has_entry_payment,
+      entry_amount: payment.entry_amount != null ? String(payment.entry_amount) : '',
+      entry_date: payment.entry_date || '',
+      client_id: payment.client_id || '',
+      event_id: payment.event_id || '',
+    });
+
+    const { data, error } = await supabase
+      .from('payment_installments')
+      .select('installment_number, due_date, amount, status, paid_at')
+      .eq('payment_id', payment.id)
+      .order('installment_number');
+
+    if (error) {
+      toast({ title: 'Erro ao carregar parcelas', description: error.message, variant: 'destructive' });
+      return;
+    }
+
+    setInstallmentPlan(
+      (data || []).map((item: any) => ({
+        installment_number: item.installment_number,
+        due_date: item.due_date,
+        amount: String(item.amount ?? ''),
+        status: item.status,
+        paid_at: item.paid_at,
+      }))
+    );
+
+    setDialogOpen(true);
   };
 
   const updateInstallment = (index: number, field: 'due_date' | 'amount', value: string) => {
@@ -426,6 +521,14 @@ export default function PagamentosPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-10 w-10 text-gold/60 hover:text-gold hover:bg-gold/5 rounded-xl transition-colors"
+                        onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
                         onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(p.id); }}
                       >
@@ -443,6 +546,43 @@ export default function PagamentosPage() {
                     <div className="flex items-center justify-between mb-2">
                        <h5 className="text-[10px] font-bold text-foreground/50 uppercase tracking-[0.2em]">Cronograma de Liquidação</h5>
                     </div>
+                    {p.has_entry_payment && p.entry_amount && (
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-200 shadow-sm transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <Calendar className="w-4 h-4 text-emerald-700" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-emerald-900 uppercase tracking-tight">Entrada do Contrato</p>
+                            <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5 text-emerald-700">
+                              {p.entry_date ? format(new Date(p.entry_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR }) : 'Data não informada'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="font-bold text-sm tracking-tighter text-emerald-900">{currencyFmt(p.entry_amount)}</span>
+                          {p.entry_paid_at ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all px-3"
+                              onClick={() => toggleEntryPaidMutation.mutate({ id: p.id, currentPaidAt: p.entry_paid_at })}
+                            >
+                              Desfazer
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 border-amber-500/50 text-amber-700 hover:bg-amber-600 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all"
+                              onClick={() => toggleEntryPaidMutation.mutate({ id: p.id, currentPaidAt: p.entry_paid_at })}
+                            >
+                              Baixar / OK
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
                       {installments.map((inst) => (
                         <div key={inst.id} className="flex items-center justify-between p-4 rounded-xl bg-white border border-border/20 shadow-sm transition-all hover:border-gold/30">
@@ -611,11 +751,11 @@ export default function PagamentosPage() {
             <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
               <Button
-                onClick={() => createMutation.mutate()}
-                disabled={!form.total_event_value || createMutation.isPending || (form.has_entry_payment && (!form.entry_amount || !form.entry_date))}
+                onClick={() => saveMutation.mutate()}
+                disabled={!form.total_event_value || saveMutation.isPending || (form.has_entry_payment && (!form.entry_amount || !form.entry_date))}
                 className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest transition-all"
               >
-                Gerar Contrato
+                {editingPayment ? 'Salvar Alterações' : 'Gerar Contrato'}
               </Button>
             </div>
           </div>
