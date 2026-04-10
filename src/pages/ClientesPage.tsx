@@ -27,11 +27,9 @@ interface Client {
 interface ClosedLead {
   id: string;
   title: string;
-  first_name: string | null;
-  last_name: string | null;
-  phone: string | null;
   client_id: string | null;
   event_date: string | null;
+  clients: { first_name: string; last_name: string; phone: string | null } | null;
 }
 
 const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '' };
@@ -60,11 +58,11 @@ const ClientesPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, title, first_name, last_name, phone, client_id, event_date')
+        .select('id, title, client_id, event_date, clients(first_name, last_name, phone)')
         .eq('stage', 'fechados')
         .order('event_date', { ascending: false });
       if (error) throw error;
-      return (data || []) as ClosedLead[];
+      return (data || []) as unknown as ClosedLead[];
     },
   });
 
@@ -167,9 +165,9 @@ const ClientesPage = () => {
 
     setForm((prev) => ({
       ...prev,
-      first_name: selected.first_name || '',
-      last_name: selected.last_name || '',
-      phone: selected.phone || '',
+      first_name: selected.clients?.first_name || '',
+      last_name: selected.clients?.last_name || '',
+      phone: selected.clients?.phone || '',
     }));
   };
 
