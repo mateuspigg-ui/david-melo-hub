@@ -24,6 +24,16 @@ interface Client {
   created_at: string;
 }
 
+interface ClosedLead {
+  id: string;
+  title: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  client_id: string | null;
+  event_date: string | null;
+}
+
 const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '' };
 
 const ClientesPage = () => {
@@ -31,6 +41,7 @@ const ClientesPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [selectedClosedLeadId, setSelectedClosedLeadId] = useState('');
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -41,6 +52,20 @@ const ClientesPage = () => {
       const { data, error } = await supabase.from('clients').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data as Client[];
+    },
+  });
+
+  const { data: closedLeads = [] } = useQuery({
+    queryKey: ['closed_leads_without_client'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, title, first_name, last_name, phone, client_id, event_date')
+        .eq('stage', 'fechados')
+        .is('client_id', null)
+        .order('event_date', { ascending: false });
+      if (error) throw error;
+      return (data || []) as ClosedLead[];
     },
   });
 
@@ -57,12 +82,22 @@ const ClientesPage = () => {
         const { error } = await supabase.from('clients').update(payload).eq('id', editingClient.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('clients').insert(payload);
+        const { data, error } = await supabase.from('clients').insert(payload).select('id').single();
         if (error) throw error;
+
+        if (selectedClosedLeadId && data?.id) {
+          const { error: linkError } = await supabase
+            .from('leads')
+            .update({ client_id: data.id })
+            .eq('id', selectedClosedLeadId);
+          if (linkError) throw linkError;
+        }
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
+      qc.invalidateQueries({ queryKey: ['closed_leads_without_client'] });
       toast({ title: editingClient ? 'Cliente atualizado!' : 'Cliente criado!' });
       closeDialog();
     },
@@ -110,6 +145,7 @@ const ClientesPage = () => {
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingClient(null);
+    setSelectedClosedLeadId('');
     setForm(emptyForm);
   };
 
@@ -123,6 +159,19 @@ const ClientesPage = () => {
       instagram: c.instagram || '',
     });
     setDialogOpen(true);
+  };
+
+  const handleSelectClosedLead = (leadId: string) => {
+    setSelectedClosedLeadId(leadId);
+    const selected = closedLeads.find((lead) => lead.id === leadId);
+    if (!selected) return;
+
+    setForm((prev) => ({
+      ...prev,
+      first_name: selected.first_name || prev.first_name,
+      last_name: selected.last_name || prev.last_name,
+      phone: selected.phone || prev.phone,
+    }));
   };
 
   const filtered = clients.filter((c) => {
@@ -280,6 +329,23 @@ const ClientesPage = () => {
                     placeholder="Ex: David"
                   />
                 </div>
+                {!editingClient && (
+                  <div className="sm:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Importar de Lead Fechado (Opcional)</Label>
+                    <select
+                      value={selectedClosedLeadId}
+                      onChange={(e) => handleSelectClosedLead(e.target.value)}
+                      className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-3 text-sm font-bold shadow-sm focus:border-gold outline-none"
+                    >
+                      <option value="">Selecionar lead fechado</option>
+                      {closedLeads.map((lead) => (
+                        <option key={lead.id} value={lead.id}>
+                          {lead.title} {lead.event_date ? `• ${new Date(lead.event_date).toLocaleDateString('pt-BR')}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Sobrenome</Label>
                   <Input

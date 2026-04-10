@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus } from 'lucide-react';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -139,6 +139,46 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       toast({ title: 'Lead excluído' });
     },
     onError: () => toast({ title: 'Erro ao excluir', variant: 'destructive' }),
+  });
+
+  const createClientFromLeadMutation = useMutation({
+    mutationFn: async () => {
+      if (!lead) return;
+
+      const firstName = (lead.first_name || '').trim();
+      const lastName = (lead.last_name || '').trim();
+
+      if (!firstName) {
+        throw new Error('Este lead não possui nome para cadastro de cliente.');
+      }
+
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .insert({
+          first_name: firstName,
+          last_name: lastName || '',
+          phone: lead.phone || null,
+        })
+        .select('id')
+        .single();
+
+      if (clientError) throw clientError;
+
+      const { error: linkError } = await supabase
+        .from('leads')
+        .update({ client_id: clientData.id })
+        .eq('id', lead.id);
+
+      if (linkError) throw linkError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast({ title: 'Cliente criado a partir do lead fechado!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao cadastrar cliente', description: error?.message || 'Não foi possível concluir a operação.', variant: 'destructive' });
+    },
   });
 
   if (!lead) return null;
@@ -436,6 +476,18 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          {lead.stage === 'fechados' && !lead.client_id && (
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => createClientFromLeadMutation.mutate()}
+              disabled={createClientFromLeadMutation.isPending}
+              className="h-12 px-7 border-emerald-300 text-emerald-700 hover:bg-emerald-600 hover:text-white font-black uppercase text-[10px] tracking-widest rounded-xl"
+            >
+              {createClientFromLeadMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserPlus className="w-4 h-4 mr-2" />}
+              Cadastrar Cliente
+            </Button>
+          )}
           <Button size="lg" onClick={() => onEdit(lead)} className="bg-gradient-gold hover:opacity-90 text-white font-black px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] h-12 transition-all">
             <Edit className="w-4 h-4 mr-2" /> Editar Dados
           </Button>
