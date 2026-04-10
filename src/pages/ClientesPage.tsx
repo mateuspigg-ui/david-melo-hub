@@ -329,7 +329,8 @@ const ClientesPage = () => {
                       <option value="">Selecionar lead fechado</option>
                       {closedLeads.map((lead) => (
                         <option key={lead.id} value={lead.id}>
-                          {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || `Sem nome (${lead.title})`}
+                          {`${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Sem nome'}
+                          {lead.title ? ` (${lead.title})` : ''}
                           {lead.phone ? ` • ${lead.phone}` : ''}
                           {lead.client_id ? ' • já vinculado' : ''}
                         </option>
