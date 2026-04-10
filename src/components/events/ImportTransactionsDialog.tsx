@@ -12,7 +12,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   bankAccountId: string;
   mode?: 'bank' | 'accounting';
-  onImported: () => void;
+  onImported: (info: { mode: 'bank' | 'accounting'; fileName: string; kind: 'pdf' | 'csv'; count: number }) => void;
 }
 
 export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mode = 'bank', onImported }: Props) => {
@@ -42,7 +42,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
     new Promise<any[]>((resolve, reject) => {
       Papa.parse(selectedFile, {
         header: true,
-        skipEmptyLines: true,
+        skipEmptyLines: 'greedy',
         complete: (results) => resolve(results.data as any[]),
         error: (error) => reject(error),
       });
@@ -89,8 +89,21 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
   };
 
   const autoDetectColumns = (data: any[]) => {
-    const firstRow = data[0];
+    const firstRow = data[0] || {};
     const headerKeys = Object.keys(firstRow);
+    const sampleRows = data.slice(0, 5);
+
+    const normalizeKey = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9_]/g, '');
+
+    const hasHeaderHint = (key: string, hints: string[]) => {
+      const normalized = normalizeKey(key);
+      return hints.some((hint) => normalized.includes(hint));
+    };
     
     let detectedDate = '';
     let detectedAmount = '';
@@ -100,8 +113,12 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
     const datePattern = /(\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4})/;
     const amountPattern = /(-?\d+[,.]\d+)|(-?\d+)/;
 
+    detectedDate = headerKeys.find((key) => hasHeaderHint(key, ['data', 'date', 'dt', 'lancamento', 'transactiondate', 'entrydate'])) || '';
+    detectedAmount = headerKeys.find((key) => hasHeaderHint(key, ['valor', 'amount', 'debito', 'credito', 'saldo'])) || '';
+    detectedDesc = headerKeys.find((key) => hasHeaderHint(key, ['descricao', 'historico', 'memo', 'detalhe', 'description'])) || '';
+
     headerKeys.forEach(key => {
-      const val = String(firstRow[key]);
+      const val = String(firstRow[key] ?? '');
       
       if (!detectedDate && datePattern.test(val)) {
         detectedDate = key;
@@ -114,9 +131,11 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
 
     // Fallbacks if not detected by keywords
     if (!detectedAmount) {
-        headerKeys.forEach(key => {
-            if (key !== detectedDate && amountPattern.test(String(firstRow[key]))) detectedAmount = key;
-        });
+      headerKeys.forEach((key) => {
+        if (detectedAmount) return;
+        const hasAmountLike = sampleRows.some((row) => amountPattern.test(String(row[key] ?? '')));
+        if (key !== detectedDate && hasAmountLike) detectedAmount = key;
+      });
     }
 
     setColumns({
@@ -186,6 +205,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
             description: 'Arquivo registrado para conferência manual. Para importação automática, use CSV.',
           });
         }
+        onImported({ mode, fileName: file.name, kind: 'pdf', count: 0 });
         onOpenChange(false);
         setFile(null);
         setParsedRows([]);
@@ -228,7 +248,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
           ? `${records.length} lançamentos contábeis importados!`
           : `${records.length} transações bancárias importadas!`,
       });
-      onImported();
+      onImported({ mode, fileName: file.name, kind: 'csv', count: records.length });
       onOpenChange(false);
       setFile(null);
       setParsedRows([]);
@@ -252,10 +272,26 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
     return dateStr;
   };
 
-  const parseAmount = (amountStr: string) => {
+  const parseAmount = (amountVal: any) => {
+    const amountStr = String(amountVal || '').trim();
     if (!amountStr) return 0;
-    const clean = amountStr.replace(/[^\d.,-]/g, '').replace(',', '.');
-    return parseFloat(clean);
+
+    const clean = amountStr.replace(/[^\d.,-]/g, '');
+    if (!clean) return 0;
+
+    const hasComma = clean.includes(',');
+    const hasDot = clean.includes('.');
+
+    let normalized = clean;
+    if (hasComma && hasDot) {
+      normalized = clean.lastIndexOf(',') > clean.lastIndexOf('.')
+        ? clean.replace(/\./g, '').replace(',', '.')
+        : clean.replace(/,/g, '');
+    } else if (hasComma) {
+      normalized = clean.replace(/\./g, '').replace(',', '.');
+    }
+
+    return parseFloat(normalized);
   };
 
   return (

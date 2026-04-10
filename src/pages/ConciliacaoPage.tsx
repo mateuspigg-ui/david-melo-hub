@@ -41,12 +41,21 @@ const DEMO_ACCOUNTING_ENTRIES = [
   { id: 'demo-acc-3', description: 'Receita Entrada Evento B', entry_date: '2026-04-08', amount: 4200, status: 'pendente' },
 ];
 
+type ImportedArtifact = {
+  mode: 'bank' | 'accounting';
+  kind: 'pdf' | 'csv';
+  fileName: string;
+  count: number;
+  importedAt: string;
+};
+
 const ConciliacaoPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [period, setPeriod] = useState({ start: '', end: '' });
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importMode, setImportMode] = useState<'bank' | 'accounting'>('bank');
+  const [importedArtifacts, setImportedArtifacts] = useState<ImportedArtifact[]>([]);
   const isDemoAccount = selectedAccount === DEMO_ACCOUNT.id;
   
   // Data for reconciliation
@@ -225,8 +234,8 @@ const ConciliacaoPage = () => {
 
           {currentStep === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-display text-foreground">Cruzamento de Dados</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-display text-foreground">Cruzamento de Dados</h2>
                 <div className="flex gap-2">
                   {isDemoAccount && (
                     <Badge variant="outline" className="text-[10px] border-gold text-gold bg-gold/5 px-3">
@@ -260,6 +269,27 @@ const ConciliacaoPage = () => {
                   </Button>
                 </div>
               </div>
+
+              {importedArtifacts.length > 0 && (
+                <div className="rounded-xl border border-border/30 bg-secondary/15 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-gold mb-3">Arquivos carregados</p>
+                  <div className="flex flex-col gap-2">
+                    {importedArtifacts.map((item) => (
+                      <div key={`${item.mode}-${item.importedAt}`} className="flex items-center justify-between rounded-lg border border-border/20 bg-white px-3 py-2">
+                        <div>
+                          <p className="text-xs font-bold text-foreground">{item.fileName}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                            {item.mode === 'bank' ? 'Extrato bancário' : 'Razão contábil'} • {item.kind.toUpperCase()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px] border-gold/30 text-gold bg-gold/5">
+                          {item.kind === 'csv' ? `${item.count} registros` : 'Arquivo enviado'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="bg-white border-border/40 premium-shadow">
@@ -422,7 +452,17 @@ const ConciliacaoPage = () => {
         onOpenChange={setImportDialogOpen} 
         bankAccountId={selectedAccount}
         mode={importMode}
-        onImported={() => {
+        onImported={(info) => {
+          setImportedArtifacts((prev) => {
+            const next = prev.filter((item) => item.mode !== info.mode);
+            return [
+              {
+                ...info,
+                importedAt: new Date().toISOString(),
+              },
+              ...next,
+            ];
+          });
           refetchBank();
           refetchAcc();
         }}
