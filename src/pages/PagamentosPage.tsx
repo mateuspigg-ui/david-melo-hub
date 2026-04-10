@@ -414,7 +414,12 @@ export default function PagamentosPage() {
                     <div className="text-right">
                       <p className="font-display text-foreground text-xl tracking-tighter">{currencyFmt(p.total_event_value)}</p>
                       {p.has_entry_payment && p.entry_amount && (
-                        <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-0.5">Entrada: {currencyFmt(p.entry_amount)}</p>
+                        <div className="mt-0.5 space-y-0.5">
+                          <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Entrada: {currencyFmt(p.entry_amount)}</p>
+                          <p className="text-[9px] font-bold text-emerald-700/80 uppercase tracking-widest">
+                            Data: {p.entry_date ? format(new Date(p.entry_date + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : 'Não informada'}
+                          </p>
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
