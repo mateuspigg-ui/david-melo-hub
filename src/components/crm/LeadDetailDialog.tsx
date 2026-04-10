@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Plus, Trash2, CheckCircle2, Phone, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2 } from 'lucide-react';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -63,11 +63,19 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
       queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
       queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
       queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
       setNewTask('');
       setNewTaskDueDate('');
       setNewTaskAssignee(lead?.assigned_to || '');
       onClose();
       toast({ title: 'Tarefa confirmada!' });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao confirmar tarefa',
+        description: error?.message || 'Não foi possível salvar a tarefa.',
+        variant: 'destructive',
+      });
     },
   });
 
@@ -121,6 +129,24 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
 
   const overdueTasks = tasks.filter(t => getTaskDueStatus(t) === 'overdue');
   const todayTasks = tasks.filter(t => getTaskDueStatus(t) === 'today');
+
+  const handleTaskSubmit = () => {
+    const taskTitle = newTask.trim();
+    if (!taskTitle) {
+      toast({
+        title: 'Informe a tarefa',
+        description: 'Digite uma descrição antes de confirmar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    addTaskMutation.mutate({
+      title: taskTitle,
+      due_date: newTaskDueDate || null,
+      assigned_to: newTaskAssignee || null,
+    });
+  };
 
   return (
     <Dialog open={!!lead} onOpenChange={() => onClose()}>
@@ -292,13 +318,7 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
             <form
               onSubmit={e => {
                 e.preventDefault();
-                if (newTask.trim()) {
-                  addTaskMutation.mutate({
-                    title: newTask.trim(),
-                    due_date: newTaskDueDate || null,
-                    assigned_to: newTaskAssignee || null,
-                  });
-                }
+                handleTaskSubmit();
               }}
               className="space-y-3 pt-2"
             >
@@ -335,9 +355,10 @@ export default function LeadDetailDialog({ lead, onClose, onEdit, teamMembers, s
                 </div>
                 <Button
                   type="submit"
+                  disabled={addTaskMutation.isPending}
                   className="h-10 shrink-0 bg-gradient-gold text-white hover:opacity-90 rounded-xl shadow-gold self-end font-black uppercase text-[10px] tracking-widest px-4"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-1.5" /> OK
+                  {addTaskMutation.isPending ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />} OK
                 </Button>
               </div>
             </form>
