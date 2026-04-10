@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, pointerWithin, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, MouseSensor, pointerWithin, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -120,7 +120,8 @@ export default function CRMPage() {
   const [completingLeadId, setCompletingLeadId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor)
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   );
 
   const collisionDetectionStrategy = (args: any) => {
