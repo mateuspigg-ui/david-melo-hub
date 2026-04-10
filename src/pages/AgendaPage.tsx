@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, isSameDay, isSameWeek, startOfWeek, addDays, isSameMonth, isSameYear, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarClock, Loader2, Plus, Pencil, CalendarDays } from 'lucide-react';
+import { CalendarClock, Loader2, Plus, Pencil, CalendarDays, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -139,6 +139,44 @@ const AgendaPage = () => {
     },
     onError: (err: any) => {
       toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingEvent?.id) throw new Error('Evento não encontrado para exclusão.');
+
+      const eventId = editingEvent.id as string;
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+
+      if (error && /foreign key|constraint|violates/i.test(error.message || '')) {
+        const [contractsResult, paymentsResult] = await Promise.all([
+          supabase.from('contracts').update({ event_id: null }).eq('event_id', eventId),
+          supabase.from('payments').update({ event_id: null }).eq('event_id', eventId),
+        ]);
+
+        if (contractsResult.error) throw contractsResult.error;
+        if (paymentsResult.error) throw paymentsResult.error;
+
+        const retry = await supabase.from('events').delete().eq('id', eventId);
+        if (retry.error) throw retry.error;
+      } else if (error) {
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: 'Evento excluído com sucesso!' });
+      queryClient.invalidateQueries({ queryKey: ['agenda-events'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard_metrics'] });
+      setDialogOpen(false);
+      setEditingEvent(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -363,7 +401,7 @@ const AgendaPage = () => {
         )}
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => !saveMutation.isPending && setDialogOpen(open)}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => !saveMutation.isPending && !deleteMutation.isPending && setDialogOpen(open)}>
         <DialogContent className="max-w-2xl bg-white border-border/40 text-foreground rounded-2xl p-0 overflow-hidden">
           <div className="p-6 bg-gradient-gold text-white">
             <DialogHeader>
@@ -427,8 +465,19 @@ const AgendaPage = () => {
           </div>
 
           <DialogFooter className="p-4 border-t border-border/20">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} className="bg-gradient-gold text-white" disabled={saveMutation.isPending}>
+            {editingEvent && (
+              <Button
+                variant="outline"
+                className="mr-auto border-destructive/30 text-destructive hover:bg-destructive hover:text-white"
+                onClick={() => deleteMutation.mutate()}
+                disabled={saveMutation.isPending || deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                Excluir Evento
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending || deleteMutation.isPending}>Cancelar</Button>
+            <Button onClick={() => saveMutation.mutate()} className="bg-gradient-gold text-white" disabled={saveMutation.isPending || deleteMutation.isPending}>
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CalendarDays className="w-4 h-4 mr-2" />}
               {editingEvent ? 'Atualizar Evento' : 'Salvar Evento'}
             </Button>
