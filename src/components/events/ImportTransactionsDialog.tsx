@@ -296,7 +296,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-background border-border/40 max-w-2xl text-foreground font-body rounded-2xl p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="bg-background border-border/40 max-w-2xl max-h-[90vh] text-foreground font-body rounded-2xl p-0 overflow-hidden shadow-2xl flex flex-col">
         <div className="bg-gradient-gold p-6 text-white">
           <DialogHeader>
             <DialogTitle className="text-2xl font-display text-white flex items-center gap-2">
@@ -306,7 +306,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
           </DialogHeader>
         </div>
 
-        <div className="p-8 space-y-6">
+        <div className="p-8 space-y-6 overflow-y-auto min-h-0">
           {!file ? (
             <div className="border-3 border-dashed border-border/60 rounded-2xl p-16 text-center hover:border-gold/50 transition-all cursor-pointer relative bg-secondary/10 group">
               <input 
@@ -403,7 +403,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
           )}
         </div>
 
-        <div className="p-6 bg-secondary/10 border-t border-border/20 flex justify-end gap-3">
+        <div className="p-6 bg-secondary/10 border-t border-border/20 flex justify-end gap-3 flex-none sticky bottom-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground font-bold uppercase text-[11px] tracking-widest">Cancelar</Button>
           <Button 
             onClick={handleImport} 
