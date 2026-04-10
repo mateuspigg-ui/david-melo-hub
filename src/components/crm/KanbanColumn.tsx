@@ -36,7 +36,7 @@ export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTask
           </span>
         </div>
       </div>
-      <div className="p-2.5 space-y-2.5 min-h-[140px] max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar">
+      <div className={`p-2.5 space-y-2.5 min-h-[170px] max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar transition-colors ${isOver ? 'bg-gold/5' : ''}`}>
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <LeadCard
@@ -56,6 +56,7 @@ export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTask
             <p className="text-[10px] font-bold uppercase tracking-wide text-foreground">Sem cards</p>
           </div>
         )}
+        {isOver && <div className="h-8 rounded-md border-2 border-dashed border-gold/50 bg-gold/10" />}
       </div>
     </div>
   );
