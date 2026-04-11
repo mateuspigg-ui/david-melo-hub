@@ -29,6 +29,9 @@ interface ClosedLead {
   title: string;
   client_id: string | null;
   event_date: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
   clients: { first_name: string; last_name: string; phone: string | null } | null;
 }
 
@@ -58,7 +61,7 @@ const ClientesPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('id, title, client_id, event_date, clients(first_name, last_name, phone)')
+        .select('id, title, client_id, event_date, first_name, last_name, phone, clients(first_name, last_name, phone)')
         .eq('stage', 'fechados')
         .order('event_date', { ascending: false });
       if (error) throw error;
@@ -163,11 +166,15 @@ const ClientesPage = () => {
     const selected = closedLeads.find((lead) => lead.id === leadId);
     if (!selected) return;
 
+    const firstName = selected.clients?.first_name || selected.first_name || '';
+    const lastName = selected.clients?.last_name || selected.last_name || '';
+    const phone = selected.clients?.phone || selected.phone || '';
+
     setForm((prev) => ({
       ...prev,
-      first_name: selected.clients?.first_name || '',
-      last_name: selected.clients?.last_name || '',
-      phone: selected.clients?.phone || '',
+      first_name: firstName,
+      last_name: lastName,
+      phone,
     }));
   };
 
@@ -228,7 +235,7 @@ const ClientesPage = () => {
             {search ? 'Tente outros termos de busca.' : 'Comece cadastrando seu primeiro cliente.'}
           </p>
           {!search && (
-            <Button variant="outline" onClick={() => setDialogOpen(true)} className="border-gold text-gold hover:bg-gold/5 font-bold uppercase text-[10px] tracking-widest">
+            <Button variant="outline" onClick={() => { setForm(emptyForm); setEditingClient(null); setSelectedClosedLeadId(''); setDialogOpen(true); }} className="border-gold text-gold hover:bg-gold/5 font-bold uppercase text-[10px] tracking-widest">
               Cadastrar Agora
             </Button>
           )}
@@ -327,9 +334,9 @@ const ClientesPage = () => {
                       <option value="">Selecionar lead fechado</option>
                       {closedLeads.map((lead) => (
                         <option key={lead.id} value={lead.id}>
-                          {`${lead.clients?.first_name || ''} ${lead.clients?.last_name || ''}`.trim() || 'Sem nome'}
+                          {`${lead.clients?.first_name || lead.first_name || ''} ${lead.clients?.last_name || lead.last_name || ''}`.trim() || 'Sem nome'}
                           {lead.title ? ` (${lead.title})` : ''}
-                          {lead.clients?.phone ? ` • ${lead.clients.phone}` : ''}
+                          {(lead.clients?.phone || lead.phone) ? ` • ${lead.clients?.phone || lead.phone}` : ''}
                           {lead.client_id ? ' • já vinculado' : ''}
                         </option>
                       ))}
