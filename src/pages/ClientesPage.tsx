@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Phone, Mail, Instagram, Pencil, Trash2, User } from 'lucide-react';
+import { Plus, Search, Phone, Mail, Instagram, Pencil, Trash2, User, LayoutGrid, List } from 'lucide-react';
 
 interface Client {
   id: string;
@@ -48,6 +48,7 @@ const ClientesPage = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClosedLeadId, setSelectedClosedLeadId] = useState('');
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -206,15 +207,21 @@ const ClientesPage = () => {
     }));
   };
 
-  const filtered = clients.filter((c) => {
+  const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return (
-      c.first_name.toLowerCase().includes(q) ||
-      c.last_name.toLowerCase().includes(q) ||
-      (c.email?.toLowerCase().includes(q) ?? false) ||
-      (c.phone?.includes(q) ?? false)
-    );
-  });
+    return clients
+      .filter((c) => (
+        c.first_name.toLowerCase().includes(q) ||
+        c.last_name.toLowerCase().includes(q) ||
+        (c.email?.toLowerCase().includes(q) ?? false) ||
+        (c.phone?.includes(q) ?? false)
+      ))
+      .sort((a, b) => {
+        const nameA = `${a.first_name} ${a.last_name || ''}`.trim();
+        const nameB = `${b.first_name} ${b.last_name || ''}`.trim();
+        return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
+      });
+  }, [clients, search]);
 
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
@@ -244,6 +251,25 @@ const ClientesPage = () => {
         />
       </div>
 
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant={viewMode === 'cards' ? 'default' : 'outline'}
+          onClick={() => setViewMode('cards')}
+          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+        >
+          <LayoutGrid size={14} className="mr-2" /> Cards
+        </Button>
+        <Button
+          type="button"
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          onClick={() => setViewMode('list')}
+          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+        >
+          <List size={14} className="mr-2" /> Lista
+        </Button>
+      </div>
+
       {/* Cards Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -268,7 +294,7 @@ const ClientesPage = () => {
             </Button>
           )}
         </div>
-      ) : (
+      ) : viewMode === 'cards' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((c) => {
             const entryDate = firstLeadEntryByClient[c.id] || c.created_at;
@@ -331,6 +357,51 @@ const ClientesPage = () => {
             </div>
             );
           })}
+        </div>
+      ) : (
+        <div className="bg-card premium-shadow rounded-2xl border border-border/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-secondary/10 border-b border-border/20">
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Cliente</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Contato</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Entrada</th>
+                  <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {filtered.map((c) => {
+                  const entryDate = firstLeadEntryByClient[c.id] || c.created_at;
+                  return (
+                    <tr key={c.id} className="hover:bg-secondary/5 transition-colors">
+                      <td className="py-4 px-6">
+                        <p className="font-bold text-foreground">{c.first_name} {c.last_name}</p>
+                        {c.instagram && <p className="text-xs text-muted-foreground">{c.instagram}</p>}
+                      </td>
+                      <td className="py-4 px-6">
+                        <p className="text-sm">{c.phone || 'Sem telefone'}</p>
+                        <p className="text-xs text-muted-foreground">{c.email || 'Sem e-mail'}</p>
+                      </td>
+                      <td className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {new Date(entryDate).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => openEdit(c)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all">
+                            <Pencil size={16} />
+                          </button>
+                          <button onClick={() => setDeleteId(c.id)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
