@@ -8,28 +8,18 @@ import { Eye, EyeOff, Loader2, BarChart3, ShieldCheck, CheckCircle2 } from 'luci
 import logo from '@/assets/logo.png';
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isLogin) {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password, fullName);
-        toast({
-          title: 'Conta criada!',
-          description: 'Verifique seu email para confirmar o cadastro.',
-        });
-      }
+      await signIn(email, password);
     } catch (error: any) {
       toast({
         title: 'Erro',
@@ -83,30 +73,16 @@ const Auth = () => {
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold">David Melo Hub</p>
                 <h2 className="mt-2 text-3xl font-display tracking-tight text-foreground">
-                  {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
+                  Bem-vindo de volta
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {isLogin ? 'Acesse seu CRM com segurança.' : 'Ative seu acesso para começar a operar.'}
+                  Acesse seu CRM com segurança.
                 </p>
               </div>
             </div>
 
             <div className="rounded-3xl border border-border/40 bg-white p-6 md:p-8 shadow-[0_20px_50px_-25px_rgba(15,23,42,0.25)]">
               <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
-              <div className="space-y-3">
-                <Label htmlFor="fullName" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nome Completo do Gestor</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                  placeholder="Ex: João da Silva"
-                  required
-                />
-              </div>
-            )}
-
             <div className="space-y-3">
               <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">E-mail Corporativo</Label>
               <Input
@@ -153,7 +129,7 @@ const Auth = () => {
                   {loading ? (
                     <Loader2 className="animate-spin mr-3" size={18} />
                   ) : null}
-                  {isLogin ? 'Entrar no CRM' : 'Criar Perfil'}
+                  Entrar no CRM
                 </Button>
               </form>
 
@@ -165,12 +141,9 @@ const Auth = () => {
               </div>
 
               <div className="mt-7 text-center">
-                <button
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-[10px] font-black uppercase tracking-widest text-gold/70 hover:text-gold transition-all"
-                >
-                  {isLogin ? 'Solicitar Acesso ao Sistema' : 'Já possui credenciais? Login'}
-                </button>
+                <p className="text-[10px] font-black uppercase tracking-widest text-gold/70">
+                  Acesso somente por convite do administrador
+                </p>
               </div>
             </div>
 
