@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Loader2, CalendarHeart } from 'lucide-react';
+import { Plus, Loader2, CalendarHeart, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EventCard } from '@/components/events/EventCard';
@@ -13,6 +13,7 @@ const EventosPage = () => {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
   const { data: events, isLoading, refetch } = useQuery({
     queryKey: ['events'],
@@ -31,15 +32,19 @@ const EventosPage = () => {
     }
   });
 
-  const filteredEvents = events?.filter((evt) => {
-    const isInternal = INTERNAL_ACTIVITY_TYPES.includes(evt.event_type || '');
-    if (isInternal) return false;
+  const filteredEvents = useMemo(() => {
+    return (events || [])
+      .filter((evt: any) => {
+        const isInternal = INTERNAL_ACTIVITY_TYPES.includes(evt.event_type || '');
+        if (isInternal) return false;
 
-    return (
-      evt.title?.toLowerCase().includes(search.toLowerCase()) ||
-      evt.event_type?.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+        return (
+          evt.title?.toLowerCase().includes(search.toLowerCase()) ||
+          evt.event_type?.toLowerCase().includes(search.toLowerCase())
+        );
+      })
+      .sort((a: any, b: any) => String(a.title || '').localeCompare(String(b.title || ''), 'pt-BR', { sensitivity: 'base' }));
+  }, [events, search]);
 
   return (
     <div className="p-6 space-y-8 max-w-[1600px] mx-auto animate-fade-in">
@@ -68,6 +73,24 @@ const EventosPage = () => {
           onChange={(e) => setSearch(e.target.value)}
           className="md:max-w-md bg-secondary/30 border-border/40 focus:border-gold h-11"
         />
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={viewMode === 'cards' ? 'default' : 'outline'}
+            onClick={() => setViewMode('cards')}
+            className={`h-11 px-4 rounded-lg font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+          >
+            <LayoutGrid size={14} className="mr-2" /> Cards
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            onClick={() => setViewMode('list')}
+            className={`h-11 px-4 rounded-lg font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+          >
+            <List size={14} className="mr-2" /> Lista
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -87,15 +110,44 @@ const EventosPage = () => {
             Cadastrar Primeiro Evento
           </Button>
         </div>
-      ) : (
+      ) : viewMode === 'cards' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredEvents?.map(evt => (
+          {filteredEvents?.map((evt: any) => (
             <EventCard 
               key={evt.id} 
               event={evt} 
               onClick={(e) => { setEditingEvent(e as any); setDialogOpen(true); }} 
             />
           ))}
+        </div>
+      ) : (
+        <div className="bg-white premium-shadow rounded-2xl border border-border/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-secondary/10 border-b border-border/20">
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Evento</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Tipo</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Cliente</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Data</th>
+                  <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {filteredEvents?.map((evt: any) => (
+                  <tr key={evt.id} className="hover:bg-secondary/5 transition-colors">
+                    <td className="py-4 px-6 font-bold">{evt.title}</td>
+                    <td className="py-4 px-6 text-sm">{evt.event_type || '---'}</td>
+                    <td className="py-4 px-6 text-sm">{evt.clients ? `${evt.clients.first_name} ${evt.clients.last_name}` : '---'}</td>
+                    <td className="py-4 px-6 text-xs uppercase text-muted-foreground">{evt.event_date ? new Date(evt.event_date).toLocaleDateString('pt-BR') : '---'}</td>
+                    <td className="py-4 px-6 text-right">
+                      <Button variant="ghost" size="sm" onClick={() => { setEditingEvent(evt as any); setDialogOpen(true); }} className="text-[10px] font-black uppercase tracking-widest text-gold">Editar</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
