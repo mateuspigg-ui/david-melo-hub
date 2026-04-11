@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getLeadAlertEventName, getLeadAlertStorageKey, type LeadAlertPayload } from '@/lib/leadAlerts';
 
 const playLeadAlert = (mode: 'new' | 'closed') => {
   if (typeof window === 'undefined') return;
@@ -74,6 +75,16 @@ export default function LeadAlertsListener() {
   }, []);
 
   useEffect(() => {
+    const lastAlertByKey = new Map<string, number>();
+
+    const shouldIgnoreDuplicate = (mode: 'new' | 'closed', leadId?: string) => {
+      const key = `${mode}:${leadId || 'no-id'}`;
+      const now = Date.now();
+      const last = lastAlertByKey.get(key) || 0;
+      lastAlertByKey.set(key, now);
+      return now - last < 5000;
+    };
+
     const emitLeadAlert = async (mode: 'new' | 'closed') => {
       const title = mode === 'new' ? 'Novo lead criado! 🔔' : 'Novo cliente fechado! 🎉';
       const body = mode === 'new'
@@ -81,6 +92,7 @@ export default function LeadAlertsListener() {
         : 'Um lead foi movido para Fechados.';
 
       if (typeof document !== 'undefined' && document.hidden) {
+        playLeadAlert(mode);
         await showSystemNotification(title, body);
         return;
       }
@@ -94,24 +106,51 @@ export default function LeadAlertsListener() {
       });
     };
 
+    const processPayload = (payload?: Partial<LeadAlertPayload>) => {
+      const mode = payload?.mode;
+      const leadId = payload?.leadId;
+      if (mode !== 'new' && mode !== 'closed') return;
+      if (shouldIgnoreDuplicate(mode, leadId)) return;
+      void emitLeadAlert(mode);
+    };
+
+    const onWindowAlert = (event: Event) => {
+      const customEvent = event as CustomEvent<LeadAlertPayload>;
+      processPayload(customEvent.detail);
+    };
+
+    const onStorageAlert = (event: StorageEvent) => {
+      if (event.key !== getLeadAlertStorageKey() || !event.newValue) return;
+      try {
+        processPayload(JSON.parse(event.newValue) as LeadAlertPayload);
+      } catch {
+        return;
+      }
+    };
+
+    window.addEventListener(getLeadAlertEventName(), onWindowAlert as EventListener);
+    window.addEventListener('storage', onStorageAlert);
+
     const channel = supabase
       .channel('lead-alerts-global')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
         const created = payload.new as { stage?: string };
         if (created.stage === 'novo_contato') {
-          void emitLeadAlert('new');
+          processPayload({ mode: 'new', leadId: (payload.new as { id?: string }).id });
         }
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads' }, (payload) => {
-        const current = payload.new as { stage?: string };
+        const current = payload.new as { id?: string; stage?: string };
         const previous = (payload.old || {}) as { stage?: string };
         if (current.stage === 'fechados' && previous.stage !== 'fechados') {
-          void emitLeadAlert('closed');
+          processPayload({ mode: 'closed', leadId: current.id });
         }
       })
       .subscribe();
 
     return () => {
+      window.removeEventListener(getLeadAlertEventName(), onWindowAlert as EventListener);
+      window.removeEventListener('storage', onStorageAlert);
       void supabase.removeChannel(channel);
     };
   }, [toast]);

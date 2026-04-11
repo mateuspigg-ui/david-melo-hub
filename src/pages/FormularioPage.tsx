@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle2, ClipboardList, Copy, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
+import { publishLeadAlert } from '@/lib/leadAlerts';
 
 const EVENT_TYPES = [
   { value: 'casamento', label: 'Casamento' },
@@ -111,12 +112,14 @@ export default function FormularioPage({ publicView = false }: Props) {
         stage: 'novo_contato',
       };
 
-      const { error } = await (supabase as any).from('leads').insert(payload);
+      const { data, error } = await (supabase as any).from('leads').insert(payload).select('id').single();
       if (error) throw error;
+      return data?.id as string | undefined;
     },
-    onSuccess: () => {
+    onSuccess: (createdLeadId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setForm(initialState);
+      publishLeadAlert('new', createdLeadId);
       if (publicView) setSubmissionCompleted(true);
       toast({
         title: 'Formulário enviado',

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Lead } from '@/pages/CRMPage';
+import { publishLeadAlert } from '@/lib/leadAlerts';
 
 interface Props {
   open: boolean;
@@ -116,11 +117,13 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
       onOpenChange(false);
 
       if (movedToClosedStage) {
+        publishLeadAlert('closed', savedLeadId);
         onLeadClosedCelebration?.(savedLeadId);
         return;
       }
 
       if (createdInNovoStage) {
+        publishLeadAlert('new', savedLeadId);
         onNewLeadCreatedAlert?.(savedLeadId);
         return;
       }

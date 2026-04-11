@@ -11,6 +11,7 @@ import KanbanColumn from '@/components/crm/KanbanColumn';
 import LeadCard from '@/components/crm/LeadCard';
 import LeadFormDialog from '@/components/crm/LeadFormDialog';
 import LeadDetailDialog from '@/components/crm/LeadDetailDialog';
+import { publishLeadAlert } from '@/lib/leadAlerts';
 
 const STAGES = [
   { id: 'novo_contato', label: 'Novo Contato', color: 'hsl(var(--gold))' },
@@ -168,6 +169,11 @@ export default function CRMPage() {
       }));
 
       return { previousLeads };
+    },
+    onSuccess: (data) => {
+      if (data.stage === 'fechados' && data.previousStage !== 'fechados') {
+        publishLeadAlert('closed', data.id);
+      }
     },
     onError: (_error, _variables, context) => {
       if (context?.previousLeads) {
