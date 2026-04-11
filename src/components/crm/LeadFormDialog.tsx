@@ -16,6 +16,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   lead: Lead | null;
   onLeadClosedCelebration?: (leadId?: string) => void;
+  onNewLeadCreatedAlert?: (leadId?: string) => void;
   clients: { id: string; first_name: string; last_name: string }[];
   teamMembers: { id: string; full_name: string }[];
   stages: { id: string; label: string }[];
@@ -40,7 +41,7 @@ interface FormData {
   assigned_to: string;
 }
 
-export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedCelebration, clients, teamMembers, stages, eventTypes }: Props) {
+export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedCelebration, onNewLeadCreatedAlert, clients, teamMembers, stages, eventTypes }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormData>();
@@ -107,12 +108,18 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
     },
     onSuccess: (savedLeadId, variables) => {
       const movedToClosedStage = variables.stage === 'fechados' && (!lead || lead.stage !== 'fechados');
+      const createdInNovoStage = !lead && variables.stage === 'novo_contato';
 
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       onOpenChange(false);
 
       if (movedToClosedStage) {
         onLeadClosedCelebration?.(savedLeadId);
+        return;
+      }
+
+      if (createdInNovoStage) {
+        onNewLeadCreatedAlert?.(savedLeadId);
         return;
       }
 

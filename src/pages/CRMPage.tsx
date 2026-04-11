@@ -86,6 +86,62 @@ const showLeadClosedSystemNotification = async () => {
   }
 };
 
+const playNewLeadCreatedAlert = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(980, audioContext.currentTime + 0.28);
+    oscillator.frequency.setValueAtTime(760, audioContext.currentTime + 0.5);
+    oscillator.frequency.exponentialRampToValueAtTime(1080, audioContext.currentTime + 0.92);
+
+    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.03);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.36);
+    gainNode.gain.exponentialRampToValueAtTime(0.24, audioContext.currentTime + 0.54);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.98);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 1.02);
+    oscillator.onended = () => {
+      void audioContext.close();
+    };
+  } catch {
+    return;
+  }
+};
+
+const showNewLeadSystemNotification = async () => {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+
+  try {
+    if (Notification.permission === 'granted') {
+      new Notification('Novo lead criado! 🔔');
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        new Notification('Novo lead criado! 🔔');
+      }
+    }
+  } catch {
+    return;
+  }
+};
+
 export type Lead = {
   id: string;
   title: string;
@@ -222,6 +278,23 @@ export default function CRMPage() {
         const cachedLeads = queryClient.getQueryData<Lead[]>(['leads']) || leads;
         const closedLead = cachedLeads.find(item => item.id === leadId);
         if (closedLead) setDetailLead(closedLead);
+      },
+    });
+  };
+
+  const celebrateNewLeadCreated = (leadId?: string) => {
+    playNewLeadCreatedAlert();
+    void showNewLeadSystemNotification();
+
+    toast({
+      title: 'Novo lead criado! 🔔',
+      className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/12 cursor-pointer',
+      duration: 15000,
+      onClick: () => {
+        if (!leadId) return;
+        const cachedLeads = queryClient.getQueryData<Lead[]>(['leads']) || leads;
+        const createdLead = cachedLeads.find(item => item.id === leadId);
+        if (createdLead) setDetailLead(createdLead);
       },
     });
   };
@@ -424,6 +497,7 @@ export default function CRMPage() {
         onOpenChange={setIsFormOpen}
         lead={editingLead}
         onLeadClosedCelebration={celebrateLeadClosed}
+        onNewLeadCreatedAlert={celebrateNewLeadCreated}
         clients={clients}
         teamMembers={teamMembers}
         stages={STAGES}

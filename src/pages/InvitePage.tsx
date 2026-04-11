@@ -8,8 +8,20 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
+const normalizeInviteToken = (value?: string) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    return decodeURIComponent(raw).trim();
+  } catch {
+    return raw;
+  }
+};
+
 const InvitePage = () => {
   const { token } = useParams<{ token: string }>();
+  const normalizedToken = normalizeInviteToken(token);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [invitation, setInvitation] = useState<any>(null);
@@ -24,7 +36,7 @@ const InvitePage = () => {
   useEffect(() => {
     const fetchInvitation = async () => {
       const { data, error } = await supabase
-        .rpc('get_invitation_by_token', { p_token: token! })
+        .rpc('get_invitation_by_token', { p_token: normalizedToken })
         .single();
 
       if (error || !data || data.status !== 'pending') {
@@ -35,8 +47,8 @@ const InvitePage = () => {
       }
       setLoading(false);
     };
-    if (token) fetchInvitation();
-  }, [token]);
+    if (normalizedToken) fetchInvitation();
+  }, [normalizedToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +69,7 @@ const InvitePage = () => {
       if (signUpData.user) {
         // 2. Accept invitation (creates permissions + role)
         const { error: rpcError } = await supabase.rpc('accept_invitation', {
-          p_token: token!,
+          p_token: normalizedToken,
           p_user_id: signUpData.user.id,
         });
         if (rpcError) throw rpcError;
