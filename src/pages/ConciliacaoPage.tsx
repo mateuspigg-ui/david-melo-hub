@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,33 +15,14 @@ import { format } from 'date-fns';
 import { ImportTransactionsDialog } from '@/components/events/ImportTransactionsDialog';
 
 const steps = [
-  { id: 1, title: 'Diagnóstico', icon: Search },
-  { id: 2, title: 'Cruzamento', icon: ArrowUpDown },
+  { id: 1, title: 'Conta Bancária', icon: Search },
+  { id: 2, title: 'Uploads', icon: ArrowUpDown },
   { id: 3, title: 'Relatório', icon: BarChart3 },
   { id: 4, title: 'Validação', icon: ShieldCheck },
 ];
 
-const DEMO_ACCOUNT = {
-  id: 'demo-account-001',
-  description: 'Conta Ficticia - Operacional',
-  bank_name: 'Banco Exemplo',
-  account_number: '99999-0',
-};
-
-const DEMO_BANK_TRANSACTIONS = [
-  { id: 'demo-bank-1', description: 'Recebimento Contrato Evento A', transaction_date: '2026-04-05', amount: 8500, status: 'pendente' },
-  { id: 'demo-bank-2', description: 'Pagamento Fornecedor Buffet', transaction_date: '2026-04-06', amount: -2300, status: 'pendente' },
-  { id: 'demo-bank-3', description: 'Recebimento Entrada Evento B', transaction_date: '2026-04-08', amount: 4200, status: 'pendente' },
-];
-
-const DEMO_ACCOUNTING_ENTRIES = [
-  { id: 'demo-acc-1', description: 'Receita Contrato Evento A', entry_date: '2026-04-05', amount: 8500, status: 'pendente' },
-  { id: 'demo-acc-2', description: 'Despesa Buffet Evento A', entry_date: '2026-04-06', amount: -2000, status: 'pendente' },
-  { id: 'demo-acc-3', description: 'Receita Entrada Evento B', entry_date: '2026-04-08', amount: 4200, status: 'pendente' },
-];
-
 type ImportedArtifact = {
-  mode: 'bank' | 'accounting';
+  mode: 'bank' | 'accounting' | 'trial_balance';
   kind: 'pdf' | 'csv';
   fileName: string;
   count: number;
@@ -98,10 +78,10 @@ const toSafeDateLabel = (value: string) => {
 const ConciliacaoPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [period, setPeriod] = useState({ start: '', end: '' });
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importMode, setImportMode] = useState<'bank' | 'accounting'>('bank');
   const [importedArtifacts, setImportedArtifacts] = useState<ImportedArtifact[]>([]);
+  const trialBalanceInputRef = useRef<HTMLInputElement | null>(null);
   const [balances, setBalances] = useState({
     tolerance: 1,
     statementInitial: 0,
@@ -109,28 +89,21 @@ const ConciliacaoPage = () => {
     ledgerInitial: 0,
     ledgerFinal: 0,
   });
-  const isDemoAccount = selectedAccount === DEMO_ACCOUNT.id;
-
   const clearReconciliationMutation = useMutation({
     mutationFn: async () => {
       if (!selectedAccount) throw new Error('Selecione a conta para limpar a conciliação.');
-      if (!period.start || !period.end) throw new Error('Defina o período antes de limpar os dados.');
 
       const { error: bankError } = await (supabase as any)
         .from('bank_transactions')
         .delete()
-        .eq('bank_account_id', selectedAccount)
-        .gte('transaction_date', period.start)
-        .lte('transaction_date', period.end);
+        .eq('bank_account_id', selectedAccount);
 
       if (bankError) throw bankError;
 
       const { error: accountingError } = await (supabase as any)
         .from('accounting_entries')
         .delete()
-        .eq('bank_account_id', selectedAccount)
-        .gte('entry_date', period.start)
-        .lte('entry_date', period.end);
+        .eq('bank_account_id', selectedAccount);
 
       if (accountingError) throw accountingError;
     },
@@ -139,7 +112,7 @@ const ConciliacaoPage = () => {
       refetchAcc();
       setImportedArtifacts([]);
       setCurrentStep(1);
-      toast({ title: 'Conciliação limpa', description: 'Dados do período foram removidos. Você pode começar do zero.' });
+      toast({ title: 'Conciliação limpa', description: 'Dados da conta foram removidos. Você pode começar do zero.' });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao limpar', description: error?.message || 'Não foi possível limpar a conciliação.', variant: 'destructive' });
@@ -157,7 +130,7 @@ const ConciliacaoPage = () => {
 
   const { data: bankTransactions, refetch: refetchBank } = useQuery({
     queryKey: ['reconciliation_bank_tx', selectedAccount],
-    enabled: !!selectedAccount && !isDemoAccount,
+    enabled: !!selectedAccount,
     queryFn: async () => {
       const { data } = await (supabase as any).from('bank_transactions')
         .select('*')
@@ -169,7 +142,7 @@ const ConciliacaoPage = () => {
 
   const { data: accountingEntries, refetch: refetchAcc } = useQuery({
     queryKey: ['reconciliation_acc_entries', selectedAccount],
-    enabled: !!selectedAccount && !isDemoAccount,
+    enabled: !!selectedAccount,
     queryFn: async () => {
       const { data } = await (supabase as any).from('accounting_entries')
         .select('*')
@@ -182,13 +155,12 @@ const ConciliacaoPage = () => {
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-  const accountsWithDemo = [DEMO_ACCOUNT, ...(accounts || [])];
-  const effectiveBankTransactions = isDemoAccount ? DEMO_BANK_TRANSACTIONS : (bankTransactions || []);
-  const effectiveAccountingEntries = isDemoAccount ? DEMO_ACCOUNTING_ENTRIES : (accountingEntries || []);
+  const effectiveBankTransactions = bankTransactions || [];
+  const effectiveAccountingEntries = accountingEntries || [];
 
   const selectedAccountData = useMemo(
-    () => accountsWithDemo.find((acc: any) => acc.id === selectedAccount),
-    [accountsWithDemo, selectedAccount]
+    () => (accounts || []).find((acc: any) => acc.id === selectedAccount),
+    [accounts, selectedAccount]
   );
 
   const bankMovementTotal = useMemo(
@@ -301,34 +273,62 @@ const ConciliacaoPage = () => {
     };
   }, [balances, bankMovementTotal, accountingMovementTotal]);
 
+  const upsertImportedArtifact = (info: ImportedArtifact) => {
+    setImportedArtifacts((prev) => {
+      const next = prev.filter((item) => item.mode !== info.mode);
+      return [info, ...next];
+    });
+  };
+
+  const handleTrialBalanceUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isCsv = file.name.toLowerCase().endsWith('.csv');
+    if (!isCsv) {
+      toast({ title: 'Formato inválido', description: 'O balancete deve ser enviado em CSV.', variant: 'destructive' });
+      return;
+    }
+
+    upsertImportedArtifact({
+      mode: 'trial_balance',
+      kind: 'csv',
+      fileName: file.name,
+      count: 0,
+      importedAt: new Date().toISOString(),
+    });
+    toast({ title: 'Balancete anexado', description: 'Arquivo CSV registrado para a etapa de conciliação.' });
+    event.target.value = '';
+  };
+
   const handleNext = () => {
-    if (currentStep === 1 && (!selectedAccount || !period.start || !period.end)) {
-      toast({ title: 'Aviso', description: 'Preencha todos os campos do diagnóstico.', variant: 'destructive' });
+    if (currentStep === 1 && !selectedAccount) {
+      toast({ title: 'Aviso', description: 'Selecione a conta bancária para continuar.', variant: 'destructive' });
       return;
     }
 
-    if (currentStep === 1 && !diagnostics.rule11Ok) {
+    if (currentStep === 2 && !importedArtifacts.find((item) => item.mode === 'bank')) {
       toast({
-        title: 'Erro na etapa 1.1',
-        description: `Saldo inicial contábil e extrato divergentes em ${formatCurrency(diagnostics.rule11Diff)}.`,
+        title: 'Extrato bancário pendente',
+        description: 'Envie o extrato bancário (PDF ou CSV) para prosseguir.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (currentStep === 1 && !diagnostics.rule12Ok) {
+    if (currentStep === 2 && !importedArtifacts.find((item) => item.mode === 'accounting')) {
       toast({
-        title: 'Erro na etapa 1.2',
-        description: `Saldo do extrato inconsistente. Diferença apurada: ${formatCurrency(diagnostics.rule12Diff)}.`,
+        title: 'Razão contábil pendente',
+        description: 'Envie a razão contábil em CSV para prosseguir.',
         variant: 'destructive',
       });
       return;
     }
 
-    if (currentStep === 1 && !diagnostics.rule13Ok) {
+    if (currentStep === 2 && !importedArtifacts.find((item) => item.mode === 'trial_balance')) {
       toast({
-        title: 'Erro na etapa 1.3',
-        description: `Saldo do balancete inconsistente. Diferença apurada: ${formatCurrency(diagnostics.rule13Diff)}.`,
+        title: 'Balancete pendente',
+        description: 'Envie o balancete contábil em CSV para continuar.',
         variant: 'destructive',
       });
       return;
@@ -381,8 +381,8 @@ const ConciliacaoPage = () => {
             <div className="max-w-xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
               <div className="text-center space-y-2">
                 <Landmark className="w-12 h-12 text-gold mx-auto mb-4" />
-                <h2 className="text-2xl font-display text-foreground">Iniciando Diagnóstico</h2>
-                <p className="text-sm text-muted-foreground">Selecione a conta e o período para validar os saldos iniciais.</p>
+                <h2 className="text-2xl font-display text-foreground">Etapa 1: Conta Bancária</h2>
+                <p className="text-sm text-muted-foreground">Selecione apenas a conta bancária cadastrada para iniciar a conciliação.</p>
               </div>
 
               <div className="space-y-4">
@@ -394,146 +394,24 @@ const ConciliacaoPage = () => {
                     className="flex h-12 w-full rounded-md bg-secondary/50 border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none transition-all"
                   >
                     <option value="">Selecione uma conta...</option>
-                    {accountsWithDemo.map((acc: any) => (
+                    {(accounts || []).map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
                         {(acc.description && acc.description.trim()) || acc.bank_name}
                         {acc.account_number ? ` - ${acc.account_number}` : ''}
-                        {acc.id === DEMO_ACCOUNT.id ? ' (exemplo)' : ''}
                       </option>
                     ))}
                   </select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-2 text-xs border-gold/40 text-gold hover:bg-gold hover:text-white"
-                    onClick={() => {
-                      setSelectedAccount(DEMO_ACCOUNT.id);
-                      setPeriod({ start: '2026-04-01', end: '2026-04-30' });
-                      toast({ title: 'Exemplo carregado', description: 'Conta e movimentações fictícias aplicadas para demonstração.' });
-                    }}
-                  >
-                    Carregar exemplo fictício
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Início do Período</Label>
-                    <Input 
-                      type="date" 
-                      value={period.start} 
-                      onChange={e => setPeriod({...period, start: e.target.value})}
-                      className="h-12 bg-secondary/50 border-border/40 focus:border-gold" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Fim do Período</Label>
-                    <Input 
-                      type="date" 
-                      value={period.end} 
-                      onChange={e => setPeriod({...period, end: e.target.value})}
-                      className="h-12 bg-secondary/50 border-border/40 focus:border-gold" 
-                    />
-                  </div>
                 </div>
 
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => clearReconciliationMutation.mutate()}
-                  disabled={isDemoAccount || !selectedAccount || !period.start || !period.end || clearReconciliationMutation.isPending}
+                  disabled={!selectedAccount || clearReconciliationMutation.isPending}
                   className="text-xs border-destructive/40 text-destructive hover:bg-destructive hover:text-white transition-all"
                 >
-                  {clearReconciliationMutation.isPending ? 'Limpando...' : 'Limpar conciliação deste período'}
+                  {clearReconciliationMutation.isPending ? 'Limpando...' : 'Limpar dados da conta selecionada'}
                 </Button>
-
-                <div className="space-y-3 rounded-xl border border-border/20 bg-secondary/10 p-5">
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-foreground">Parâmetros de validação</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Tolerância permitida (R$)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={balances.tolerance}
-                        onChange={(e) => setBalances((prev) => ({ ...prev, tolerance: Number(e.target.value || 0) }))}
-                        className="h-11 bg-white border-border/30"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Saldo inicial extrato</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={balances.statementInitial}
-                        onChange={(e) => setBalances((prev) => ({ ...prev, statementInitial: Number(e.target.value || 0) }))}
-                        className="h-11 bg-white border-border/30"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Saldo final extrato</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={balances.statementFinal}
-                        onChange={(e) => setBalances((prev) => ({ ...prev, statementFinal: Number(e.target.value || 0) }))}
-                        className="h-11 bg-white border-border/30"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Saldo inicial balancete</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={balances.ledgerInitial}
-                        onChange={(e) => setBalances((prev) => ({ ...prev, ledgerInitial: Number(e.target.value || 0) }))}
-                        className="h-11 bg-white border-border/30"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold">Saldo final balancete</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={balances.ledgerFinal}
-                        onChange={(e) => setBalances((prev) => ({ ...prev, ledgerFinal: Number(e.target.value || 0) }))}
-                        className="h-11 bg-white border-border/30"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-xl bg-gold/5 border border-gold/20 space-y-3">
-                  <h4 className="text-xs font-bold text-gold uppercase tracking-widest">Status do Diagnóstico</h4>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">1.1 Saldo inicial extrato x contabilidade:</span>
-                    <Badge variant="outline" className={cn('text-[10px] font-bold', diagnostics.rule11Ok ? 'border-emerald-300 text-emerald-700 bg-emerald-50' : 'border-destructive/30 text-destructive bg-destructive/10')}>
-                      {diagnostics.rule11Ok ? 'OK' : `Dif: ${formatCurrency(diagnostics.rule11Diff)}`}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">1.2 Extrato inicial + movimentação = extrato final:</span>
-                    <Badge variant="outline" className={cn('text-[10px] font-bold', diagnostics.rule12Ok ? 'border-emerald-300 text-emerald-700 bg-emerald-50' : 'border-destructive/30 text-destructive bg-destructive/10')}>
-                      {diagnostics.rule12Ok ? 'OK' : `Dif: ${formatCurrency(diagnostics.rule12Diff)}`}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">1.3 Balancete inicial + razão = balancete final:</span>
-                    <Badge variant="outline" className={cn('text-[10px] font-bold', diagnostics.rule13Ok ? 'border-emerald-300 text-emerald-700 bg-emerald-50' : 'border-destructive/30 text-destructive bg-destructive/10')}>
-                      {diagnostics.rule13Ok ? 'OK' : `Dif: ${formatCurrency(diagnostics.rule13Diff)}`}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between text-sm border-t border-gold/20 pt-3">
-                    <span className="text-muted-foreground">Tolerância aplicada:</span>
-                    <span className="font-semibold text-foreground">{formatCurrency(diagnostics.tolerance)}</span>
-                  </div>
-                  <div className="pt-3 border-t border-gold/10 flex items-center gap-2 text-gold text-xs font-bold">
-                    <CheckCircle2 size={14} />
-                    {diagnostics.allOk
-                      ? 'Validações concluídas. Pronto para o passo 2.'
-                      : 'Existem inconsistências. Corrija os saldos para prosseguir.'}
-                  </div>
-                </div>
               </div>
             </div>
           )}
@@ -541,43 +419,79 @@ const ConciliacaoPage = () => {
           {currentStep === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-display text-foreground">Cruzamento de Dados</h2>
+                  <h2 className="text-2xl font-display text-foreground">Etapa 2: Upload de Arquivos</h2>
                 <div className="flex gap-2">
-                  {isDemoAccount && (
-                    <Badge variant="outline" className="text-[10px] border-gold text-gold bg-gold/5 px-3">
-                      Dados fictícios ativos
-                    </Badge>
-                  )}
-                  <Button 
-                    variant="outline" 
-                    className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
-                    onClick={() => {
-                      setImportMode('bank');
-                      setImportDialogOpen(true);
-                    }}
-                    disabled={isDemoAccount || !selectedAccount}
-                  >
-                    Upload PDF Extrato
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
-                    onClick={() => {
-                      setImportMode('accounting');
-                      setImportDialogOpen(true);
-                    }}
-                    disabled={isDemoAccount || !selectedAccount}
-                  >
-                    Importar CSV Razão
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm"
-                    onClick={() => toast({ title: 'Cruzamento executado', description: 'Status atualizado para Conciliado, Zero e Pendente.' })}
-                  >
+                  <Button variant="outline" className="text-xs border-gold text-gold hover:bg-gold hover:text-white transition-all shadow-sm" onClick={() => toast({ title: 'Cruzamento executado', description: 'Status atualizado para Conciliado, Zero e Pendente.' })}>
                     Rodar Inteligência de Matching
                   </Button>
                 </div>
+              </div>
+
+              <input
+                ref={trialBalanceInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleTrialBalanceUpload}
+                className="hidden"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border-border/30 bg-secondary/10">
+                  <CardHeader>
+                    <CardTitle className="text-sm uppercase tracking-wider">1) Extrato Bancário</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">Envie PDF ou CSV do extrato bancário.</p>
+                    <Button
+                      variant="outline"
+                      className="w-full border-gold text-gold hover:bg-gold hover:text-white"
+                      disabled={!selectedAccount}
+                      onClick={() => {
+                        setImportMode('bank');
+                        setImportDialogOpen(true);
+                      }}
+                    >
+                      Enviar Extrato
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/30 bg-secondary/10">
+                  <CardHeader>
+                    <CardTitle className="text-sm uppercase tracking-wider">2) Razão Contábil</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">Envie a razão contábil em CSV.</p>
+                    <Button
+                      variant="outline"
+                      className="w-full border-gold text-gold hover:bg-gold hover:text-white"
+                      disabled={!selectedAccount}
+                      onClick={() => {
+                        setImportMode('accounting');
+                        setImportDialogOpen(true);
+                      }}
+                    >
+                      Enviar Razão
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/30 bg-secondary/10">
+                  <CardHeader>
+                    <CardTitle className="text-sm uppercase tracking-wider">3) Balancete Contábil</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-xs text-muted-foreground">Envie o balancete em CSV.</p>
+                    <Button
+                      variant="outline"
+                      className="w-full border-gold text-gold hover:bg-gold hover:text-white"
+                      disabled={!selectedAccount}
+                      onClick={() => trialBalanceInputRef.current?.click()}
+                    >
+                      Enviar Balancete
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
 
               {importedArtifacts.length > 0 && (
@@ -589,7 +503,7 @@ const ConciliacaoPage = () => {
                         <div>
                           <p className="text-xs font-bold text-foreground">{item.fileName}</p>
                           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                            {item.mode === 'bank' ? 'Extrato bancário' : 'Razão contábil'} • {item.kind.toUpperCase()}
+                            {item.mode === 'bank' ? 'Extrato bancário' : item.mode === 'accounting' ? 'Razão contábil' : 'Balancete contábil'} • {item.kind.toUpperCase()}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-[10px] border-gold/30 text-gold bg-gold/5">
