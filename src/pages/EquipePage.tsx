@@ -23,6 +23,16 @@ const ALL_MODULES = [
   { key: 'equipe', label: 'Equipe' },
 ];
 
+const createInvitationToken = () => {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  return `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+};
+
 const EquipePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -82,10 +92,23 @@ const EquipePage = () => {
   // Create invitation
   const createInvite = useMutation({
     mutationFn: async () => {
+      const token = createInvitationToken();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      if (inviteEmail) {
+        await supabase
+          .from('team_invitations')
+          .delete()
+          .eq('email', inviteEmail)
+          .eq('status', 'pending');
+      }
+
       const { data, error } = await supabase.from('team_invitations').insert({
         email: inviteEmail || null,
         invited_by: user!.id,
+        token,
         modules: selectedModules,
+        expires_at: expiresAt,
       } as any).select().single();
       if (error) throw error;
       return data;
