@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,11 @@ interface ClosedLead {
   clients: { first_name: string; last_name: string; phone: string | null } | null;
 }
 
+interface ClientLeadEntry {
+  client_id: string | null;
+  created_at: string;
+}
+
 const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '' };
 
 const ClientesPage = () => {
@@ -69,6 +74,27 @@ const ClientesPage = () => {
     },
   });
 
+  const { data: clientLeadEntries = [] } = useQuery({
+    queryKey: ['client_lead_entries'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('client_id, created_at')
+        .not('client_id', 'is', null)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data || []) as ClientLeadEntry[];
+    },
+  });
+
+  const firstLeadEntryByClient = useMemo(() => {
+    return clientLeadEntries.reduce<Record<string, string>>((acc, item) => {
+      if (!item.client_id || acc[item.client_id]) return acc;
+      acc[item.client_id] = item.created_at;
+      return acc;
+    }, {});
+  }, [clientLeadEntries]);
+
   const upsert = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -98,6 +124,7 @@ const ClientesPage = () => {
       qc.invalidateQueries({ queryKey: ['clients'] });
       qc.invalidateQueries({ queryKey: ['leads'] });
       qc.invalidateQueries({ queryKey: ['closed_leads_without_client'] });
+      qc.invalidateQueries({ queryKey: ['client_lead_entries'] });
       toast({ title: editingClient ? 'Cliente atualizado!' : 'Cliente criado!' });
       closeDialog();
     },
@@ -136,6 +163,7 @@ const ClientesPage = () => {
       qc.invalidateQueries({ queryKey: ['events'] });
       qc.invalidateQueries({ queryKey: ['leads'] });
       qc.invalidateQueries({ queryKey: ['payments'] });
+      qc.invalidateQueries({ queryKey: ['client_lead_entries'] });
       toast({ title: 'Cliente removido!' });
       setDeleteId(null);
     },
@@ -242,7 +270,9 @@ const ClientesPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((c) => (
+          {filtered.map((c) => {
+            const entryDate = firstLeadEntryByClient[c.id] || c.created_at;
+            return (
             <div
               key={c.id}
               className="bg-card premium-shadow rounded-2xl p-6 border border-border/40 hover:border-gold/30 hover:-translate-y-1 transition-all duration-300 group"
@@ -259,7 +289,7 @@ const ClientesPage = () => {
                       {c.first_name} {c.last_name}
                     </p>
                     <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1 opacity-60">
-                      Entrada: {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                      Entrada: {new Date(entryDate).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                 </div>
@@ -299,7 +329,8 @@ const ClientesPage = () => {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
