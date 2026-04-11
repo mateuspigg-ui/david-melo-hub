@@ -76,13 +76,14 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
+      const resolvedStage = data.stage || lead?.stage || 'novo_contato';
       const payload: Record<string, unknown> = {
         title: data.title,
         first_name: data.first_name || null,
         last_name: data.last_name || null,
         phone: data.phone || null,
         client_id: data.client_id || null,
-        stage: data.stage,
+        stage: resolvedStage,
         event_type: data.event_type || null,
         event_location: data.event_location || null,
         event_date: data.event_date || null,
@@ -107,8 +108,9 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
       }
     },
     onSuccess: (savedLeadId, variables) => {
-      const movedToClosedStage = variables.stage === 'fechados' && (!lead || lead.stage !== 'fechados');
-      const createdInNovoStage = !lead && variables.stage === 'novo_contato';
+      const savedStage = variables.stage || lead?.stage || 'novo_contato';
+      const movedToClosedStage = savedStage === 'fechados' && (!lead || lead.stage !== 'fechados');
+      const createdInNovoStage = !lead && savedStage === 'novo_contato';
 
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       onOpenChange(false);
