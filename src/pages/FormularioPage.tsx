@@ -147,8 +147,12 @@ export default function FormularioPage({ publicView = false }: Props) {
   return (
     <div className="p-8 space-y-8 animate-fade-in max-w-[1100px] mx-auto min-h-screen">
       <div className="flex items-center gap-4 border-b border-border/10 pb-6">
-        <div className="w-12 h-12 rounded-xl overflow-hidden border border-gold/20 bg-white flex items-center justify-center">
-          <img src={logo} alt="David Melo" className="w-full h-full object-contain p-1" />
+        <div className={publicView ? 'shrink-0' : 'w-12 h-12 shrink-0'}>
+          <img
+            src={logo}
+            alt="David Melo"
+            className={publicView ? 'h-16 md:h-20 w-auto object-contain' : 'w-12 h-12 object-contain'}
+          />
         </div>
         <div className="w-12 h-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center">
           <ClipboardList className="w-6 h-6" />
@@ -173,7 +177,7 @@ export default function FormularioPage({ publicView = false }: Props) {
 
       {submissionCompleted && publicView ? (
         <div className="bg-white border border-gold/30 rounded-[24px] p-8 md:p-10 premium-shadow text-center space-y-4">
-          <img src={logo} alt="David Melo" className="h-12 w-auto mx-auto" />
+          <img src={logo} alt="David Melo" className="h-20 md:h-24 w-auto mx-auto object-contain" />
           <div className="mx-auto w-14 h-14 rounded-full bg-gold/15 text-gold flex items-center justify-center">
             <CheckCircle2 className="w-7 h-7" />
           </div>

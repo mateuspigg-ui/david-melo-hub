@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import TopBar from './TopBar';
+import LeadAlertsListener from '@/components/notifications/LeadAlertsListener';
 
 const AppLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-background font-body selection:bg-gold/20">
+      <LeadAlertsListener />
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-24 left-[10%] h-64 w-64 rounded-full bg-gold/10 blur-3xl" />
         <div className="absolute bottom-0 right-[12%] h-80 w-80 rounded-full bg-gold/10 blur-3xl" />

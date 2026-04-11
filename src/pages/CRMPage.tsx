@@ -29,119 +29,6 @@ const EVENT_TYPES = [
   { value: 'corporativo', label: 'Corporativo' },
 ];
 
-const playLeadClosedCelebrationAlert = () => {
-  if (typeof window === 'undefined') return;
-
-  try {
-    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextConstructor) return;
-
-    const audioContext = new AudioContextConstructor();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.2);
-    oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.45);
-    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.62);
-    oscillator.frequency.exponentialRampToValueAtTime(990, audioContext.currentTime + 1.05);
-
-    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.03);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.52);
-    gainNode.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.66);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 1.15);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 1.2);
-    oscillator.onended = () => {
-      void audioContext.close();
-    };
-  } catch {
-    return;
-  }
-};
-
-const showLeadClosedSystemNotification = async () => {
-  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
-
-  try {
-    if (Notification.permission === 'granted') {
-      new Notification('Novo cliente fechado! 🎉');
-      return;
-    }
-
-    if (Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        new Notification('Novo cliente fechado! 🎉');
-      }
-    }
-  } catch {
-    return;
-  }
-};
-
-const playNewLeadCreatedAlert = () => {
-  if (typeof window === 'undefined') return;
-
-  try {
-    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextConstructor) return;
-
-    const audioContext = new AudioContextConstructor();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = 'triangle';
-    oscillator.frequency.setValueAtTime(720, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(980, audioContext.currentTime + 0.28);
-    oscillator.frequency.setValueAtTime(760, audioContext.currentTime + 0.5);
-    oscillator.frequency.exponentialRampToValueAtTime(1080, audioContext.currentTime + 0.92);
-
-    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.03);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.36);
-    gainNode.gain.exponentialRampToValueAtTime(0.24, audioContext.currentTime + 0.54);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.98);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 1.02);
-    oscillator.onended = () => {
-      void audioContext.close();
-    };
-  } catch {
-    return;
-  }
-};
-
-const showNewLeadSystemNotification = async () => {
-  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
-
-  try {
-    if (Notification.permission === 'granted') {
-      new Notification('Novo lead criado! 🔔');
-      return;
-    }
-
-    if (Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      if (permission === 'granted') {
-        new Notification('Novo lead criado! 🔔');
-      }
-    }
-  } catch {
-    return;
-  }
-};
-
 export type Lead = {
   id: string;
   title: string;
@@ -265,40 +152,6 @@ export default function CRMPage() {
     retry: false, // não retentar em caso de erro
   });
 
-  const celebrateLeadClosed = (leadId?: string) => {
-    playLeadClosedCelebrationAlert();
-    void showLeadClosedSystemNotification();
-
-    toast({
-      title: 'Novo cliente fechado! 🎉',
-      className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/15 cursor-pointer',
-      duration: 15000,
-      onClick: () => {
-        if (!leadId) return;
-        const cachedLeads = queryClient.getQueryData<Lead[]>(['leads']) || leads;
-        const closedLead = cachedLeads.find(item => item.id === leadId);
-        if (closedLead) setDetailLead(closedLead);
-      },
-    });
-  };
-
-  const celebrateNewLeadCreated = (leadId?: string) => {
-    playNewLeadCreatedAlert();
-    void showNewLeadSystemNotification();
-
-    toast({
-      title: 'Novo lead criado! 🔔',
-      className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/12 cursor-pointer',
-      duration: 15000,
-      onClick: () => {
-        if (!leadId) return;
-        const cachedLeads = queryClient.getQueryData<Lead[]>(['leads']) || leads;
-        const createdLead = cachedLeads.find(item => item.id === leadId);
-        if (createdLead) setDetailLead(createdLead);
-      },
-    });
-  };
-
   const updateStageMutation = useMutation({
     mutationFn: async ({ id, stage, previousStage }: { id: string; stage: string; previousStage: string }) => {
       const { error } = await supabase.from('leads').update({ stage }).eq('id', id);
@@ -315,11 +168,6 @@ export default function CRMPage() {
       }));
 
       return { previousLeads };
-    },
-    onSuccess: (data) => {
-      if (data.stage === 'fechados' && data.previousStage !== 'fechados') {
-        celebrateLeadClosed(data.id);
-      }
     },
     onError: (_error, _variables, context) => {
       if (context?.previousLeads) {
@@ -496,8 +344,6 @@ export default function CRMPage() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         lead={editingLead}
-        onLeadClosedCelebration={celebrateLeadClosed}
-        onNewLeadCreatedAlert={celebrateNewLeadCreated}
         clients={clients}
         teamMembers={teamMembers}
         stages={STAGES}
