@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -186,6 +186,21 @@ export default function RecebimentosPage() {
     return matchSearch && matchStatus && matchMonth;
   });
 
+  const sortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const aPaidAt = a.paid_at ? new Date(a.paid_at).getTime() : 0;
+      const bPaidAt = b.paid_at ? new Date(b.paid_at).getTime() : 0;
+
+      if (aPaidAt && bPaidAt) return bPaidAt - aPaidAt;
+      if (aPaidAt && !bPaidAt) return -1;
+      if (!aPaidAt && bPaidAt) return 1;
+
+      const aDueDate = a.due_date ? new Date(a.due_date).getTime() : 0;
+      const bDueDate = b.due_date ? new Date(b.due_date).getTime() : 0;
+      return aDueDate - bDueDate;
+    });
+  }, [filtered]);
+
   const baseForTotals = monthFilter ? filtered : unifiedRows;
   const totalPending = baseForTotals.filter((i) => i.status === "pending").reduce((s, i) => s + i.amount, 0);
   const totalReceived = baseForTotals.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
@@ -245,7 +260,7 @@ export default function RecebimentosPage() {
 
       {isLoading || isLoadingEntries ? (
         <div className="space-y-4">{[1, 2, 3, 4].map((i) => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse border border-border/40 premium-shadow" />)}</div>
-      ) : filtered.length === 0 ? (
+      ) : sortedFiltered.length === 0 ? (
         <div className="bg-white premium-shadow rounded-2xl p-20 border border-border/40 text-center flex flex-col items-center justify-center">
           <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
             <ArrowDownCircle className="w-8 h-8 text-muted-foreground/30" />
@@ -255,7 +270,7 @@ export default function RecebimentosPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.map((inst) => {
+          {sortedFiltered.map((inst) => {
             const overdue = inst.status === "pending" && isPast(new Date(inst.due_date + "T23:59:59")) && !isToday(new Date(inst.due_date + "T12:00:00"));
             const clientName = inst.payments?.clients ? `${inst.payments.clients.first_name} ${inst.payments.clients.last_name}` : "Cliente Especial";
             return (
