@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Building2, Landmark, Search, MoreVertical, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Building2, Landmark, Search, Trash2, Loader2, LayoutGrid, List } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,7 @@ const BankAccountsPage = () => {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [form, setForm] = useState({
     bank_name: '',
     bank_code: '',
@@ -81,6 +82,12 @@ const BankAccountsPage = () => {
       });
   };
 
+  const sortedAccounts = useMemo(() => {
+    return (accounts || []).slice().sort((a: any, b: any) =>
+      String(a.bank_name || '').localeCompare(String(b.bank_name || ''), 'pt-BR', { sensitivity: 'base' })
+    );
+  }, [accounts]);
+
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1500px] mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
@@ -96,13 +103,33 @@ const BankAccountsPage = () => {
         </Button>
       </div>
 
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant={viewMode === 'cards' ? 'default' : 'outline'}
+          onClick={() => setViewMode('cards')}
+          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+        >
+          <LayoutGrid size={14} className="mr-2" /> Cards
+        </Button>
+        <Button
+          type="button"
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          onClick={() => setViewMode('list')}
+          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+        >
+          <List size={14} className="mr-2" /> Lista
+        </Button>
+      </div>
+
+      {viewMode === 'cards' ? (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {isLoading ? (
           <div className="col-span-full h-64 flex flex-col items-center justify-center text-muted-foreground gap-4 bg-white/50 rounded-[32px] border border-dashed border-border/40">
             <Landmark className="w-12 h-12 animate-pulse opacity-20" />
             <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando Base de Dados...</span>
           </div>
-        ) : accounts?.length === 0 ? (
+        ) : sortedAccounts.length === 0 ? (
           <div className="col-span-full p-24 text-center bg-white rounded-[32px] border border-dashed border-border/40 premium-shadow relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gold/[0.02] rounded-full -mr-32 -mt-32" />
             <Landmark className="mx-auto h-20 w-20 text-gold/10 mb-6" />
@@ -115,7 +142,7 @@ const BankAccountsPage = () => {
               Iniciar Cadastro
             </Button>
           </div>
-        ) : accounts?.map((account) => (
+        ) : sortedAccounts.map((account: any) => (
           <div key={account.id} className="bg-white premium-shadow rounded-[28px] p-8 border border-border/40 hover:border-gold/30 transition-all duration-500 group relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gold/[0.03] rounded-full -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700" />
             
@@ -189,6 +216,72 @@ const BankAccountsPage = () => {
           </div>
         ))}
       </div>
+      ) : (
+        <div className="bg-white premium-shadow rounded-2xl border border-border/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-secondary/10 border-b border-border/20">
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Banco</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Agência / Conta</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Tipo</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Status</th>
+                  <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {sortedAccounts.map((account: any) => (
+                  <tr key={account.id} className="hover:bg-secondary/5 transition-colors">
+                    <td className="py-4 px-6">
+                      <p className="font-bold">{account.bank_name}</p>
+                      <p className="text-xs text-muted-foreground">ID: {account.bank_code || '---'}</p>
+                    </td>
+                    <td className="py-4 px-6 text-sm">{account.agency} / {account.account_number}{account.account_digit ? `-${account.account_digit}` : ''}</td>
+                    <td className="py-4 px-6 text-xs uppercase text-muted-foreground">{account.account_type || '---'}</td>
+                    <td className={`py-4 px-6 text-xs uppercase font-bold ${account.status === 'active' ? 'text-emerald-600' : 'text-destructive'}`}>{account.status === 'active' ? 'Ativo' : 'Offline'}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setEditingAccount(account);
+                            setForm({
+                              bank_name: account.bank_name,
+                              bank_code: account.bank_code || '',
+                              agency: account.agency,
+                              account_number: account.account_number,
+                              account_digit: account.account_digit || '',
+                              description: account.description || '',
+                              account_type: account.account_type || 'corrente',
+                              default_initial_balance: account.default_initial_balance != null ? String(account.default_initial_balance) : '',
+                              accounting_account_id: account.accounting_account_id || ''
+                            });
+                            setDialogOpen(true);
+                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-gold hover:bg-gold/10"
+                        >
+                          <Search size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (window.confirm('Confirmar exclusão desta custódia?')) deleteMutation.mutate(account.id);
+                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) setDialogOpen(false); }}>
         <DialogContent className="bg-white border-border/40 text-foreground max-w-2xl max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] font-body flex flex-col">

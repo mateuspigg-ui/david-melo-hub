@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, Building2, Phone, Instagram, Wallet, Trash2 } from 'lucide-react';
+import { Plus, Search, Building2, Phone, Instagram, Wallet, Trash2, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ export default function FornecedoresPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [form, setForm] = useState({
     company_name: '',
     phone: '',
@@ -62,7 +63,11 @@ export default function FornecedoresPage() {
 
   const resetForm = () => setForm({ company_name: '', phone: '', pix_details: '', instagram: '' });
 
-  const filtered = suppliers.filter((s: any) => s.company_name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = useMemo(() => {
+    return suppliers
+      .filter((s: any) => s.company_name.toLowerCase().includes(search.toLowerCase()))
+      .sort((a: any, b: any) => String(a.company_name || '').localeCompare(String(b.company_name || ''), 'pt-BR', { sensitivity: 'base' }));
+  }, [suppliers, search]);
 
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
@@ -89,6 +94,26 @@ export default function FornecedoresPage() {
         />
       </div>
 
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          variant={viewMode === 'cards' ? 'default' : 'outline'}
+          onClick={() => setViewMode('cards')}
+          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+        >
+          <LayoutGrid size={14} className="mr-2" /> Cards
+        </Button>
+        <Button
+          type="button"
+          variant={viewMode === 'list' ? 'default' : 'outline'}
+          onClick={() => setViewMode('list')}
+          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+        >
+          <List size={14} className="mr-2" /> Lista
+        </Button>
+      </div>
+
+      {viewMode === 'cards' ? (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {isLoading ? (
           <div className="col-span-full h-32 flex items-center justify-center animate-pulse text-gold uppercase tracking-widest text-[10px] font-black">Carregando Parceiros...</div>
@@ -139,6 +164,41 @@ export default function FornecedoresPage() {
           </div>
         ))}
       </div>
+      ) : (
+        <div className="bg-white premium-shadow rounded-2xl border border-border/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-secondary/10 border-b border-border/20">
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Fornecedor</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Telefone</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Instagram</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">PIX</th>
+                  <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {filtered.map((s: any) => (
+                  <tr key={s.id} className="hover:bg-secondary/5 transition-colors">
+                    <td className="py-4 px-6 font-bold">{s.company_name}</td>
+                    <td className="py-4 px-6 text-sm">{s.phone || '---'}</td>
+                    <td className="py-4 px-6 text-sm">{s.instagram ? `@${s.instagram}` : '---'}</td>
+                    <td className="py-4 px-6 text-xs text-muted-foreground uppercase">{s.pix_details || '---'}</td>
+                    <td className="py-4 px-6">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => { setEditingSupplier(s); setForm({ ...s }); setDialogOpen(true); }} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-gold">Editar</Button>
+                        <Button variant="ghost" size="icon" onClick={() => { if(window.confirm('Excluir este parceiro?')) deleteMutation.mutate(s.id); }} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-white border-border/40 text-foreground max-w-md max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">

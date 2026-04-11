@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, Folder, Download, Trash2, Info, Upload, Loader2, Eye } from 'lucide-react';
+import { Plus, Search, Folder, Download, Trash2, Info, Upload, Loader2, Eye, LayoutGrid, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,7 @@ export default function DocumentosPage() {
   const [documentsTableMissing, setDocumentsTableMissing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [form, setForm] = useState({
     title: '',
     category: 'operacional',
@@ -189,11 +190,15 @@ export default function DocumentosPage() {
 
   const resetForm = () => setForm({ title: '', category: 'operacional', description: '', file_url: '' });
 
-  const filtered = documents.filter((doc: any) => {
-    const matchesSearch = doc.title.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || doc.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const filtered = useMemo(() => {
+    return documents
+      .filter((doc: any) => {
+        const matchesSearch = doc.title.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = categoryFilter === 'all' || doc.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a: any, b: any) => String(a.title || '').localeCompare(String(b.title || ''), 'pt-BR', { sensitivity: 'base' }));
+  }, [documents, search, categoryFilter]);
 
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
@@ -231,6 +236,24 @@ export default function DocumentosPage() {
             ))}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant={viewMode === 'cards' ? 'default' : 'outline'}
+            onClick={() => setViewMode('cards')}
+            className={`h-12 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+          >
+            <LayoutGrid size={14} className="mr-2" /> Cards
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            onClick={() => setViewMode('list')}
+            className={`h-12 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+          >
+            <List size={14} className="mr-2" /> Lista
+          </Button>
+        </div>
       </div>
 
       {documentsTableMissing && (
@@ -239,6 +262,7 @@ export default function DocumentosPage() {
         </div>
       )}
 
+      {viewMode === 'cards' ? (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {isLoading ? (
           <div className="col-span-full h-32 flex items-center justify-center text-gold animate-pulse text-[10px] font-black uppercase tracking-[0.4em]">Indexando Arquivos...</div>
@@ -292,6 +316,54 @@ export default function DocumentosPage() {
           );
         })}
       </div>
+      ) : (
+        <div className="bg-white premium-shadow rounded-2xl border border-border/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-secondary/10 border-b border-border/20">
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Documento</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Categoria</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Descrição</th>
+                  <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/10">
+                {filtered.map((doc: any) => {
+                  const category = CATEGORIES.find(c => c.id === doc.category) || CATEGORIES[CATEGORIES.length - 1];
+                  return (
+                    <tr key={doc.id} className="hover:bg-secondary/5 transition-colors">
+                      <td className="py-4 px-6 font-bold">{doc.title}</td>
+                      <td className="py-4 px-6">
+                        <span className={cn("px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest", category.color)}>{category.label}</span>
+                      </td>
+                      <td className="py-4 px-6 text-xs text-muted-foreground">{doc.description || 'Sem descrição'}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex justify-end gap-2">
+                          {doc.file_url && (
+                            <Button variant="ghost" size="icon" onClick={() => { setPreviewUrl(doc.file_url); setIsPreviewOpen(true); }} className="h-8 w-8 text-gold hover:bg-gold/10" title="Visualizar">
+                              <Eye size={16} />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" onClick={() => window.open(doc.file_url, '_blank')} className="h-8 w-8 text-gold hover:bg-gold/10" title="Abrir/baixar">
+                            <Download size={16} />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => { setEditingDoc(doc); setForm({...doc}); setDialogOpen(true); }} className="h-8 w-8 text-muted-foreground hover:bg-secondary/50" title="Editar">
+                            <Info size={16} />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => { if(window.confirm('Excluir documento?')) deleteMutation.mutate(doc.id); }} className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" title="Excluir">
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="bg-white border-border/40 text-foreground max-w-lg max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">
