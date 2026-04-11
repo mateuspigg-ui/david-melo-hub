@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Search, Folder, Download, Trash2, Info, Upload, Loader2 } from 'lucide-react';
+import { Plus, Search, Folder, Download, Trash2, Info, Upload, Loader2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,8 @@ export default function DocumentosPage() {
   const [editingDoc, setEditingDoc] = useState<any>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [documentsTableMissing, setDocumentsTableMissing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [form, setForm] = useState({
     title: '',
     category: 'operacional',
@@ -264,6 +266,17 @@ export default function DocumentosPage() {
 
               <div className="mt-8 pt-6 border-t border-border/10 flex items-center justify-between">
                 <div className="flex gap-2">
+                  {doc.file_url && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => { setPreviewUrl(doc.file_url); setIsPreviewOpen(true); }}
+                      className="h-10 w-10 text-gold hover:bg-gold/10 rounded-xl transition-all"
+                      title="Visualizar"
+                    >
+                      <Eye size={18} />
+                    </Button>
+                  )}
                   <Button variant="ghost" size="icon" onClick={() => window.open(doc.file_url, '_blank')} className="h-10 w-10 text-gold hover:bg-gold/10 rounded-xl transition-all">
                     <Download size={18} />
                   </Button>
@@ -351,6 +364,47 @@ export default function DocumentosPage() {
             <div className="flex justify-between items-center pt-8 border-t border-border/10">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[10px] font-black uppercase tracking-widest">Cancelar</Button>
               <Button onClick={() => saveMutation.mutate()} className="bg-gradient-gold text-white font-black h-12 px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em]">Registrar Arquivo</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 bg-slate-900 border-none overflow-hidden rounded-[32px] shadow-2xl">
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-6 bg-slate-800 text-white">
+              <div>
+                <h3 className="text-xl font-display uppercase tracking-tight">Visualização do Documento</h3>
+                <p className="text-[10px] text-white/40 font-black uppercase tracking-[0.2em] mt-1">Repositório David Melo Hub</p>
+              </div>
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  onClick={() => previewUrl && window.open(previewUrl, '_blank')}
+                  className="text-white border-white/20 hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest h-10 px-6"
+                >
+                  <Download size={14} className="mr-2" /> Abrir arquivo
+                </Button>
+                <Button variant="ghost" onClick={() => setIsPreviewOpen(false)} className="text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest h-10">Fechar</Button>
+              </div>
+            </div>
+            <div className="flex-1 bg-slate-950 p-4 relative">
+              {previewUrl && (
+                previewUrl.toLowerCase().endsWith('.png') ||
+                previewUrl.toLowerCase().endsWith('.jpg') ||
+                previewUrl.toLowerCase().endsWith('.jpeg') ||
+                previewUrl.includes('image')
+              ) ? (
+                <div className="w-full h-full flex items-center justify-center">
+                  <img src={previewUrl} alt="Preview" className="max-w-full max-h-full object-contain rounded-lg" />
+                </div>
+              ) : (
+                <iframe
+                  src={previewUrl?.includes('?') ? `${previewUrl}&view=fit` : previewUrl || ''}
+                  className="w-full h-full rounded-lg border-none bg-white"
+                  title="Document Preview"
+                />
+              )}
             </div>
           </div>
         </DialogContent>
