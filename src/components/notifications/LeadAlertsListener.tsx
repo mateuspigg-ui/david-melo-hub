@@ -76,6 +76,8 @@ export default function LeadAlertsListener() {
 
   useEffect(() => {
     const lastAlertByKey = new Map<string, number>();
+    const seenLeadEvents = new Set<string>();
+    let latestKnownNovoContatoCreatedAt = '';
 
     const shouldIgnoreDuplicate = (mode: 'new' | 'closed', leadId?: string) => {
       const key = `${mode}:${leadId || 'no-id'}`;
@@ -110,6 +112,13 @@ export default function LeadAlertsListener() {
       const mode = payload?.mode;
       const leadId = payload?.leadId;
       if (mode !== 'new' && mode !== 'closed') return;
+
+      if (leadId) {
+        const uniqueKey = `${mode}:${leadId}`;
+        if (seenLeadEvents.has(uniqueKey)) return;
+        seenLeadEvents.add(uniqueKey);
+      }
+
       if (shouldIgnoreDuplicate(mode, leadId)) return;
       void emitLeadAlert(mode);
     };
@@ -148,7 +157,35 @@ export default function LeadAlertsListener() {
       })
       .subscribe();
 
+    const checkLatestNovoContato = async () => {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, stage, created_at')
+        .eq('stage', 'novo_contato')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data?.created_at) return;
+
+      if (!latestKnownNovoContatoCreatedAt) {
+        latestKnownNovoContatoCreatedAt = data.created_at;
+        return;
+      }
+
+      if (new Date(data.created_at).getTime() > new Date(latestKnownNovoContatoCreatedAt).getTime()) {
+        latestKnownNovoContatoCreatedAt = data.created_at;
+        processPayload({ mode: 'new', leadId: data.id });
+      }
+    };
+
+    void checkLatestNovoContato();
+    const pollingId = window.setInterval(() => {
+      void checkLatestNovoContato();
+    }, 8000);
+
     return () => {
+      window.clearInterval(pollingId);
       window.removeEventListener(getLeadAlertEventName(), onWindowAlert as EventListener);
       window.removeEventListener('storage', onStorageAlert);
       void supabase.removeChannel(channel);
