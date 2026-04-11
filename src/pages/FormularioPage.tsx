@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +56,15 @@ export default function FormularioPage({ publicView = false }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [form, setForm] = useState<FormState>(initialState);
-  const publicFormUrl = 'https://davidmelo.com.br/formulario-publico';
+  const publicFormUrl = useMemo(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const configured = String((import.meta as any)?.env?.VITE_PUBLIC_FORM_URL || '').trim();
+
+    if (!configured) return `${origin}/formulario-publico`;
+    if (/^https?:\/\//i.test(configured)) return configured;
+    if (configured.startsWith('/')) return `${origin}${configured}`;
+    return `${origin}/${configured}`;
+  }, []);
 
   const mutation = useMutation({
     mutationFn: async () => {
