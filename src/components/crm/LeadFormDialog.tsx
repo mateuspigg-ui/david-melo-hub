@@ -24,6 +24,7 @@ interface Props {
 
 interface FormData {
   title: string;
+  lead_entry_date: string;
   first_name: string;
   last_name: string;
   phone: string;
@@ -44,11 +45,14 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormData>();
 
+  const todayDate = new Date().toISOString().split('T')[0];
+
   useEffect(() => {
     if (open) {
       if (lead) {
         reset({
           title: lead.title,
+          lead_entry_date: lead.created_at ? lead.created_at.split('T')[0] : todayDate,
           first_name: lead.first_name || '',
           last_name: lead.last_name || '',
           phone: lead.phone || '',
@@ -64,10 +68,10 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
           assigned_to: lead.assigned_to || '',
         });
       } else {
-        reset({ title: '', first_name: '', last_name: '', phone: '', client_id: '', stage: 'novo_contato', event_type: '', event_location: '', event_date: '', event_time: '', guest_count: '', total_budget: '', notes: '', assigned_to: '' });
+        reset({ title: '', lead_entry_date: todayDate, first_name: '', last_name: '', phone: '', client_id: '', stage: 'novo_contato', event_type: '', event_location: '', event_date: '', event_time: '', guest_count: '', total_budget: '', notes: '', assigned_to: '' });
       }
     }
-  }, [open, lead, reset]);
+  }, [open, lead, reset, todayDate]);
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -92,7 +96,11 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
         if (error) throw error;
         return lead.id;
       } else {
-        const { data: createdLead, error } = await supabase.from('leads').insert(payload as any).select('id').single();
+        const insertPayload = {
+          ...payload,
+          created_at: data.lead_entry_date ? `${data.lead_entry_date}T12:00:00` : undefined,
+        };
+        const { data: createdLead, error } = await supabase.from('leads').insert(insertPayload as any).select('id').single();
         if (error) throw error;
         return createdLead.id as string;
       }
@@ -149,6 +157,17 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
                   className="bg-secondary/20 border-border/10 focus:border-gold h-11 rounded-xl text-sm font-bold shadow-sm"
                 />
               </div>
+
+              {!lead && (
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Data de Entrada do Lead</Label>
+                  <Input
+                    type="date"
+                    {...register('lead_entry_date')}
+                    className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold shadow-sm"
+                  />
+                </div>
+              )}
 
               {/* ── Seção: Dados Pessoais de Contato ── */}
               <div className="sm:col-span-2">
