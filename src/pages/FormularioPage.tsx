@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ClipboardList, Copy, Send } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Copy, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const EVENT_TYPES = [
@@ -56,6 +56,7 @@ export default function FormularioPage({ publicView = false }: Props) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [form, setForm] = useState<FormState>(initialState);
+  const [submissionCompleted, setSubmissionCompleted] = useState(false);
   const publicFormUrl = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const configured = String((import.meta as any)?.env?.VITE_PUBLIC_FORM_URL || '').trim();
@@ -115,6 +116,7 @@ export default function FormularioPage({ publicView = false }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setForm(initialState);
+      if (publicView) setSubmissionCompleted(true);
       toast({
         title: 'Formulário enviado',
         description: user ? 'Lead criado no Kanban em Novo Contato.' : 'Recebemos seu pedido de orçamento. Em breve entraremos em contato.',
@@ -165,6 +167,26 @@ export default function FormularioPage({ publicView = false }: Props) {
         )}
       </div>
 
+      {submissionCompleted && publicView ? (
+        <div className="bg-white border border-gold/30 rounded-[24px] p-8 md:p-10 premium-shadow text-center space-y-4">
+          <div className="mx-auto w-14 h-14 rounded-full bg-gold/15 text-gold flex items-center justify-center">
+            <CheckCircle2 className="w-7 h-7" />
+          </div>
+          <h2 className="text-2xl font-display text-foreground tracking-tight uppercase">Obrigado pelo envio!</h2>
+          <p className="text-sm text-muted-foreground max-w-xl mx-auto">
+            Recebemos seu formulário com sucesso e vamos analisar as informações para retornar com a proposta.
+          </p>
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gold/90">Confirmação de recebimento concluída</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setSubmissionCompleted(false)}
+            className="mt-2 border-gold/40 text-gold hover:bg-gold hover:text-white"
+          >
+            Enviar novo formulário
+          </Button>
+        </div>
+      ) : (
       <div className="bg-white border border-border/40 rounded-[24px] p-6 md:p-8 premium-shadow space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="md:col-span-2 space-y-2">
@@ -240,6 +262,7 @@ export default function FormularioPage({ publicView = false }: Props) {
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 }
