@@ -92,9 +92,9 @@ export default function LeadAlertsListener() {
     };
 
     const emitLeadAlert = async (mode: 'new' | 'closed') => {
-      const title = mode === 'new' ? 'Novo lead criado! 🔔' : 'Novo cliente fechado! 🎉';
+      const title = mode === 'new' ? 'Chegou novo orçamento! 🔔' : 'Novo cliente fechado! 🎉';
       const body = mode === 'new'
-        ? 'Um novo lead entrou em Novo Contato.'
+        ? 'Um novo orçamento entrou em Novo Contato.'
         : 'Um lead foi movido para Fechados.';
 
       await showSystemNotification(title, body);
