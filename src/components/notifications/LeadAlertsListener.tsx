@@ -93,9 +93,10 @@ export default function LeadAlertsListener() {
         ? 'Um novo lead entrou em Novo Contato.'
         : 'Um lead foi movido para Fechados.';
 
+      await showSystemNotification(title, body);
+
       if (typeof document !== 'undefined' && document.hidden) {
         playLeadAlert(mode);
-        await showSystemNotification(title, body);
         return;
       }
 
