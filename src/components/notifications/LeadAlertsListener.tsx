@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getLeadAlertEventName, getLeadAlertStorageKey, type LeadAlertPayload } from '@/lib/leadAlerts';
+import { getLeadAlertBroadcastChannel, getLeadAlertEventName, getLeadAlertStorageKey, type LeadAlertPayload } from '@/lib/leadAlerts';
 
 const playLeadAlert = (mode: 'new' | 'closed') => {
   if (typeof window === 'undefined') return;
@@ -41,14 +41,14 @@ const showSystemNotification = async (title: string, body: string) => {
 
   try {
     if (Notification.permission === 'granted') {
-      new Notification(title, { body, tag: title });
+      new Notification(title, { body, tag: title, renotify: true, requireInteraction: true, silent: false });
       return;
     }
 
     if (Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        new Notification(title, { body, tag: title });
+        new Notification(title, { body, tag: title, renotify: true, requireInteraction: true, silent: false });
       }
     }
   } catch {
@@ -68,9 +68,13 @@ export default function LeadAlertsListener() {
     };
 
     window.addEventListener('click', requestPermissionOnInteraction, { once: true });
+    window.addEventListener('keydown', requestPermissionOnInteraction, { once: true });
+    window.addEventListener('touchstart', requestPermissionOnInteraction, { once: true });
 
     return () => {
       window.removeEventListener('click', requestPermissionOnInteraction);
+      window.removeEventListener('keydown', requestPermissionOnInteraction);
+      window.removeEventListener('touchstart', requestPermissionOnInteraction);
     };
   }, []);
 
@@ -138,10 +142,22 @@ export default function LeadAlertsListener() {
       }
     };
 
+    let broadcastChannel: BroadcastChannel | null = null;
+    const onBroadcastAlert = (event: MessageEvent<LeadAlertPayload>) => {
+      processPayload(event.data);
+    };
+
+    try {
+      broadcastChannel = new BroadcastChannel(getLeadAlertBroadcastChannel());
+      broadcastChannel.addEventListener('message', onBroadcastAlert);
+    } catch {
+      broadcastChannel = null;
+    }
+
     window.addEventListener(getLeadAlertEventName(), onWindowAlert as EventListener);
     window.addEventListener('storage', onStorageAlert);
 
-    const channel = supabase
+    const supabaseChannel = supabase
       .channel('lead-alerts-global')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads' }, (payload) => {
         const created = payload.new as { stage?: string };
@@ -189,7 +205,11 @@ export default function LeadAlertsListener() {
       window.clearInterval(pollingId);
       window.removeEventListener(getLeadAlertEventName(), onWindowAlert as EventListener);
       window.removeEventListener('storage', onStorageAlert);
-      void supabase.removeChannel(channel);
+      if (broadcastChannel) {
+        broadcastChannel.removeEventListener('message', onBroadcastAlert);
+        broadcastChannel.close();
+      }
+      void supabase.removeChannel(supabaseChannel);
     };
   }, [toast]);
 
