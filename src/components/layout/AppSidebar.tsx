@@ -67,9 +67,11 @@ const sections: NavSection[] = [
 
 interface Props {
   collapsed?: boolean;
+  mobile?: boolean;
+  onNavigate?: () => void;
 }
 
-const AppSidebar = ({ collapsed }: Props) => {
+const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
   const location = useLocation();
   const { profile, hasModuleAccess, isAdmin } = useAuth();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
@@ -86,11 +88,12 @@ const AppSidebar = ({ collapsed }: Props) => {
 
   return (
     <aside className={cn(
-      "h-screen shrink-0 bg-white/78 backdrop-blur-xl flex flex-col border-r border-border/50 transition-all duration-300 shadow-xl z-20",
-      collapsed ? "w-20" : "w-72"
+      "shrink-0 bg-white/78 backdrop-blur-xl flex flex-col border-r border-border/50 transition-all duration-300 shadow-xl z-20",
+      mobile ? "h-full w-full" : "h-screen",
+      mobile ? "w-[86vw] max-w-[340px]" : collapsed ? "w-20" : "w-72"
     )}>
-      <div className={cn("p-8 flex items-center justify-center border-b border-border/10 bg-white/40 backdrop-blur-sm", collapsed ? "p-4" : "p-8")}>
-        <img src={logo} alt="David Melo" className={cn("transition-all duration-500", collapsed ? "h-14 grayscale brightness-110" : "h-28")} />
+      <div className={cn("flex items-center justify-center border-b border-border/10 bg-white/40 backdrop-blur-sm", mobile ? "p-5" : collapsed ? "p-4" : "p-8")}>
+        <img src={logo} alt="David Melo" className={cn("transition-all duration-500", mobile ? "h-20" : collapsed ? "h-14 grayscale brightness-110" : "h-28")} />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
@@ -133,6 +136,7 @@ const AppSidebar = ({ collapsed }: Props) => {
                     <NavLink
                       key={item.path}
                       to={item.path}
+                      onClick={onNavigate}
                       className={cn(
                         "flex items-center gap-4 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 group",
                         isActive
@@ -158,7 +162,7 @@ const AppSidebar = ({ collapsed }: Props) => {
         ))}
       </nav>
 
-      <div className={cn("p-6 border-t border-border/10 bg-secondary/10", collapsed ? "p-4 items-center" : "p-6")}>
+      <div className={cn("border-t border-border/10 bg-secondary/10", mobile ? "p-5" : collapsed ? "p-4 items-center" : "p-6")}>
          {!collapsed ? (
            <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">{initials}</div>

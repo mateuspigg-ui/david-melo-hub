@@ -149,7 +149,7 @@ export default function FormularioPage({ publicView = false }: Props) {
   };
 
   return (
-    <div className="p-8 space-y-8 animate-fade-in max-w-[1100px] mx-auto min-h-screen">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in max-w-[1100px] mx-auto min-h-screen">
       <div className="flex items-center gap-4 border-b border-border/10 pb-6">
         <div className={publicView ? 'shrink-0' : 'w-12 h-12 shrink-0'}>
           <img
@@ -162,7 +162,7 @@ export default function FormularioPage({ publicView = false }: Props) {
           <ClipboardList className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-display text-foreground tracking-tight uppercase">FORMULÁRIO DE ORÇAMENTO</h1>
+          <h1 className="text-2xl md:text-3xl font-display text-foreground tracking-tight uppercase">FORMULÁRIO DE ORÇAMENTO</h1>
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold mt-1">
             {publicView ? 'Preencha para solicitar proposta' : 'Cadastro de dados do evento'}
           </p>
