@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    withTimeout(supabase.auth.getSession(), 10000).then(async ({ data: { session } }) => {
       setLoading(true);
       try {
         setSession(session);
@@ -106,9 +106,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } finally {
         setLoading(false);
       }
+    }).catch((error) => {
+      console.error('Falha ao obter sessão inicial:', error);
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    const forceReleaseLoading = setTimeout(() => {
+      setLoading(false);
+    }, 12000);
+
+    return () => {
+      clearTimeout(forceReleaseLoading);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const hasModuleAccess = (module: string) => {
