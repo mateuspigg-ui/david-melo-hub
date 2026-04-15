@@ -77,7 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        setLoading(true);
         try {
           setSession(session);
           setUser(session?.user ?? null);
@@ -90,8 +89,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         } catch (error) {
           console.error('Falha ao carregar contexto do usuário:', error);
-        } finally {
-          setLoading(false);
         }
       }
     );
