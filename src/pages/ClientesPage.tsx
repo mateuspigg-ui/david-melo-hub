@@ -106,9 +106,12 @@ const ClientesPage = () => {
         phone: form.phone || null,
         email: form.email || null,
         instagram: form.instagram || null,
-        cpf_cnpj: form.cpf_cnpj || null,
-        address: form.address || null,
+        cpf_cnpj: form.cpf_cnpj.trim(),
+        address: form.address.trim(),
       };
+
+      if (!payload.cpf_cnpj) throw new Error('Preencha o CPF/CNPJ do cliente.');
+      if (!payload.address) throw new Error('Preencha o endereço do cliente.');
       if (editingClient) {
         const { error } = await supabase.from('clients').update(payload).eq('id', editingClient.id);
         if (error) throw error;
@@ -517,8 +520,9 @@ const ClientesPage = () => {
                   <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">Você pode salvar sem preencher este campo.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CPF/CNPJ (Opcional)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CPF/CNPJ *</Label>
                   <Input
+                    required
                     value={form.cpf_cnpj}
                     onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
@@ -526,8 +530,9 @@ const ClientesPage = () => {
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço (Opcional)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço *</Label>
                   <Input
+                    required
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
