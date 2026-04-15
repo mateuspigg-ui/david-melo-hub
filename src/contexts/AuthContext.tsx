@@ -33,8 +33,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [allowedModules, setAllowedModules] = useState<string[]>([]);
 
+  const withTimeout = async <T,>(promise: Promise<T>, ms = 10000): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Tempo limite ao carregar contexto do usuário.')), ms);
+    });
+
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+
   const loadUserContext = async (userId: string) => {
-    await Promise.all([fetchProfile(userId), fetchPermissions(userId)]);
+    await withTimeout(Promise.all([fetchProfile(userId), fetchPermissions(userId)]));
   };
 
   const fetchProfile = async (userId: string) => {
@@ -75,6 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsAdmin(false);
             setAllowedModules([]);
           }
+        } catch (error) {
+          console.error('Falha ao carregar contexto do usuário:', error);
         } finally {
           setLoading(false);
         }
@@ -89,6 +104,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           await loadUserContext(session.user.id);
         }
+      } catch (error) {
+        console.error('Falha ao restaurar sessão do usuário:', error);
       } finally {
         setLoading(false);
       }
