@@ -62,10 +62,13 @@ const EquipePage = () => {
     queryFn: async () => {
       const { data: profiles } = await supabase.from('profiles').select('*');
       const { data: roles } = await supabase.from('user_roles').select('*');
-      return (profiles || []).map(p => ({
-        ...p,
-        roles: (roles || []).filter(r => r.user_id === p.id).map(r => r.role),
-      }));
+
+      return (profiles || [])
+        .map(p => ({
+          ...p,
+          roles: (roles || []).filter(r => r.user_id === p.id).map(r => r.role),
+        }))
+        .filter((p) => (p.roles || []).length > 0);
     },
   });
 
@@ -225,6 +228,43 @@ const EquipePage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team_invitations'] }),
   });
 
+  // Remove member access
+  const removeMember = useMutation({
+    mutationFn: async ({ userId, email }: { userId: string; email?: string | null }) => {
+      const operations: Promise<any>[] = [
+        supabase.from('module_permissions').delete().eq('user_id', userId),
+        supabase.from('user_roles').delete().eq('user_id', userId),
+      ];
+
+      if (email) {
+        operations.push(
+          supabase
+            .from('team_invitations')
+            .delete()
+            .eq('email', email)
+            .eq('status', 'pending')
+        );
+      }
+
+      const results = await Promise.all(operations);
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Membro removido da equipe!' });
+      queryClient.invalidateQueries({ queryKey: ['team_members'] });
+      queryClient.invalidateQueries({ queryKey: ['module_permissions'] });
+      queryClient.invalidateQueries({ queryKey: ['team_invitations'] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: 'Erro ao remover membro',
+        description: err?.message || 'Não foi possível remover o membro da equipe.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const toggleModule = (modules: string[], setModules: (m: string[]) => void, key: string) => {
     setModules(modules.includes(key) ? modules.filter(m => m !== key) : [...modules, key]);
   };
@@ -280,19 +320,36 @@ const EquipePage = () => {
                     {member.roles?.includes('admin') ? 'Admin' : member.roles?.includes('manager') ? 'Gerente' : 'Colaborador'}
                   </span>
                   {member.id !== user?.id && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setShowPermissionsDialog(member.id);
-                        setEditModules([]);
-                        setEditModulesDirty(false);
-                        setEditIsAdmin(member.roles?.includes('admin') || false);
-                      }}
-                      className="text-muted-foreground hover:text-gold"
-                    >
-                      <Settings size={18} />
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setShowPermissionsDialog(member.id);
+                          setEditModules([]);
+                          setEditModulesDirty(false);
+                          setEditIsAdmin(member.roles?.includes('admin') || false);
+                        }}
+                        className="text-muted-foreground hover:text-gold"
+                        title="Permissões"
+                      >
+                        <Settings size={18} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const confirmed = window.confirm(`Excluir o membro ${member.full_name || member.email || 'selecionado'} da equipe?`);
+                          if (!confirmed) return;
+                          removeMember.mutate({ userId: member.id, email: member.email });
+                        }}
+                        className="text-muted-foreground hover:text-destructive"
+                        title="Excluir membro"
+                        disabled={removeMember.isPending}
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
