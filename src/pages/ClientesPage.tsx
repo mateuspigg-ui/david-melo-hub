@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Phone, Mail, Instagram, Pencil, Trash2, User, LayoutGrid, List } from 'lucide-react';
+import { Plus, Search, Phone, Mail, Instagram, Pencil, Trash2, User, LayoutGrid, List, Hash, MapPin } from 'lucide-react';
 
 interface Client {
   id: string;
@@ -21,6 +21,8 @@ interface Client {
   phone: string | null;
   email: string | null;
   instagram: string | null;
+  cpf_cnpj: string | null;
+  address: string | null;
   created_at: string;
 }
 
@@ -40,7 +42,7 @@ interface ClientLeadEntry {
   created_at: string;
 }
 
-const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '' };
+const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '', cpf_cnpj: '', address: '' };
 
 const ClientesPage = () => {
   const [search, setSearch] = useState('');
@@ -104,6 +106,8 @@ const ClientesPage = () => {
         phone: form.phone || null,
         email: form.email || null,
         instagram: form.instagram || null,
+        cpf_cnpj: form.cpf_cnpj || null,
+        address: form.address || null,
       };
       if (editingClient) {
         const { error } = await supabase.from('clients').update(payload).eq('id', editingClient.id);
@@ -186,6 +190,8 @@ const ClientesPage = () => {
       phone: c.phone || '',
       email: c.email || '',
       instagram: c.instagram || '',
+      cpf_cnpj: c.cpf_cnpj || '',
+      address: c.address || '',
     });
     setDialogOpen(true);
   };
@@ -214,7 +220,9 @@ const ClientesPage = () => {
         c.first_name.toLowerCase().includes(q) ||
         c.last_name.toLowerCase().includes(q) ||
         (c.email?.toLowerCase().includes(q) ?? false) ||
-        (c.phone?.includes(q) ?? false)
+        (c.phone?.includes(q) ?? false) ||
+        (c.cpf_cnpj?.toLowerCase().includes(q) ?? false) ||
+        (c.address?.toLowerCase().includes(q) ?? false)
       ))
       .sort((a, b) => {
         const nameA = `${a.first_name} ${a.last_name || ''}`.trim();
@@ -246,7 +254,7 @@ const ClientesPage = () => {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, email ou telefone..."
+          placeholder="Buscar por nome, email, telefone, CPF/CNPJ ou endereço..."
           className="pl-14 bg-white border-border/10 focus:border-gold h-14 rounded-2xl shadow-sm text-sm font-medium relative z-10"
         />
       </div>
@@ -345,6 +353,22 @@ const ClientesPage = () => {
                     <span className="truncate">{c.email}</span>
                   </div>
                 )}
+                {c.cpf_cnpj && (
+                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
+                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
+                      <Hash size={14} className="text-gold/60" />
+                    </div>
+                    <span className="truncate">{c.cpf_cnpj}</span>
+                  </div>
+                )}
+                {c.address && (
+                  <div className="flex items-start gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
+                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center mt-0.5 shrink-0">
+                      <MapPin size={14} className="text-gold/60" />
+                    </div>
+                    <span className="break-words">{c.address}</span>
+                  </div>
+                )}
                 {c.instagram && (
                   <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
                     <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
@@ -366,6 +390,8 @@ const ClientesPage = () => {
                 <tr className="bg-secondary/10 border-b border-border/20">
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Cliente</th>
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Contato</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Documento</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Endereço</th>
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Entrada</th>
                   <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
                 </tr>
@@ -382,6 +408,12 @@ const ClientesPage = () => {
                       <td className="py-4 px-6">
                         <p className="text-sm">{c.phone || 'Sem telefone'}</p>
                         <p className="text-xs text-muted-foreground">{c.email || 'Sem e-mail'}</p>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-foreground/80">
+                        {c.cpf_cnpj || 'Não informado'}
+                      </td>
+                      <td className="py-4 px-6 text-sm text-foreground/80 max-w-[320px]">
+                        <span className="break-words">{c.address || 'Não informado'}</span>
                       </td>
                       <td className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                         {new Date(entryDate).toLocaleDateString('pt-BR')}
@@ -483,6 +515,24 @@ const ClientesPage = () => {
                     placeholder="cliente@email.com (opcional)"
                   />
                   <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">Você pode salvar sem preencher este campo.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CPF/CNPJ (Opcional)</Label>
+                  <Input
+                    value={form.cpf_cnpj}
+                    onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                  />
+                </div>
+                <div className="sm:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço (Opcional)</Label>
+                  <Input
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="Rua, número, bairro, cidade - UF"
+                  />
                 </div>
                 <div className="sm:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Instagram (Opcional)</Label>

@@ -1,0 +1,3 @@
+ALTER TABLE public.clients
+ADD COLUMN IF NOT EXISTS cpf_cnpj TEXT,
+ADD COLUMN IF NOT EXISTS address TEXT;
