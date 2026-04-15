@@ -116,7 +116,7 @@ const EquipePage = () => {
     onSuccess: async (data: any) => {
       try {
         const inviteToken = String(data?.token || token).trim();
-        const link = `${window.location.origin}/convite/${encodeURIComponent(inviteToken)}`;
+        const link = `${window.location.origin}/#/convite/${encodeURIComponent(inviteToken)}`;
         setGeneratedInviteLink(link);
 
         try {
@@ -229,7 +229,7 @@ const EquipePage = () => {
     setModules(modules.includes(key) ? modules.filter(m => m !== key) : [...modules, key]);
   };
 
-  const getInviteLink = (token: string) => `${window.location.origin}/convite/${encodeURIComponent(String(token || '').trim())}`;
+  const getInviteLink = (token: string) => `${window.location.origin}/#/convite/${encodeURIComponent(String(token || '').trim())}`;
 
   if (!isAdmin) {
     return (

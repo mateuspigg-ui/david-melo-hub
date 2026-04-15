@@ -64,10 +64,10 @@ export default function FormularioPage({ publicView = false }: Props) {
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
 
     if (hostname === 'app.davidmelo.com.br') {
-      return 'https://app.davidmelo.com.br/formulario-publico';
+      return 'https://app.davidmelo.com.br/#/formulario-publico';
     }
 
-    return origin ? `${origin}/formulario-publico` : 'https://app.davidmelo.com.br/formulario-publico';
+    return origin ? `${origin}/#/formulario-publico` : 'https://app.davidmelo.com.br/#/formulario-publico';
   }, []);
 
   const mutation = useMutation({
