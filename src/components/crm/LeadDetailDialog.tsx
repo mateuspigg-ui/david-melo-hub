@@ -10,7 +10,11 @@ import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2,
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LeadChatContainer from './LeadChatContainer';
 import type { Lead } from '@/pages/CRMPage';
+import { MessageSquare, Copy, ExternalLink } from 'lucide-react';
+import { buildClientChatUrl } from '@/lib/clientChatLink';
 
 interface Props {
   lead: Lead | null;
@@ -377,7 +381,14 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
         </div>
 
         {/* Body - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white/50 backdrop-blur-sm">
+        <div className="flex-1 overflow-y-auto px-8 py-4 bg-white/50 backdrop-blur-sm">
+          <Tabs defaultValue="detalhes" className="w-full">
+            <TabsList className="bg-secondary/20 p-1 rounded-xl mb-6 flex justify-start gap-2 h-12 w-fit">
+              <TabsTrigger value="detalhes" className="rounded-lg font-black uppercase text-[10px] tracking-widest px-6 data-[state=active]:bg-white data-[state=active]:text-gold data-[state=active]:shadow-sm transition-all h-full">📕 Detalhes</TabsTrigger>
+              <TabsTrigger value="chat" className="rounded-lg font-black uppercase text-[10px] tracking-widest px-6 data-[state=active]:bg-white data-[state=active]:text-gold data-[state=active]:shadow-sm transition-all h-full">💬 Chat com Cliente</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="detalhes" className="space-y-8 mt-0 animate-in fade-in-50 duration-300">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
               {lead.event_date && (
@@ -550,6 +561,51 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
               </div>
             </form>
           </div>
+          </TabsContent>
+
+          <TabsContent value="chat" className="mt-0 h-[500px] flex flex-col space-y-4 animate-in fade-in-50 duration-300">
+             <div className="flex items-center justify-between bg-gold/5 p-4 rounded-2xl border border-gold/10 mb-2">
+                <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-full bg-gold/15 flex items-center justify-center text-gold">
+                      <MessageSquare size={20} />
+                   </div>
+                   <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gold/80">Canal Exclusivo</p>
+                      <p className="text-xs font-bold">Link de acesso direto do cliente</p>
+                   </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const link = buildClientChatUrl(lead.chat_token);
+                      navigator.clipboard.writeText(link).then(() => {
+                        toast({ 
+                          title: 'Link copiado com sucesso!', 
+                          description: 'Você já pode colar no WhatsApp do cliente.',
+                        });
+                      }).catch(err => {
+                        console.error('Erro ao copiar:', err);
+                        toast({ title: 'Erro ao copiar link', variant: 'destructive' });
+                      });
+                    }}
+                    className="h-9 px-4 rounded-xl border-gold/30 text-gold hover:bg-gold hover:text-white transition-all text-[9px] font-black uppercase tracking-widest"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-2" /> Copiar Link
+                  </Button>
+                  <a href={buildClientChatUrl(lead.chat_token)} target="_blank" rel="noreferrer">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-gold/60 hover:bg-gold/10">
+                       <ExternalLink size={16} />
+                    </Button>
+                  </a>
+                </div>
+             </div>
+             <div className="flex-1">
+                <LeadChatContainer leadId={lead.id} isAdminView />
+             </div>
+          </TabsContent>
+          </Tabs>
         </div>
 
         {/* Footer - Fixed */}
