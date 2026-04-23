@@ -115,11 +115,40 @@ export default function FormularioPage({ publicView = false }: Props) {
         stage: 'novo_contato',
       };
 
-      const { data, error } = await (supabase as any).from('leads').insert(payload).select('id, chat_token').single();
+      const { data, error } = await (supabase as any).from('leads').insert(payload).select('id').single();
       if (error) throw error;
+
+      const createdLeadId = data?.id as string | undefined;
+      let chatToken: string | undefined;
+
+      if (createdLeadId) {
+        try {
+          const { data: chatData } = await (supabase as any).rpc('get_or_create_lead_chat', { p_lead_id: createdLeadId });
+          if (chatData && typeof chatData === 'object' && 'token' in chatData) {
+            chatToken = String((chatData as { token?: string }).token || '').trim() || undefined;
+          }
+        } catch {
+          chatToken = undefined;
+        }
+
+        if (!chatToken) {
+          try {
+            const { data: leadWithToken } = await (supabase as any)
+              .from('leads')
+              .select('chat_token')
+              .eq('id', createdLeadId)
+              .maybeSingle();
+
+            chatToken = String((leadWithToken as any)?.chat_token || '').trim() || undefined;
+          } catch {
+            chatToken = undefined;
+          }
+        }
+      }
+
       return {
-        id: data?.id as string | undefined,
-        chatToken: data?.chat_token as string | undefined,
+        id: createdLeadId,
+        chatToken,
       };
     },
     onSuccess: (createdLead?: { id?: string; chatToken?: string }) => {

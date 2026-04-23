@@ -73,6 +73,7 @@ const App = () => (
             <Route path="/convite/:token" element={<InvitePage />} />
             <Route path="/formulario-publico" element={<FormularioPage publicView />} />
             <Route path="/chat/:token" element={<PublicChatPage />} />
+            <Route path="/eventServiceSupplierChat/:token" element={<PublicChatPage />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/contratos" element={<ModuleRoute module="contratos" element={<ContratosPage />} />} />
