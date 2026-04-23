@@ -22,6 +22,26 @@ interface ChatInfo {
   guest_count: number | null;
 }
 
+interface LegacyLeadInfo {
+  id: string;
+  title: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  stage?: string | null;
+}
+
+interface LegacyMessageRow {
+  id: string;
+  sender_name: string;
+  content: string | null;
+  attachment_url: string | null;
+  attachment_type: string | null;
+  created_at: string;
+  is_from_me: boolean;
+}
+
+type ChatMode = 'modern' | 'legacy';
+
 const EVENT_LABELS: Record<string, string> = {
   casamento: 'Casamento',
   '15_anos': '15 Anos',
@@ -36,6 +56,7 @@ export default function PublicChatPage() {
   const token = params.token || '';
   const { toast } = useToast();
 
+  const [mode, setMode] = useState<ChatMode>('modern');
   const [resolvedToken, setResolvedToken] = useState<string>('');
   const [info, setInfo] = useState<ChatInfo | null>(null);
   const [loadingInfo, setLoadingInfo] = useState(true);
@@ -45,30 +66,68 @@ export default function PublicChatPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const mapLegacyMessages = (rows: LegacyMessageRow[]): ChatMessage[] => {
+    return (rows || []).map((item) => ({
+      id: item.id,
+      chat_id: `legacy-${token}`,
+      sender_type: item.is_from_me ? 'client' : 'company',
+      body: item.content,
+      attachment_url: item.attachment_url,
+      attachment_name: null,
+      attachment_type: item.attachment_type,
+      attachment_size: null,
+      created_at: item.created_at,
+      read_at: null,
+    }));
+  };
+
   // 1. Resolve o token público (aceita token novo e legado)
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoadingInfo(true);
+      setError(null);
+
       const { data: resolved, error: resolveError } = await (publicSupabase as any).rpc('resolve_public_chat_token', { p_token: token });
       if (cancelled) return;
 
-      if (resolveError || !resolved) {
-        setError('Link inválido ou expirado.');
-        setLoadingInfo(false);
-        return;
+      if (!resolveError && resolved) {
+        const nextToken = String(resolved).trim();
+        setResolvedToken(nextToken);
+        setMode('modern');
+
+        const { data, error } = await (publicSupabase as any).rpc('get_public_chat', { p_token: nextToken });
+        if (cancelled) return;
+        if (!error && data && data.length > 0) {
+          setInfo(data[0] as ChatInfo);
+          setLoadingInfo(false);
+          return;
+        }
       }
 
-      const nextToken = String(resolved).trim();
-      setResolvedToken(nextToken);
-
-      const { data, error } = await (publicSupabase as any).rpc('get_public_chat', { p_token: nextToken });
+      // fallback legado (chat_token UUID + lead_messages)
+      const { data: legacyLead, error: legacyError } = await (publicSupabase as any).rpc('get_lead_by_token', { p_token: token });
       if (cancelled) return;
-      if (error || !data || data.length === 0) {
+
+      if (legacyError || !legacyLead || legacyLead.length === 0) {
         setError('Link inválido ou expirado.');
       } else {
-        setError(null);
-        setInfo(data[0] as ChatInfo);
+        const lead = legacyLead[0] as LegacyLeadInfo;
+        setMode('legacy');
+        setResolvedToken(token);
+        setInfo({
+          chat_id: `legacy-${token}`,
+          lead_id: lead.id,
+          lead_title: lead.title,
+          client_first_name: String(lead.first_name || '').trim() || 'Cliente',
+          status: lead.stage || 'open',
+          created_at: new Date().toISOString(),
+          event_type: null,
+          event_date: null,
+          event_time: null,
+          event_location: null,
+          guest_count: null,
+        });
       }
       setLoadingInfo(false);
     };
@@ -85,12 +144,19 @@ export default function PublicChatPage() {
 
     const fetchAll = async () => {
       setLoadingMsgs(true);
-      const { data, error } = await (publicSupabase as any).rpc('list_public_chat_messages', { p_token: resolvedToken });
-      if (cancelled) return;
-      if (!error && data) setMessages(data as ChatMessage[]);
+      if (mode === 'modern') {
+        const { data, error } = await (publicSupabase as any).rpc('list_public_chat_messages', { p_token: resolvedToken });
+        if (cancelled) return;
+        if (!error && data) setMessages(data as ChatMessage[]);
+      } else {
+        const { data, error } = await (publicSupabase as any).rpc('get_messages_by_token', { p_token: resolvedToken });
+        if (cancelled) return;
+        if (!error && data) setMessages(mapLegacyMessages(data as LegacyMessageRow[]));
+      }
       setLoadingMsgs(false);
-      // marca mensagens da empresa como lidas
-      await (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
+      if (mode === 'modern') {
+        await (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
+      }
     };
     fetchAll();
 
@@ -98,13 +164,41 @@ export default function PublicChatPage() {
       .channel(`public-chat-${info.chat_id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'lead_chat_messages', filter: `chat_id=eq.${info.chat_id}` },
+        mode === 'modern'
+          ? { event: 'INSERT', schema: 'public', table: 'lead_chat_messages', filter: `chat_id=eq.${info.chat_id}` }
+          : { event: 'INSERT', schema: 'public', table: 'lead_messages', filter: `lead_id=eq.${info.lead_id}` },
         (payload) => {
-          const msg = payload.new as ChatMessage;
-          setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
-          if (msg.sender_type === 'company') {
-            void (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
+          if (mode === 'modern') {
+            const msg = payload.new as ChatMessage;
+            setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
+            if (msg.sender_type === 'company') {
+              void (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
+            }
+            return;
           }
+
+          const msg = payload.new as {
+            id: string;
+            sender_id?: string | null;
+            content?: string | null;
+            attachment_url?: string | null;
+            attachment_type?: string | null;
+            created_at: string;
+          };
+
+          const mapped: ChatMessage = {
+            id: msg.id,
+            chat_id: `legacy-${resolvedToken}`,
+            sender_type: msg.sender_id ? 'company' : 'client',
+            body: msg.content || null,
+            attachment_url: msg.attachment_url || null,
+            attachment_name: null,
+            attachment_type: msg.attachment_type || null,
+            attachment_size: null,
+            created_at: msg.created_at,
+            read_at: null,
+          };
+          setMessages((prev) => (prev.some((m) => m.id === mapped.id) ? prev : [...prev, mapped]));
         },
       )
       .subscribe();
@@ -113,15 +207,22 @@ export default function PublicChatPage() {
       cancelled = true;
       void publicSupabase.removeChannel(channel);
     };
-  }, [info?.chat_id, resolvedToken]);
+  }, [info?.chat_id, info?.lead_id, resolvedToken, mode]);
 
   const handleSend = async (body: string) => {
     if (!resolvedToken) return;
     setSending(true);
-    const { error } = await (publicSupabase as any).rpc('send_public_chat_message', {
-      p_token: resolvedToken,
-      p_body: body,
-    });
+    const { error } = mode === 'modern'
+      ? await (publicSupabase as any).rpc('send_public_chat_message', {
+          p_token: resolvedToken,
+          p_body: body,
+        })
+      : await (publicSupabase as any).rpc('send_client_message', {
+          p_token: resolvedToken,
+          p_content: body,
+          p_attachment_url: null,
+          p_attachment_type: null,
+        });
     setSending(false);
     if (error) {
       toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
@@ -134,20 +235,28 @@ export default function PublicChatPage() {
     try {
       for (const file of files) {
         const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const storageBucket = mode === 'modern' ? 'lead-chat-attachments' : 'lead-attachments';
         const path = `${resolvedToken}/${Date.now()}_${safeName}`;
         const { error: upErr } = await publicSupabase.storage
-          .from('lead-chat-attachments')
+          .from(storageBucket)
           .upload(path, file, { contentType: file.type, upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = publicSupabase.storage.from('lead-chat-attachments').getPublicUrl(path);
-        const { error } = await (publicSupabase as any).rpc('send_public_chat_message', {
-          p_token: resolvedToken,
-          p_body: null,
-          p_attachment_url: pub.publicUrl,
-          p_attachment_name: file.name,
-          p_attachment_type: file.type,
-          p_attachment_size: file.size,
-        });
+        const { data: pub } = publicSupabase.storage.from(storageBucket).getPublicUrl(path);
+        const { error } = mode === 'modern'
+          ? await (publicSupabase as any).rpc('send_public_chat_message', {
+              p_token: resolvedToken,
+              p_body: null,
+              p_attachment_url: pub.publicUrl,
+              p_attachment_name: file.name,
+              p_attachment_type: file.type,
+              p_attachment_size: file.size,
+            })
+          : await (publicSupabase as any).rpc('send_client_message', {
+              p_token: resolvedToken,
+              p_content: null,
+              p_attachment_url: pub.publicUrl,
+              p_attachment_type: file.type,
+            });
         if (error) throw error;
       }
     } catch (e: any) {
