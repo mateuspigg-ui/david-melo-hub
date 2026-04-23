@@ -181,6 +181,11 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
                         <Icon size={18} />
                       </div>
                       {!collapsed && <span className="flex-1">{item.label}</span>}
+                      {item.path === '/mensagens' && unreadChats > 0 && (
+                        <span className="ml-auto text-[9px] font-black bg-gold text-white rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                          {unreadChats > 99 ? '99+' : unreadChats}
+                        </span>
+                      )}
                       {isActive && !collapsed && <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />}
                     </NavLink>
                   );
