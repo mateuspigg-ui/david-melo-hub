@@ -242,7 +242,7 @@ export default function ChatThread({
           <Button
             type="button"
             onClick={handleSend}
-            disabled={sending || !body.trim()}
+            disabled={sending || uploading || !body.trim()}
             className="shrink-0 h-11 px-4 rounded-xl bg-gradient-gold hover:opacity-90 text-white shadow-gold"
           >
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

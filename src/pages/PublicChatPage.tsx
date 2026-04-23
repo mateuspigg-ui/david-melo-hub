@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { publicSupabase } from '@/integrations/supabase/publicClient';
 import ChatThread, { type ChatMessage } from '@/components/chat/ChatThread';
 import { CalendarDays, Loader2, MapPin, MessageCircle, Users } from 'lucide-react';
 import logo from '@/assets/logo.png';
@@ -50,7 +50,7 @@ export default function PublicChatPage() {
     let cancelled = false;
     const load = async () => {
       setLoadingInfo(true);
-      const { data: resolved, error: resolveError } = await (supabase as any).rpc('resolve_public_chat_token', { p_token: token });
+      const { data: resolved, error: resolveError } = await (publicSupabase as any).rpc('resolve_public_chat_token', { p_token: token });
       if (cancelled) return;
 
       if (resolveError || !resolved) {
@@ -62,7 +62,7 @@ export default function PublicChatPage() {
       const nextToken = String(resolved).trim();
       setResolvedToken(nextToken);
 
-      const { data, error } = await (supabase as any).rpc('get_public_chat', { p_token: nextToken });
+      const { data, error } = await (publicSupabase as any).rpc('get_public_chat', { p_token: nextToken });
       if (cancelled) return;
       if (error || !data || data.length === 0) {
         setError('Link inválido ou expirado.');
@@ -85,16 +85,16 @@ export default function PublicChatPage() {
 
     const fetchAll = async () => {
       setLoadingMsgs(true);
-      const { data, error } = await (supabase as any).rpc('list_public_chat_messages', { p_token: resolvedToken });
+      const { data, error } = await (publicSupabase as any).rpc('list_public_chat_messages', { p_token: resolvedToken });
       if (cancelled) return;
       if (!error && data) setMessages(data as ChatMessage[]);
       setLoadingMsgs(false);
       // marca mensagens da empresa como lidas
-      await (supabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
+      await (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
     };
     fetchAll();
 
-    const channel = supabase
+    const channel = publicSupabase
       .channel(`public-chat-${info.chat_id}`)
       .on(
         'postgres_changes',
@@ -103,7 +103,7 @@ export default function PublicChatPage() {
           const msg = payload.new as ChatMessage;
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
           if (msg.sender_type === 'company') {
-            void (supabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
+            void (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
           }
         },
       )
@@ -111,14 +111,14 @@ export default function PublicChatPage() {
 
     return () => {
       cancelled = true;
-      void supabase.removeChannel(channel);
+      void publicSupabase.removeChannel(channel);
     };
   }, [info?.chat_id, resolvedToken]);
 
   const handleSend = async (body: string) => {
     if (!resolvedToken) return;
     setSending(true);
-    const { error } = await (supabase as any).rpc('send_public_chat_message', {
+    const { error } = await (publicSupabase as any).rpc('send_public_chat_message', {
       p_token: resolvedToken,
       p_body: body,
     });
@@ -135,12 +135,12 @@ export default function PublicChatPage() {
       for (const file of files) {
         const safeName = file.name.replace(/[^\w.\-]+/g, '_');
         const path = `${resolvedToken}/${Date.now()}_${safeName}`;
-        const { error: upErr } = await supabase.storage
+        const { error: upErr } = await publicSupabase.storage
           .from('lead-chat-attachments')
           .upload(path, file, { contentType: file.type, upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('lead-chat-attachments').getPublicUrl(path);
-        const { error } = await (supabase as any).rpc('send_public_chat_message', {
+        const { data: pub } = publicSupabase.storage.from('lead-chat-attachments').getPublicUrl(path);
+        const { error } = await (publicSupabase as any).rpc('send_public_chat_message', {
           p_token: resolvedToken,
           p_body: null,
           p_attachment_url: pub.publicUrl,
