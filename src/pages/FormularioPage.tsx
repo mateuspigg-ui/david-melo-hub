@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, ClipboardList, Copy, Send } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Copy, MessageCircle, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
 import { publishLeadAlert } from '@/lib/leadAlerts';
+import { buildClientChatUrl, clientChatExampleLink } from '@/lib/clientChatLink';
 
 const EVENT_TYPES = [
   { value: 'casamento', label: 'Casamento' },
@@ -59,6 +60,7 @@ export default function FormularioPage({ publicView = false }: Props) {
   const { user } = useAuth();
   const [form, setForm] = useState<FormState>(initialState);
   const [submissionCompleted, setSubmissionCompleted] = useState(false);
+  const [submittedChatLink, setSubmittedChatLink] = useState<string | null>(null);
   const publicFormUrl = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -113,15 +115,21 @@ export default function FormularioPage({ publicView = false }: Props) {
         stage: 'novo_contato',
       };
 
-      const { data, error } = await (supabase as any).from('leads').insert(payload).select('id').single();
+      const { data, error } = await (supabase as any).from('leads').insert(payload).select('id, chat_token').single();
       if (error) throw error;
-      return data?.id as string | undefined;
+      return {
+        id: data?.id as string | undefined,
+        chatToken: data?.chat_token as string | undefined,
+      };
     },
-    onSuccess: (createdLeadId?: string) => {
+    onSuccess: (createdLead?: { id?: string; chatToken?: string }) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setForm(initialState);
-      publishLeadAlert('new', createdLeadId);
-      if (publicView) setSubmissionCompleted(true);
+      publishLeadAlert('new', createdLead?.id);
+      if (publicView) {
+        setSubmissionCompleted(true);
+        setSubmittedChatLink(createdLead?.chatToken ? buildClientChatUrl(createdLead.chatToken) : null);
+      }
       toast({
         title: 'Formulário enviado',
         description: user ? 'Lead criado no Kanban em Novo Contato.' : 'Recebemos seu pedido de orçamento. Em breve entraremos em contato.',
@@ -189,11 +197,31 @@ export default function FormularioPage({ publicView = false }: Props) {
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             Recebemos seu formulário com sucesso e vamos analisar as informações para retornar com a proposta.
           </p>
+          <div className="mx-auto max-w-2xl bg-gold/5 border border-gold/20 rounded-2xl px-4 py-5 space-y-2 text-left">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gold/90 flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" /> Canal de Chat e Upload
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Neste canal você pode enviar fotos de inspirações e anexos, e nossa equipe enviará o orçamento em PDF no mesmo link.
+            </p>
+            {submittedChatLink ? (
+              <a href={submittedChatLink} target="_blank" rel="noreferrer" className="text-xs font-bold text-gold underline break-all">
+                {submittedChatLink}
+              </a>
+            ) : (
+              <p className="text-xs text-muted-foreground break-all">
+                Exemplo: <span className="font-bold text-gold">https://assessoriavip.com.br{clientChatExampleLink}</span>
+              </p>
+            )}
+          </div>
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gold/90">Confirmação de recebimento concluída</p>
           <Button
             type="button"
             variant="outline"
-            onClick={() => setSubmissionCompleted(false)}
+            onClick={() => {
+              setSubmissionCompleted(false);
+              setSubmittedChatLink(null);
+            }}
             className="mt-2 border-gold/40 text-gold hover:bg-gold hover:text-white"
           >
             Enviar novo formulário
