@@ -172,6 +172,22 @@ export default function LeadAlertsListener() {
           processPayload({ mode: 'closed', leadId: current.id });
         }
       })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lead_chat_messages' }, (payload) => {
+        const msg = payload.new as { sender_type?: string; body?: string | null; attachment_name?: string | null };
+        if (msg.sender_type !== 'client') return;
+        playLeadAlert('new');
+        const preview = (msg.body || msg.attachment_name || 'Anexo').slice(0, 80);
+        toast({
+          title: 'Nova mensagem do cliente 💬',
+          description: preview,
+          className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/10 cursor-pointer',
+          duration: 12000,
+          onClick: () => {
+            if (typeof window !== 'undefined') window.location.hash = '#/mensagens';
+          },
+        });
+        void showSystemNotification('Nova mensagem do cliente', preview);
+      })
       .subscribe();
 
     const checkLatestNovoContato = async () => {

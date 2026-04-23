@@ -2,11 +2,13 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
   UserCog, FileText, Building2, ShoppingBag, CreditCard,
-  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock
+  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock, MessageCircle
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.png';
 
 interface NavItem {
@@ -36,6 +38,7 @@ const sections: NavSection[] = [
     items: [
       { label: 'Meus Clientes', path: '/clientes', icon: Users, module: 'clientes' },
       { label: 'Gestão de Clientes', path: '/crm', icon: Handshake, module: 'crm' },
+      { label: 'Mensagens', path: '/mensagens', icon: MessageCircle, module: 'crm' },
       { label: 'Formulário', path: '/formulario', icon: FileText, module: 'crm' },
     ],
   },
@@ -74,9 +77,35 @@ interface Props {
 const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
   const location = useLocation();
   const { profile, hasModuleAccess, isAdmin } = useAuth();
+  const queryClient = useQueryClient();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(
     Object.fromEntries(sections.map(s => [s.label, true]))
   );
+
+  // Total de mensagens não lidas pela equipe
+  const { data: unreadChats = 0 } = useQuery({
+    queryKey: ['chat_unread_total'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lead_chats')
+        .select('unread_company');
+      if (error) return 0;
+      return (data || []).reduce((acc: number, row: any) => acc + (row.unread_company || 0), 0);
+    },
+    refetchInterval: 15000,
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('sidebar-chat-unread')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lead_chats' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['chat_unread_total'] });
+      })
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const toggleSection = (label: string) => {
     setOpenSections(prev => ({ ...prev, [label]: !prev[label] }));
@@ -152,6 +181,11 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
                         <Icon size={18} />
                       </div>
                       {!collapsed && <span className="flex-1">{item.label}</span>}
+                      {item.path === '/mensagens' && unreadChats > 0 && (
+                        <span className="ml-auto text-[9px] font-black bg-gold text-white rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                          {unreadChats > 99 ? '99+' : unreadChats}
+                        </span>
+                      )}
                       {isActive && !collapsed && <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />}
                     </NavLink>
                   );

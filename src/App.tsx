@@ -23,6 +23,8 @@ import FinancialDashboard from "@/pages/FinancialDashboard";
 import EquipePage from "@/pages/EquipePage";
 import InvitePage from "@/pages/InvitePage";
 import FormularioPage from "@/pages/FormularioPage";
+import PublicChatPage from "@/pages/PublicChatPage";
+import MensagensPage from "@/pages/MensagensPage";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +72,7 @@ const App = () => (
             <Route path="/auth" element={<AuthRoute />} />
             <Route path="/convite/:token" element={<InvitePage />} />
             <Route path="/formulario-publico" element={<FormularioPage publicView />} />
+            <Route path="/chat/:token" element={<PublicChatPage />} />
             <Route element={<ProtectedRoutes />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/contratos" element={<ModuleRoute module="contratos" element={<ContratosPage />} />} />
@@ -79,6 +82,7 @@ const App = () => (
               <Route path="/crm" element={<ModuleRoute module="crm" element={<CRMPage />} />} />
               <Route path="/formulario" element={<ModuleRoute module="crm" element={<FormularioPage />} />} />
               <Route path="/eventos" element={<ModuleRoute module="eventos" element={<EventosPage />} />} />
+              <Route path="/mensagens" element={<ModuleRoute module="crm" element={<MensagensPage />} />} />
               <Route path="/agenda" element={<ModuleRoute module="agenda" element={<AgendaPage />} />} />
               <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<PagamentosPage />} />} />
               <Route path="/conciliacao" element={<ModuleRoute module="financeiro" element={<ConciliacaoPage />} />} />

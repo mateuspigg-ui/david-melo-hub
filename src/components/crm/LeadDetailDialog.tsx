@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus, MessageCircle } from 'lucide-react';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import type { Lead } from '@/pages/CRMPage';
+import LeadChatPanel from '@/components/crm/LeadChatPanel';
 
 interface Props {
   lead: Lead | null;
@@ -377,7 +379,19 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
         </div>
 
         {/* Body - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white/50 backdrop-blur-sm">
+        <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0 bg-white/50 backdrop-blur-sm">
+          <div className="px-8 pt-5 border-b border-border/20 bg-white/60 sticky top-0 z-10">
+            <TabsList className="bg-secondary/40 rounded-xl">
+              <TabsTrigger value="detalhes" className="rounded-lg font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-gold">
+                Detalhes
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="rounded-lg font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-gold">
+                <MessageCircle className="w-3.5 h-3.5 mr-1.5" /> Chat com cliente
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="detalhes" className="flex-1 overflow-y-auto p-8 space-y-8 m-0">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
               {lead.event_date && (
@@ -550,7 +564,12 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
               </div>
             </form>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="chat" className="flex-1 overflow-y-auto p-6 m-0">
+            <LeadChatPanel leadId={lead.id} />
+          </TabsContent>
+        </Tabs>
 
         {/* Footer - Fixed */}
         <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">

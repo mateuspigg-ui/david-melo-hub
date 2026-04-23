@@ -270,6 +270,103 @@ export type Database = {
           },
         ]
       }
+      lead_chat_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          attachment_url: string | null
+          body: string | null
+          chat_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_type: string
+          sender_user_id: string | null
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
+          body?: string | null
+          chat_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_type: string
+          sender_user_id?: string | null
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_size?: number | null
+          attachment_type?: string | null
+          attachment_url?: string | null
+          body?: string | null
+          chat_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_type?: string
+          sender_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "lead_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_chats: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          lead_id: string
+          status: string
+          token: string
+          unread_client: number
+          unread_company: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          lead_id: string
+          status?: string
+          token?: string
+          unread_client?: number
+          unread_company?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          lead_id?: string
+          status?: string
+          token?: string
+          unread_client?: number
+          unread_company?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_chats_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_tasks: {
         Row: {
           assigned_to: string | null
@@ -637,12 +734,100 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_or_create_lead_chat: {
+        Args: { p_lead_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          lead_id: string
+          status: string
+          token: string
+          unread_client: number
+          unread_company: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lead_chats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_public_chat: {
+        Args: { p_token: string }
+        Returns: {
+          chat_id: string
+          client_first_name: string
+          created_at: string
+          lead_id: string
+          lead_title: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      list_public_chat_messages: {
+        Args: { p_token: string }
+        Returns: {
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          attachment_url: string | null
+          body: string | null
+          chat_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_type: string
+          sender_user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "lead_chat_messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      mark_company_chat_read: {
+        Args: { p_chat_id: string }
+        Returns: undefined
+      }
+      mark_public_chat_read: { Args: { p_token: string }; Returns: undefined }
+      send_public_chat_message: {
+        Args: {
+          p_attachment_name?: string
+          p_attachment_size?: number
+          p_attachment_type?: string
+          p_attachment_url?: string
+          p_body: string
+          p_token: string
+        }
+        Returns: {
+          attachment_name: string | null
+          attachment_size: number | null
+          attachment_type: string | null
+          attachment_url: string | null
+          body: string | null
+          chat_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_type: string
+          sender_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "lead_chat_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
