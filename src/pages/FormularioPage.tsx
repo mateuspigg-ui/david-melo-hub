@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { publicSupabase } from '@/integrations/supabase/publicClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,6 +75,7 @@ export default function FormularioPage({ publicView = false }: Props) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const db = publicView ? publicSupabase : supabase;
       const title = form.title.trim();
       const firstName = form.first_name.trim();
       const lastName = form.last_name.trim();
@@ -115,15 +117,41 @@ export default function FormularioPage({ publicView = false }: Props) {
         stage: 'novo_contato',
       };
 
-      const { data, error } = await (supabase as any).from('leads').insert(payload).select('id').single();
-      if (error) throw error;
-
-      const createdLeadId = data?.id as string | undefined;
+      let createdLeadId: string | undefined;
       let chatToken: string | undefined;
 
-      if (createdLeadId) {
+      if (publicView) {
+        const { data: publicSubmission, error: publicSubmissionError } = await (db as any).rpc('submit_public_budget_form', {
+          p_title: payload.title,
+          p_first_name: payload.first_name,
+          p_last_name: payload.last_name,
+          p_phone: payload.phone,
+          p_event_type: payload.event_type,
+          p_event_location: payload.event_location,
+          p_event_date: payload.event_date,
+          p_event_time: payload.event_time,
+          p_guest_count: payload.guest_count,
+          p_notes: payload.notes,
+        });
+
+        if (!publicSubmissionError) {
+          const row = Array.isArray(publicSubmission) ? publicSubmission[0] : publicSubmission;
+          createdLeadId = String((row as any)?.lead_id || '').trim() || undefined;
+          chatToken = String((row as any)?.chat_token || '').trim() || undefined;
+        } else {
+          const { data, error } = await (db as any).from('leads').insert(payload).select('id').single();
+          if (error) throw publicSubmissionError;
+          createdLeadId = data?.id as string | undefined;
+        }
+      } else {
+        const { data, error } = await (db as any).from('leads').insert(payload).select('id').single();
+        if (error) throw error;
+        createdLeadId = data?.id as string | undefined;
+      }
+
+      if (createdLeadId && !chatToken) {
         try {
-          const { data: chatData } = await (supabase as any).rpc('get_or_create_lead_chat', { p_lead_id: createdLeadId });
+          const { data: chatData } = await (db as any).rpc('get_or_create_lead_chat', { p_lead_id: createdLeadId });
           if (chatData && typeof chatData === 'object' && 'token' in chatData) {
             chatToken = String((chatData as { token?: string }).token || '').trim() || undefined;
           }
@@ -133,7 +161,7 @@ export default function FormularioPage({ publicView = false }: Props) {
 
         if (!chatToken) {
           try {
-            const { data: leadWithToken } = await (supabase as any)
+            const { data: leadWithToken } = await (db as any)
               .from('leads')
               .select('chat_token')
               .eq('id', createdLeadId)

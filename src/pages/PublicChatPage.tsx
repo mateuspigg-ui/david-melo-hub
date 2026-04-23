@@ -142,8 +142,8 @@ export default function PublicChatPage() {
     if (!info?.chat_id || !resolvedToken) return;
     let cancelled = false;
 
-    const fetchAll = async () => {
-      setLoadingMsgs(true);
+    const fetchAll = async (showLoader = false) => {
+      if (showLoader) setLoadingMsgs(true);
       if (mode === 'modern') {
         const { data, error } = await (publicSupabase as any).rpc('list_public_chat_messages', { p_token: resolvedToken });
         if (cancelled) return;
@@ -153,12 +153,15 @@ export default function PublicChatPage() {
         if (cancelled) return;
         if (!error && data) setMessages(mapLegacyMessages(data as LegacyMessageRow[]));
       }
-      setLoadingMsgs(false);
+      if (showLoader) setLoadingMsgs(false);
       if (mode === 'modern') {
         await (publicSupabase as any).rpc('mark_public_chat_read', { p_token: resolvedToken });
       }
     };
-    fetchAll();
+    void fetchAll(true);
+    const pollingId = window.setInterval(() => {
+      void fetchAll(false);
+    }, 4000);
 
     const channel = publicSupabase
       .channel(`public-chat-${info.chat_id}`)
@@ -205,6 +208,7 @@ export default function PublicChatPage() {
 
     return () => {
       cancelled = true;
+      window.clearInterval(pollingId);
       void publicSupabase.removeChannel(channel);
     };
   }, [info?.chat_id, info?.lead_id, resolvedToken, mode]);
