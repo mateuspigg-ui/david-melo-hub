@@ -41,14 +41,14 @@ const showSystemNotification = async (title: string, body: string) => {
 
   try {
     if (Notification.permission === 'granted') {
-      new Notification(title, { body, tag: title, renotify: true, requireInteraction: true, silent: false });
+      new Notification(title, { body, tag: title, requireInteraction: true, silent: false } as NotificationOptions);
       return;
     }
 
     if (Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
-        new Notification(title, { body, tag: title, renotify: true, requireInteraction: true, silent: false });
+        new Notification(title, { body, tag: title, requireInteraction: true, silent: false } as NotificationOptions);
       }
     }
   } catch {

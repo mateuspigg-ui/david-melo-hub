@@ -100,23 +100,26 @@ const ClientesPage = () => {
 
   const upsert = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const cpfCnpj = form.cpf_cnpj.trim();
+      const address = form.address.trim();
+      if (!cpfCnpj) throw new Error('Preencha o CPF/CNPJ do cliente.');
+      if (!address) throw new Error('Preencha o endereço do cliente.');
+
+      const payload: any = {
         first_name: form.first_name,
         last_name: form.last_name,
         phone: form.phone || null,
         email: form.email || null,
         instagram: form.instagram || null,
-        cpf_cnpj: form.cpf_cnpj.trim(),
-        address: form.address.trim(),
+        cpf_cnpj: cpfCnpj,
+        address: address,
       };
 
-      if (!payload.cpf_cnpj) throw new Error('Preencha o CPF/CNPJ do cliente.');
-      if (!payload.address) throw new Error('Preencha o endereço do cliente.');
       if (editingClient) {
-        const { error } = await supabase.from('clients').update(payload).eq('id', editingClient.id);
+        const { error } = await (supabase as any).from('clients').update(payload).eq('id', editingClient.id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from('clients').insert(payload).select('id').single();
+        const { data, error } = await (supabase as any).from('clients').insert(payload).select('id').single();
         if (error) throw error;
 
         if (selectedClosedLeadId && data?.id) {

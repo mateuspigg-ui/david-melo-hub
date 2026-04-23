@@ -118,7 +118,7 @@ const EquipePage = () => {
     },
     onSuccess: async (data: any) => {
       try {
-        const inviteToken = String(data?.token || token).trim();
+        const inviteToken = String(data?.token || '').trim();
         const link = `${window.location.origin}/#/convite/${encodeURIComponent(inviteToken)}`;
         setGeneratedInviteLink(link);
 
@@ -232,17 +232,19 @@ const EquipePage = () => {
   const removeMember = useMutation({
     mutationFn: async ({ userId, email }: { userId: string; email?: string | null }) => {
       const operations: Promise<any>[] = [
-        supabase.from('module_permissions').delete().eq('user_id', userId),
-        supabase.from('user_roles').delete().eq('user_id', userId),
+        Promise.resolve(supabase.from('module_permissions').delete().eq('user_id', userId)),
+        Promise.resolve(supabase.from('user_roles').delete().eq('user_id', userId)),
       ];
 
       if (email) {
         operations.push(
-          supabase
-            .from('team_invitations')
-            .delete()
-            .eq('email', email)
-            .eq('status', 'pending')
+          Promise.resolve(
+            supabase
+              .from('team_invitations')
+              .delete()
+              .eq('email', email)
+              .eq('status', 'pending')
+          )
         );
       }
 
