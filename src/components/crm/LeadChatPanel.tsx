@@ -96,27 +96,29 @@ export default function LeadChatPanel({ leadId }: Props) {
     if (error) toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (files: File[]) => {
     if (!chatId || !token) return;
     setUploading(true);
     try {
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
-      const path = `${token}/${Date.now()}_${safeName}`;
-      const { error: upErr } = await supabase.storage
-        .from('lead-chat-attachments')
-        .upload(path, file, { contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('lead-chat-attachments').getPublicUrl(path);
-      const { error } = await (supabase as any).from('lead_chat_messages').insert({
-        chat_id: chatId,
-        sender_type: 'company',
-        sender_user_id: user?.id,
-        attachment_url: pub.publicUrl,
-        attachment_name: file.name,
-        attachment_type: file.type,
-        attachment_size: file.size,
-      });
-      if (error) throw error;
+      for (const file of files) {
+        const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const path = `${token}/${Date.now()}_${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from('lead-chat-attachments')
+          .upload(path, file, { contentType: file.type });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('lead-chat-attachments').getPublicUrl(path);
+        const { error } = await (supabase as any).from('lead_chat_messages').insert({
+          chat_id: chatId,
+          sender_type: 'company',
+          sender_user_id: user?.id,
+          attachment_url: pub.publicUrl,
+          attachment_name: file.name,
+          attachment_type: file.type,
+          attachment_size: file.size,
+        });
+        if (error) throw error;
+      }
     } catch (e: any) {
       toast({ title: 'Falha no upload', description: e?.message || 'Tente novamente.', variant: 'destructive' });
     } finally {

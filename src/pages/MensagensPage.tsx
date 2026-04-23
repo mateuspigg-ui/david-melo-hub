@@ -12,6 +12,68 @@ import { ptBR } from 'date-fns/locale';
 import { Copy, Inbox, MessageCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const playClientMessageAlert = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    const AudioContextConstructor = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const audioContext = new AudioContextConstructor();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(740, audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(980, audioContext.currentTime + 0.26);
+
+    gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.2, audioContext.currentTime + 0.03);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.45);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.5);
+    oscillator.onended = () => {
+      void audioContext.close();
+    };
+  } catch {
+    return;
+  }
+};
+
+const showClientMessageNotification = async (body: string) => {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+
+  try {
+    if (Notification.permission === 'granted') {
+      new Notification('Nova mensagem do cliente', {
+        body,
+        tag: 'client-chat-message',
+        requireInteraction: true,
+        silent: false,
+      });
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        new Notification('Nova mensagem do cliente', {
+          body,
+          tag: 'client-chat-message',
+          requireInteraction: true,
+          silent: false,
+        });
+      }
+    }
+  } catch {
+    return;
+  }
+};
+
 interface ChatRow {
   id: string;
   lead_id: string;
@@ -66,6 +128,16 @@ export default function MensagensPage() {
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lead_chat_messages' }, (payload) => {
         const msg = payload.new as ChatMessage;
+        if (msg.sender_type === 'client') {
+          const preview = (msg.body || msg.attachment_name || 'Anexo').slice(0, 100);
+          playClientMessageAlert();
+          toast({
+            title: 'Nova mensagem do cliente 💬',
+            description: preview,
+            duration: 12000,
+          });
+          void showClientMessageNotification(preview);
+        }
         if (selectedId && msg.chat_id === selectedId) {
           setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         }
@@ -129,27 +201,29 @@ export default function MensagensPage() {
     if (error) toast({ title: 'Erro ao enviar', description: error.message, variant: 'destructive' });
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (files: File[]) => {
     if (!selectedChat) return;
     setUploading(true);
     try {
-      const safeName = file.name.replace(/[^\w.\-]+/g, '_');
-      const path = `${selectedChat.token}/${Date.now()}_${safeName}`;
-      const { error: upErr } = await supabase.storage
-        .from('lead-chat-attachments')
-        .upload(path, file, { contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('lead-chat-attachments').getPublicUrl(path);
-      const { error } = await (supabase as any).from('lead_chat_messages').insert({
-        chat_id: selectedChat.id,
-        sender_type: 'company',
-        sender_user_id: user?.id,
-        attachment_url: pub.publicUrl,
-        attachment_name: file.name,
-        attachment_type: file.type,
-        attachment_size: file.size,
-      });
-      if (error) throw error;
+      for (const file of files) {
+        const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const path = `${selectedChat.token}/${Date.now()}_${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from('lead-chat-attachments')
+          .upload(path, file, { contentType: file.type });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('lead-chat-attachments').getPublicUrl(path);
+        const { error } = await (supabase as any).from('lead_chat_messages').insert({
+          chat_id: selectedChat.id,
+          sender_type: 'company',
+          sender_user_id: user?.id,
+          attachment_url: pub.publicUrl,
+          attachment_name: file.name,
+          attachment_type: file.type,
+          attachment_size: file.size,
+        });
+        if (error) throw error;
+      }
     } catch (e: any) {
       toast({ title: 'Falha no upload', description: e?.message || 'Tente novamente.', variant: 'destructive' });
     } finally {

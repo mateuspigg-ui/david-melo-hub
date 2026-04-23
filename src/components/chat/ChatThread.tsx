@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Paperclip, Send, FileText, Image as ImageIcon, Download, X } from 'lucide-react';
+import { CheckCircle2, Loader2, Paperclip, Send, FileText, Download, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ interface Props {
   uploading?: boolean;
   uploadProgress?: number;
   onSend: (body: string) => Promise<void> | void;
-  onUpload: (file: File) => Promise<void> | void;
+  onUpload: (files: File[]) => Promise<void> | void;
   emptyHint?: string;
   /** Para um header customizado opcional */
   header?: React.ReactNode;
@@ -62,6 +62,7 @@ export default function ChatThread({
 }: Props) {
   const [body, setBody] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [pendingFileNames, setPendingFileNames] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -77,13 +78,18 @@ export default function ChatThread({
     setBody('');
   };
 
-  const handleFile = async (file: File | null | undefined) => {
-    if (!file) return;
-    if (file.size > maxUploadBytes) {
-      alert(`Arquivo maior que o limite de ${(maxUploadBytes / (1024 * 1024)).toFixed(0)}MB.`);
+  const handleFiles = async (files: FileList | null | undefined) => {
+    const selected = Array.from(files || []);
+    if (selected.length === 0) return;
+
+    const oversized = selected.find((file) => file.size > maxUploadBytes);
+    if (oversized) {
+      alert(`Arquivo "${oversized.name}" maior que o limite de ${(maxUploadBytes / (1024 * 1024)).toFixed(0)}MB.`);
       return;
     }
-    await onUpload(file);
+
+    setPendingFileNames(selected.map((file) => file.name));
+    await onUpload(selected);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -178,6 +184,24 @@ export default function ChatThread({
 
       {/* Composer */}
       <div className="border-t border-border/30 bg-white p-3 md:p-4 space-y-2">
+        {pendingFileNames.length > 0 && (
+          <div className="flex items-center gap-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate flex-1">
+              {pendingFileNames.length === 1
+                ? <>Arquivo carregado para envio: <span className="font-black">{pendingFileNames[0]}</span></>
+                : <>Arquivos carregados para envio: <span className="font-black">{pendingFileNames.length} selecionados</span></>}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPendingFileNames([])}
+              className="text-emerald-700/70 hover:text-emerald-900"
+              title="Ocultar confirmação"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         {uploading && (
           <div className="flex items-center gap-2 text-[11px] font-bold text-gold uppercase tracking-wider">
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Enviando arquivo {uploadProgress ? `${uploadProgress}%` : ''}
@@ -188,7 +212,8 @@ export default function ChatThread({
             ref={fileInputRef}
             type="file"
             className="hidden"
-            onChange={(e) => handleFile(e.target.files?.[0])}
+            multiple
+            onChange={(e) => handleFiles(e.target.files)}
           />
           <Button
             type="button"
