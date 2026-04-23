@@ -128,27 +128,33 @@ const EquipePage = () => {
           // Clipboard can fail in some browsers/contexts; link remains visible for manual copy.
         }
 
-        let emailSent = false;
+        let emailError: string | null = null;
         if (data?.email) {
           try {
-            const { error } = await supabase.functions.invoke('send-team-invite-email', {
+            const { error: invokeError } = await supabase.functions.invoke('send-team-invite-email', {
               body: {
                 email: data.email,
                 inviteLink: link,
                 modules: data.modules || [],
               },
             });
-            if (!error) emailSent = true;
-          } catch {
-            emailSent = false;
+            
+            if (invokeError) {
+              console.error('Erro ao invocar função de e-mail:', invokeError);
+              emailError = invokeError.message || 'Erro no serviço de e-mail';
+            }
+          } catch (err: any) {
+            console.error('Exceção ao enviar e-mail:', err);
+            emailError = err.message || 'Erro desconhecido';
           }
         }
 
         toast({
-          title: 'Convite enviado!',
-          description: emailSent
-            ? 'E-mail enviado com sucesso. O link também está disponível abaixo para cópia.'
-            : 'Link do convite gerado. Copie o link abaixo para compartilhar.',
+          title: emailError ? 'Convite criado (e-mail falhou)' : 'Convite enviado!',
+          description: emailError
+            ? `O convite foi salvo, mas o e-mail não chegou: ${emailError}. Copie o link abaixo manualmente.`
+            : 'E-mail enviado com sucesso. O link também está disponível abaixo para cópia.',
+          variant: emailError ? 'destructive' : 'default',
         });
 
         queryClient.invalidateQueries({ queryKey: ['team_invitations'] });
@@ -156,13 +162,13 @@ const EquipePage = () => {
         setSelectedModules(['dashboard']);
       } catch (err: any) {
         toast({
-          title: 'Convite criado, mas houve um erro na exibição',
-          description: err?.message || 'Reabra a tela de equipe e copie o link do convite pendente.',
+          title: 'Erro ao processar convite',
+          description: err?.message || 'Ocorreu um erro inesperado.',
           variant: 'destructive',
         });
       }
     },
-    onError: (err: any) => toast({ title: 'Erro', description: err.message, variant: 'destructive' }),
+    onError: (err: any) => toast({ title: 'Erro ao criar convite', description: err.message, variant: 'destructive' }),
   });
 
   // Update permissions
@@ -194,7 +200,7 @@ const EquipePage = () => {
       const { error: memberError } = await supabase.from('user_roles').insert({ user_id: userId, role: 'team_member' as any });
       if (memberError && !memberError.message?.includes('duplicate key')) throw memberError;
 
-      const { error: clearModulesError } = await supabase.from('module_permissions').delete().eq('user_id', userId);
+      const { error: clearModulesError = null } = await supabase.from('module_permissions').delete().eq('user_id', userId);
       if (clearModulesError) throw clearModulesError;
 
       const { error: modulesError } = await supabase.from('module_permissions').insert(

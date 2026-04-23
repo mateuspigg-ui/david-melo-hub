@@ -2,9 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Forçando conexão com o projeto correto
-const SUPABASE_URL = "https://cmeirnllnouzdzguuxir.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtZWlybmxsbm91emR6Z3V1eGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzEwNjYsImV4cCI6MjA5MTI0NzA2Nn0.NCqgKFpFND7ljmhFcUsjN9E2C1xazJFCZ0uQQk0LBPE";
+// Conexão dinâmica com as variáveis de ambiente do projeto
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {

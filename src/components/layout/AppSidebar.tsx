@@ -2,7 +2,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
   UserCog, FileText, Building2, ShoppingBag, CreditCard,
-  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock, MessageCircle
+  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock,
+  MessageSquare
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -38,7 +39,7 @@ const sections: NavSection[] = [
     items: [
       { label: 'Meus Clientes', path: '/clientes', icon: Users, module: 'clientes' },
       { label: 'Gestão de Clientes', path: '/crm', icon: Handshake, module: 'crm' },
-      { label: 'Mensagens', path: '/mensagens', icon: MessageCircle, module: 'crm' },
+      { label: 'Mensagens', path: '/mensagens', icon: MessageSquare, module: 'crm' },
       { label: 'Formulário', path: '/formulario', icon: FileText, module: 'crm' },
     ],
   },
