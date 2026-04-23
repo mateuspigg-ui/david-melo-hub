@@ -15,10 +15,15 @@ const isCanonicalEnv = envProjectId === CANONICAL_PROJECT_REF || envUrl.includes
 const SUPABASE_URL = isCanonicalEnv && envUrl ? envUrl : CANONICAL_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = isCanonicalEnv && envKey ? envKey : CANONICAL_PUBLISHABLE_KEY;
 
+const noOpLock = async (_name: string, _acquireTimeout: number, fn: () => Promise<any>) => {
+  return await fn();
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    lock: noOpLock as any,
   }
 });
