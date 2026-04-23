@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
   UserCog, FileText, Building2, ShoppingBag, CreditCard,
-  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock
+  Landmark, Receipt, ArrowDownUp, ChevronDown, Lock, MessageCircle
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,7 @@ const sections: NavSection[] = [
     items: [
       { label: 'Meus Clientes', path: '/clientes', icon: Users, module: 'clientes' },
       { label: 'Gestão de Clientes', path: '/crm', icon: Handshake, module: 'crm' },
+      { label: 'Mensagens', path: '/mensagens', icon: MessageCircle, module: 'crm' },
       { label: 'Formulário', path: '/formulario', icon: FileText, module: 'crm' },
     ],
   },
