@@ -214,8 +214,8 @@ export default function FormularioPage({ publicView = false }: Props) {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in max-w-[1100px] mx-auto min-h-screen">
-      <div className="flex items-center gap-4 border-b border-border/10 pb-6">
+    <div className="p-3 sm:p-4 md:p-8 space-y-6 md:space-y-8 animate-fade-in max-w-[1100px] mx-auto min-h-screen">
+      <div className="flex flex-wrap items-start md:items-center gap-3 md:gap-4 border-b border-border/10 pb-5 md:pb-6">
         <div className={publicView ? 'shrink-0' : 'w-12 h-12 shrink-0'}>
           <img
             src={logo}
@@ -223,12 +223,12 @@ export default function FormularioPage({ publicView = false }: Props) {
             className={publicView ? 'h-16 md:h-20 w-auto object-contain' : 'w-12 h-12 object-contain'}
           />
         </div>
-        <div className="w-12 h-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center">
+        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center">
           <ClipboardList className="w-6 h-6" />
         </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display text-foreground tracking-tight uppercase">FORMULÁRIO DE ORÇAMENTO</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold mt-1">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-display text-foreground tracking-tight uppercase leading-tight">FORMULÁRIO DE ORÇAMENTO</h1>
+          <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-gold mt-1">
             {publicView ? 'Preencha para solicitar proposta' : 'Cadastro de dados do evento'}
           </p>
         </div>
@@ -237,7 +237,7 @@ export default function FormularioPage({ publicView = false }: Props) {
             type="button"
             variant="outline"
             onClick={handleCopyPublicLink}
-            className="ml-auto border-gold/40 text-gold hover:bg-gold hover:text-white"
+            className="w-full sm:w-auto sm:ml-auto border-gold/40 text-gold hover:bg-gold hover:text-white"
           >
             <Copy className="w-4 h-4 mr-2" /> Copiar link público
           </Button>
@@ -245,7 +245,7 @@ export default function FormularioPage({ publicView = false }: Props) {
       </div>
 
       {submissionCompleted && publicView ? (
-        <div className="bg-white border border-gold/30 rounded-[24px] p-8 md:p-10 premium-shadow text-center space-y-4">
+        <div className="bg-white border border-gold/30 rounded-[24px] p-5 sm:p-6 md:p-10 premium-shadow text-center space-y-4">
           <img src={logo} alt="David Melo" className="h-20 md:h-24 w-auto mx-auto object-contain" />
           <div className="mx-auto w-14 h-14 rounded-full bg-gold/15 text-gold flex items-center justify-center">
             <CheckCircle2 className="w-7 h-7" />
@@ -254,7 +254,7 @@ export default function FormularioPage({ publicView = false }: Props) {
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             Recebemos seu formulário com sucesso e vamos analisar as informações para retornar com a proposta.
           </p>
-          <div className="mx-auto max-w-2xl bg-gold/5 border border-gold/20 rounded-2xl px-4 py-5 space-y-2 text-left">
+          <div className="mx-auto max-w-2xl bg-gold/5 border border-gold/20 rounded-2xl px-3 sm:px-4 py-4 sm:py-5 space-y-2 text-left">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gold/90 flex items-center gap-2">
               <MessageCircle className="w-4 h-4" /> Canal de Chat e Upload
             </p>
@@ -285,7 +285,7 @@ export default function FormularioPage({ publicView = false }: Props) {
           </Button>
         </div>
       ) : (
-      <div className="bg-white border border-border/40 rounded-[24px] p-6 md:p-8 premium-shadow space-y-6">
+      <div className="bg-white border border-border/40 rounded-[24px] p-4 sm:p-6 md:p-8 premium-shadow space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="md:col-span-2 space-y-2">
             <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Título do Evento *</Label>
@@ -349,11 +349,11 @@ export default function FormularioPage({ publicView = false }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4 border-t border-border/10">
+        <div className="flex justify-stretch md:justify-end pt-4 border-t border-border/10">
           <Button
             onClick={() => mutation.mutate()}
             disabled={mutation.isPending}
-            className="bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.2em]"
+            className="w-full md:w-auto bg-gradient-gold hover:opacity-90 text-white font-black h-11 px-6 md:px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.2em]"
           >
             <Send className="w-4 h-4 mr-2" />
             {mutation.isPending ? 'Enviando...' : 'Enviar Orçamento'}

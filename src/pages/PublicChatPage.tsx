@@ -301,7 +301,7 @@ export default function PublicChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/20 flex flex-col">
+    <div className="min-h-[100dvh] bg-secondary/20 flex flex-col">
       <ChatThread
         viewerSide="client"
         messages={messages}
@@ -313,18 +313,18 @@ export default function PublicChatPage() {
         emptyHint="Compartilhe inspirações, tire dúvidas e receba seu orçamento por aqui."
         className="flex-1"
         header={
-          <div className="bg-gradient-gold text-white px-5 py-4 md:px-8 md:py-5 shadow-md space-y-4">
-            <div className="flex items-center gap-4">
+          <div className="bg-gradient-gold text-white px-3 sm:px-5 py-3 sm:py-4 md:px-8 md:py-5 shadow-md space-y-3 sm:space-y-4">
+            <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <img src={logo} alt="David Melo" className="h-12 md:h-14 w-auto object-contain shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70">
                   {greetingName}, bem-vindo(a)
                 </p>
-                <h1 className="text-lg md:text-xl font-display tracking-tight uppercase truncate">
+                <h1 className="text-base sm:text-lg md:text-xl font-display tracking-tight uppercase leading-tight break-words">
                   {info.lead_title}
                 </h1>
                 {eventTypeLabel && (
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/85 mt-1">{eventTypeLabel}</p>
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.2em] font-black text-white/85 mt-1">{eventTypeLabel}</p>
                 )}
               </div>
               <div className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/80 bg-white/10 rounded-full px-3 py-1.5">
