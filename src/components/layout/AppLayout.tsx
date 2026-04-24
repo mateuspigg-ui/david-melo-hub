@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
 import TopBar from './TopBar';
 import LeadAlertsListener from '@/components/notifications/LeadAlertsListener';
@@ -10,6 +10,8 @@ const AppLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const isMessagesPage = location.pathname === '/mensagens';
 
   const handleToggleSidebar = () => {
     if (isMobile) {
@@ -37,8 +39,8 @@ const AppLayout = () => {
       )}
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         <TopBar onToggleSidebar={handleToggleSidebar} isMobile={isMobile} />
-        <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 custom-scrollbar">
-          <div className="max-w-[1700px] mx-auto app-surface p-3 sm:p-4 md:p-6">
+        <main className={isMessagesPage ? 'flex-1 overflow-hidden p-2 sm:p-4 md:p-8' : 'flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 custom-scrollbar'}>
+          <div className={isMessagesPage ? 'h-full max-w-[1700px] mx-auto app-surface overflow-hidden' : 'max-w-[1700px] mx-auto app-surface p-3 sm:p-4 md:p-6'}>
             <Outlet />
           </div>
         </main>

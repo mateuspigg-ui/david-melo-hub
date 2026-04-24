@@ -241,7 +241,7 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] overflow-hidden flex animate-fade-in">
+    <div className="h-full min-h-0 overflow-hidden flex animate-fade-in">
       {/* Sidebar de conversas */}
       <aside className="w-[340px] h-full shrink-0 border-r border-border/40 bg-white flex flex-col overflow-hidden">
         <div className="p-5 border-b border-border/30 space-y-3 flex-none">
