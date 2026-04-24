@@ -107,6 +107,19 @@ export default function MensagensPage() {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const markChatAsReadLocally = (chatId: string) => {
+    queryClient.setQueryData<ChatRow[]>(['lead_chats_inbox'], (prev = []) => (
+      prev.map((chat) => (chat.id === chatId ? { ...chat, unread_company: 0 } : chat))
+    ));
+    queryClient.invalidateQueries({ queryKey: ['chat_unread_total'] });
+  };
+
+  const markChatAsReadOnServer = async (chatId: string) => {
+    await (supabase as any).rpc('mark_company_chat_read', { p_chat_id: chatId });
+    queryClient.invalidateQueries({ queryKey: ['lead_chats_inbox'] });
+    queryClient.invalidateQueries({ queryKey: ['chat_unread_total'] });
+  };
+
   const { data: chats = [], isLoading } = useQuery({
     queryKey: ['lead_chats_inbox'],
     queryFn: async () => {
@@ -166,8 +179,8 @@ export default function MensagensPage() {
       if (!cancelled && !error && data) setMessages(data as ChatMessage[]);
       setLoadingMsgs(false);
       if (!cancelled) {
-        await (supabase as any).rpc('mark_company_chat_read', { p_chat_id: selectedId });
-        queryClient.invalidateQueries({ queryKey: ['lead_chats_inbox'] });
+        markChatAsReadLocally(selectedId);
+        await markChatAsReadOnServer(selectedId);
       }
     };
     load();
@@ -278,7 +291,11 @@ export default function MensagensPage() {
             return (
               <button
                 key={c.id}
-                onClick={() => setSelectedId(c.id)}
+                onClick={() => {
+                  setSelectedId(c.id);
+                  markChatAsReadLocally(c.id);
+                  void markChatAsReadOnServer(c.id);
+                }}
                 className={cn(
                   'w-full text-left px-5 py-4 border-b border-border/20 hover:bg-secondary/30 transition flex flex-col gap-1.5',
                   isSel && 'bg-gold/8 border-l-4 border-l-gold',
