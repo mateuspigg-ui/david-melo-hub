@@ -301,7 +301,7 @@ export default function PublicChatPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-secondary/20 flex flex-col">
+    <div className="h-[100dvh] overflow-hidden bg-secondary/20 flex flex-col">
       <ChatThread
         viewerSide="client"
         messages={messages}
@@ -313,7 +313,7 @@ export default function PublicChatPage() {
         emptyHint="Compartilhe inspirações, tire dúvidas e receba seu orçamento por aqui."
         className="flex-1"
         header={
-          <div className="bg-gradient-gold text-white px-3 sm:px-5 py-3 sm:py-4 md:px-8 md:py-5 shadow-md space-y-3 sm:space-y-4">
+          <div className="sticky top-0 z-20 bg-gradient-gold text-white px-3 sm:px-5 py-3 sm:py-4 md:px-8 md:py-5 shadow-md space-y-3 sm:space-y-4">
             <div className="flex items-start sm:items-center gap-3 sm:gap-4">
               <img src={logo} alt="David Melo" className="h-12 md:h-14 w-auto object-contain shrink-0" />
               <div className="flex-1 min-w-0">
