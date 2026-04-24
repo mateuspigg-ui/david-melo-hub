@@ -227,8 +227,8 @@ export default function FormularioPage({ publicView = false }: Props) {
           <ClipboardList className="w-6 h-6" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-display text-foreground tracking-tight uppercase leading-tight">FORMULÁRIO DE ORÇAMENTO</h1>
-          <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] text-gold mt-1">
+          <h1 className="text-2xl md:text-3xl font-display text-foreground tracking-tight uppercase leading-tight">FORMULÁRIO DE ORÇAMENTO</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold mt-1">
             {publicView ? 'Preencha para solicitar proposta' : 'Cadastro de dados do evento'}
           </p>
         </div>

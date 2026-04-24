@@ -320,11 +320,11 @@ export default function PublicChatPage() {
                 <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70">
                   {greetingName}, bem-vindo(a)
                 </p>
-                <h1 className="text-base sm:text-lg md:text-xl font-display tracking-tight uppercase leading-tight break-words">
+                <h1 className="text-lg md:text-xl font-display tracking-tight uppercase leading-tight break-words">
                   {info.lead_title}
                 </h1>
                 {eventTypeLabel && (
-                  <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.2em] font-black text-white/85 mt-1">{eventTypeLabel}</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-black text-white/85 mt-1">{eventTypeLabel}</p>
                 )}
               </div>
               <div className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/80 bg-white/10 rounded-full px-3 py-1.5">
