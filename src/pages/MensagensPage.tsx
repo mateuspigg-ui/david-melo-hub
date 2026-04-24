@@ -241,10 +241,10 @@ export default function MensagensPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex animate-fade-in">
+    <div className="h-[calc(100vh-4rem)] overflow-hidden flex animate-fade-in">
       {/* Sidebar de conversas */}
-      <aside className="w-[340px] shrink-0 border-r border-border/40 bg-white flex flex-col">
-        <div className="p-5 border-b border-border/30 space-y-3">
+      <aside className="w-[340px] h-full shrink-0 border-r border-border/40 bg-white flex flex-col overflow-hidden">
+        <div className="p-5 border-b border-border/30 space-y-3 flex-none">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-gold/10 text-gold flex items-center justify-center">
               <Inbox className="w-4 h-4" />
@@ -265,7 +265,7 @@ export default function MensagensPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
           {isLoading && <p className="p-6 text-sm text-muted-foreground">Carregando...</p>}
           {!isLoading && filteredChats.length === 0 && (
             <p className="p-6 text-sm text-muted-foreground text-center">Nenhuma conversa ainda.</p>
@@ -309,7 +309,7 @@ export default function MensagensPage() {
       </aside>
 
       {/* Painel principal */}
-      <main className="flex-1 min-h-0 flex flex-col bg-secondary/10">
+      <main className="flex-1 h-full min-h-0 flex flex-col bg-secondary/10 overflow-hidden">
         {!selectedChat ? (
           <div className="flex-1 flex items-center justify-center text-center px-8">
             <div className="max-w-sm">
@@ -336,7 +336,7 @@ export default function MensagensPage() {
             emptyHint="Mande a primeira mensagem ou anexe o orçamento em PDF."
             className="flex-1 min-h-0"
             header={
-              <div className="sticky top-0 z-20 bg-white border-b border-border/30 px-6 py-4 flex items-center justify-between gap-3">
+              <div className="sticky top-0 z-20 bg-white border-b border-border/30 px-6 py-4 flex-none flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold/80">
                     Chat com cliente

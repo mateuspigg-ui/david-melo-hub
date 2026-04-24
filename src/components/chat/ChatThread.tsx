@@ -104,11 +104,11 @@ export default function ChatThread({
   };
 
   return (
-    <div className={cn('flex flex-col h-full bg-secondary/10', className)}>
+    <div className={cn('flex flex-col h-full min-h-0 bg-secondary/10 overflow-hidden', className)}>
       {header}
 
       {/* Lista */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 scrollbar-hide">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 scrollbar-hide">
         {loading && (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Carregando...
