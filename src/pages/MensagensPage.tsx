@@ -309,7 +309,7 @@ export default function MensagensPage() {
       </aside>
 
       {/* Painel principal */}
-      <main className="flex-1 flex flex-col bg-secondary/10">
+      <main className="flex-1 min-h-0 flex flex-col bg-secondary/10">
         {!selectedChat ? (
           <div className="flex-1 flex items-center justify-center text-center px-8">
             <div className="max-w-sm">
@@ -334,9 +334,9 @@ export default function MensagensPage() {
             onSend={handleSend}
             onUpload={handleUpload}
             emptyHint="Mande a primeira mensagem ou anexe o orçamento em PDF."
-            className="flex-1"
+            className="flex-1 min-h-0"
             header={
-              <div className="bg-white border-b border-border/30 px-6 py-4 flex items-center justify-between gap-3">
+              <div className="sticky top-0 z-20 bg-white border-b border-border/30 px-6 py-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold/80">
                     Chat com cliente
