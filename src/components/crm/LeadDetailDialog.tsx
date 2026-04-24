@@ -333,16 +333,16 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
 
   return (
     <Dialog open={!!lead} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
+      <DialogContent className="max-w-2xl h-[92vh] flex flex-col p-0 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(218,165,32,0.15)] border-border/40 bg-background overflow-hidden font-body">
         {/* Header - Fixed */}
-        <div className="bg-gradient-gold p-8 text-white flex-none relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
+        <div className="bg-gradient-gold p-5 md:p-6 text-white flex-none relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-3xl opacity-50" />
           <DialogHeader>
             <div className="flex items-start justify-between">
               <div className="relative z-10">
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/70 mb-2">Dossiê da Oportunidade</p>
-                <DialogTitle className="text-3xl font-display text-white tracking-tight leading-none mb-1">{lead.title}</DialogTitle>
-                {displayName && <p className="text-lg font-bold text-white/90 mt-1 capitalize tracking-tight">{displayName}</p>}
+                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/70 mb-1.5">Dossiê da Oportunidade</p>
+                <DialogTitle className="text-2xl md:text-3xl font-display text-white tracking-tight leading-none mb-1">{lead.title}</DialogTitle>
+                {displayName && <p className="text-base md:text-lg font-bold text-white/90 mt-1 capitalize tracking-tight">{displayName}</p>}
                 {lead.phone && (
                   <p className="flex items-center gap-1.5 text-sm text-white/70 font-medium mt-0.5">
                     <Phone className="w-3.5 h-3.5" />
@@ -380,7 +380,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
 
         {/* Body - Scrollable */}
         <Tabs defaultValue="detalhes" className="flex-1 flex flex-col min-h-0 bg-white/50 backdrop-blur-sm">
-          <div className="px-8 pt-5 border-b border-border/20 bg-white/60 sticky top-0 z-10">
+          <div className="px-4 md:px-6 pt-3 md:pt-4 border-b border-border/20 bg-white/60 sticky top-0 z-10">
             <TabsList className="bg-secondary/40 rounded-xl">
               <TabsTrigger value="detalhes" className="rounded-lg font-black uppercase text-[10px] tracking-widest data-[state=active]:bg-white data-[state=active]:text-gold">
                 Detalhes
@@ -391,7 +391,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
             </TabsList>
           </div>
 
-          <TabsContent value="detalhes" className="flex-1 overflow-y-auto p-8 space-y-8 m-0">
+          <TabsContent value="detalhes" className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8 m-0">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
               {lead.event_date && (
@@ -572,10 +572,10 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
         </Tabs>
 
         {/* Footer - Fixed */}
-        <div className="p-6 bg-white border-t border-border/10 flex-none flex justify-between items-center gap-6">
+        <div className="p-4 md:p-5 bg-white border-t border-border/10 flex-none flex flex-wrap justify-end items-center gap-2 md:gap-3">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-12 px-6 text-destructive/40 hover:text-white hover:bg-destructive font-black uppercase text-[10px] tracking-widest rounded-xl transition-all">
+              <Button variant="ghost" size="sm" className="h-10 px-4 text-destructive/40 hover:text-white hover:bg-destructive font-black uppercase text-[10px] tracking-widest rounded-xl transition-all">
                 <Trash2 className="w-4 h-4 mr-2" /> Excluir Oportunidade
               </Button>
             </AlertDialogTrigger>
@@ -594,17 +594,17 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
           </AlertDialog>
           {lead.stage === 'fechados' && !lead.client_id && (
             <Button
-              size="lg"
+              size="sm"
               variant="outline"
               onClick={() => createClientFromLeadMutation.mutate()}
               disabled={createClientFromLeadMutation.isPending}
-              className="h-12 px-7 border-emerald-300 text-emerald-700 hover:bg-emerald-600 hover:text-white font-black uppercase text-[10px] tracking-widest rounded-xl"
+              className="h-10 px-4 border-emerald-300 text-emerald-700 hover:bg-emerald-600 hover:text-white font-black uppercase text-[10px] tracking-widest rounded-xl"
             >
               {createClientFromLeadMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserPlus className="w-4 h-4 mr-2" />}
               Cadastrar Cliente
             </Button>
           )}
-          <Button size="lg" onClick={() => onEdit(lead)} className="bg-gradient-gold hover:opacity-90 text-white font-black px-12 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] h-12 transition-all">
+          <Button size="sm" onClick={() => onEdit(lead)} className="bg-gradient-gold hover:opacity-90 text-white font-black px-5 md:px-8 rounded-xl shadow-gold uppercase text-[10px] md:text-[11px] tracking-[0.12em] md:tracking-[0.2em] h-10 transition-all">
             <Edit className="w-4 h-4 mr-2" /> Editar Dados
           </Button>
         </div>
