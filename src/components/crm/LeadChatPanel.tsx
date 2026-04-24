@@ -145,8 +145,8 @@ export default function LeadChatPanel({ leadId }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-[60vh] min-h-[420px] rounded-2xl overflow-hidden border border-border/40 bg-white">
-      <div className="bg-gold/5 border-b border-border/30 px-4 py-3 flex items-center justify-between gap-3">
+    <div className="flex flex-col h-full min-h-0 rounded-2xl overflow-hidden border border-border/40 bg-white">
+      <div className="bg-gold/5 border-b border-border/30 px-3 md:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <MessageCircle className="w-4 h-4 text-gold shrink-0" />
           <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gold/80 truncate">
@@ -170,7 +170,7 @@ export default function LeadChatPanel({ leadId }: Props) {
         onSend={handleSend}
         onUpload={handleUpload}
         emptyHint="Use o link acima para enviar ao cliente, depois converse e envie o orçamento em PDF por aqui."
-        className="flex-1"
+        className="flex-1 min-h-0"
       />
     </div>
   );

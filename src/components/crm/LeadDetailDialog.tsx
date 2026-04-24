@@ -566,7 +566,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
           </div>
           </TabsContent>
 
-          <TabsContent value="chat" className="flex-1 overflow-y-auto p-6 m-0">
+          <TabsContent value="chat" className="flex-1 min-h-0 overflow-hidden p-4 md:p-6 m-0">
             <LeadChatPanel leadId={lead.id} />
           </TabsContent>
         </Tabs>
