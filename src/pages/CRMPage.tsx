@@ -278,7 +278,7 @@ export default function CRMPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Gestão Comercial</h1>
-          <p className="text-sm text-muted-foreground mt-1 font-body">Pipeline estratégico de leads e oportunidades</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2">David Melo Produções • Pipeline de Leads e Oportunidades</p>
         </div>
         <Button 
           onClick={() => { setEditingLead(null); setIsFormOpen(true); }} 

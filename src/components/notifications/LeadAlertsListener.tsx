@@ -81,6 +81,7 @@ export default function LeadAlertsListener() {
   useEffect(() => {
     const lastAlertByKey = new Map<string, number>();
     const seenLeadEvents = new Set<string>();
+    const seenMessageEvents = new Set<string>();
     let latestKnownNovoContatoCreatedAt = '';
 
     const shouldIgnoreDuplicate = (mode: 'new' | 'closed', leadId?: string) => {
@@ -128,6 +129,26 @@ export default function LeadAlertsListener() {
       void emitLeadAlert(mode);
     };
 
+    const emitClientMessageAlert = (messageId: string | undefined, preview: string) => {
+      const normalizedPreview = (preview || 'Anexo').slice(0, 80);
+      if (messageId) {
+        if (seenMessageEvents.has(messageId)) return;
+        seenMessageEvents.add(messageId);
+      }
+
+      playLeadAlert('new');
+      toast({
+        title: 'Nova mensagem do cliente 💬',
+        description: normalizedPreview,
+        className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/10 cursor-pointer',
+        duration: 12000,
+        onClick: () => {
+          if (typeof window !== 'undefined') window.location.hash = '#/mensagens';
+        },
+      });
+      void showSystemNotification('Nova mensagem do cliente', normalizedPreview);
+    };
+
     const onWindowAlert = (event: Event) => {
       const customEvent = event as CustomEvent<LeadAlertPayload>;
       processPayload(customEvent.detail);
@@ -173,20 +194,16 @@ export default function LeadAlertsListener() {
         }
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lead_chat_messages' }, (payload) => {
-        const msg = payload.new as { sender_type?: string; body?: string | null; attachment_name?: string | null };
+        const msg = payload.new as { id?: string; sender_type?: string; body?: string | null; attachment_name?: string | null };
         if (msg.sender_type !== 'client') return;
-        playLeadAlert('new');
-        const preview = (msg.body || msg.attachment_name || 'Anexo').slice(0, 80);
-        toast({
-          title: 'Nova mensagem do cliente 💬',
-          description: preview,
-          className: 'border-l-4 border-l-[#C5A059] bg-[#C5A059]/10 cursor-pointer',
-          duration: 12000,
-          onClick: () => {
-            if (typeof window !== 'undefined') window.location.hash = '#/mensagens';
-          },
-        });
-        void showSystemNotification('Nova mensagem do cliente', preview);
+        const preview = msg.body || msg.attachment_name || 'Anexo';
+        emitClientMessageAlert(msg.id, preview);
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lead_messages' }, (payload) => {
+        const msg = payload.new as { id?: string; sender_id?: string | null; content?: string | null; attachment_url?: string | null };
+        if (msg.sender_id) return;
+        const preview = msg.content || (msg.attachment_url ? 'Anexo' : 'Nova mensagem');
+        emitClientMessageAlert(msg.id, preview);
       })
       .subscribe();
 
