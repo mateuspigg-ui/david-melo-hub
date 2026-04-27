@@ -2,6 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import LeadCard from './LeadCard';
 import type { Lead } from '@/pages/CRMPage';
+import { cn } from '@/lib/utils';
 
 interface Props {
   stage: { id: string; label: string; color: string };
