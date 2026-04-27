@@ -25,6 +25,12 @@ import InvitePage from "@/pages/InvitePage";
 import FormularioPage from "@/pages/FormularioPage";
 import PublicChatPage from "@/pages/PublicChatPage";
 import MensagensPage from "@/pages/MensagensPage";
+import AlmoxarifadoDashboardPage from "@/pages/AlmoxarifadoDashboardPage";
+import AlimentacaoPage from "@/pages/AlimentacaoPage";
+import MobiliarioDecoracaoPage from "@/pages/MobiliarioDecoracaoPage";
+import SelecaoFestaPage from "@/pages/SelecaoFestaPage";
+import MovimentacoesEstoquePage from "@/pages/MovimentacoesEstoquePage";
+import RelatoriosEstoquePage from "@/pages/RelatoriosEstoquePage";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +98,12 @@ const App = () => (
               <Route path="/contas-pagar" element={<ModuleRoute module="financeiro" element={<ContasPagarPage />} />} />
               <Route path="/recebimentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
               <Route path="/equipe" element={<ModuleRoute module="equipe" element={<EquipePage />} />} />
+              <Route path="/almoxarifado" element={<ModuleRoute module="almoxarifado" element={<AlmoxarifadoDashboardPage />} />} />
+              <Route path="/almoxarifado/alimentacao" element={<ModuleRoute module="almoxarifado" element={<AlimentacaoPage />} />} />
+              <Route path="/almoxarifado/mobiliario-decoracao" element={<ModuleRoute module="almoxarifado" element={<MobiliarioDecoracaoPage />} />} />
+              <Route path="/almoxarifado/selecao-festa" element={<ModuleRoute module="almoxarifado" element={<SelecaoFestaPage />} />} />
+              <Route path="/almoxarifado/movimentacoes" element={<ModuleRoute module="almoxarifado" element={<MovimentacoesEstoquePage />} />} />
+              <Route path="/almoxarifado/relatorios" element={<ModuleRoute module="almoxarifado" element={<RelatoriosEstoquePage />} />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

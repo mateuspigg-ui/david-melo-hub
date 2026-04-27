@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
   UserCog, FileText, Building2, ShoppingBag, CreditCard,
   Landmark, Receipt, ArrowDownUp, ChevronDown, Lock,
-  MessageSquare
+  MessageSquare, Boxes
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -67,6 +67,17 @@ const sections: NavSection[] = [
       { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
     ],
   },
+  {
+    label: 'Almoxarifado',
+    items: [
+      { label: 'Dashboard do Estoque', path: '/almoxarifado', icon: Boxes, module: 'almoxarifado' },
+      { label: 'Alimentação', path: '/almoxarifado/alimentacao', icon: Boxes, module: 'almoxarifado' },
+      { label: 'Mobiliário e Decoração', path: '/almoxarifado/mobiliario-decoracao', icon: Boxes, module: 'almoxarifado' },
+      { label: 'Seleção por Festa', path: '/almoxarifado/selecao-festa', icon: Boxes, module: 'almoxarifado' },
+      { label: 'Movimentações', path: '/almoxarifado/movimentacoes', icon: Boxes, module: 'almoxarifado' },
+      { label: 'Relatórios', path: '/almoxarifado/relatorios', icon: Boxes, module: 'almoxarifado' },
+    ],
+  },
 ];
 
 interface Props {
@@ -118,11 +129,11 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
 
   return (
     <aside className={cn(
-      "shrink-0 bg-white/70 backdrop-blur-xl flex flex-col border-r border-border/40 transition-all duration-500 z-20",
+      "shrink-0 bg-gradient-to-b from-[#FFF9EE] via-white to-[#F6F8FC] backdrop-blur-xl flex flex-col border-r border-gold/20 shadow-[8px_0_28px_-20px_rgba(197,160,89,0.55)] transition-all duration-500 z-20",
       mobile ? "h-full w-full" : "h-screen",
       mobile ? "w-[86vw] max-w-[340px]" : collapsed ? "w-24" : "w-80"
     )}>
-      <div className={cn("flex items-center justify-center bg-white/10 p-10", mobile ? "p-6" : collapsed ? "p-4" : "p-10")}>
+      <div className={cn("flex items-center justify-center bg-gradient-to-b from-gold/10 to-transparent border-b border-gold/15 p-10", mobile ? "p-6" : collapsed ? "p-4" : "p-10")}>
         <img src={logo} alt="David Melo" className={cn("transition-all duration-700 hover:scale-105", mobile ? "h-20" : collapsed ? "h-12 grayscale brightness-110" : "h-32")} />
       </div>
 
@@ -132,7 +143,7 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
             {!collapsed && (
               <button
                 onClick={() => toggleSection(section.label)}
-                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-foreground/30 hover:text-gold transition-colors font-display"
+                className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-gold/80 hover:text-gold-dark transition-colors font-display"
               >
                 {section.label}
                 <ChevronDown className={cn(
@@ -152,10 +163,10 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
                     return (
                       <div
                         key={item.path}
-                        className="flex items-center gap-4 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 cursor-not-allowed opacity-50"
+                        className="flex items-center gap-4 px-4 py-3 rounded-2xl text-[11px] font-medium tracking-wide text-amber-900/40 cursor-not-allowed opacity-60"
                         title={collapsed ? `${item.label} (sem acesso)` : undefined}
                       >
-                        <div className="w-8 h-8 rounded-xl bg-secondary/50 flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100/50 border border-amber-200/60 flex items-center justify-center shrink-0">
                           <Icon size={16} />
                         </div>
                         {!collapsed && <span className="flex-1">{item.label}</span>}
@@ -170,16 +181,16 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
                       to={item.path}
                       onClick={onNavigate}
                       className={cn(
-                        "flex items-center gap-4 px-4 py-3 rounded-[20px] text-[10px] font-black uppercase tracking-widest transition-all duration-500 group relative overflow-hidden",
+                        "flex items-center gap-4 px-4 py-3 rounded-[20px] text-[12px] font-semibold tracking-wide transition-all duration-500 group relative overflow-hidden",
                         isActive
                           ? "bg-gradient-gold text-white shadow-gold-sm scale-[1.02] border-t border-white/20"
-                          : "text-muted-foreground/70 hover:bg-gold/5 hover:text-gold border border-transparent hover:border-gold/10"
+                          : "text-foreground/80 hover:bg-white/85 hover:text-gold-dark border border-transparent hover:border-gold/25 hover:shadow-sm"
                       )}
                       title={collapsed ? item.label : undefined}
                     >
                       <div className={cn(
                         "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500",
-                        isActive ? "bg-white/20 shadow-inner" : "bg-secondary group-hover:bg-gold/10"
+                        isActive ? "bg-white/20 shadow-inner" : "bg-amber-50 border border-amber-100 group-hover:bg-gold/12 group-hover:border-gold/30"
                       )}>
                         <Icon size={16} className={cn("transition-transform duration-500", isActive ? "scale-110" : "group-hover:scale-110")} />
                       </div>
@@ -207,18 +218,18 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
         ))}
       </nav>
 
-      <div className={cn("bg-secondary/20 border-t border-border/10", mobile ? "p-5" : collapsed ? "p-4 flex flex-col items-center" : "p-8")}>
+      <div className={cn("bg-gradient-to-t from-gold/10 to-transparent border-t border-gold/15", mobile ? "p-5" : collapsed ? "p-4 flex flex-col items-center" : "p-8")}>
          {!collapsed ? (
-           <div className="flex items-center gap-4 p-2 rounded-[24px] bg-white/40 border border-white/50 premium-shadow">
+           <div className="flex items-center gap-4 p-2 rounded-[24px] bg-white/75 border border-gold/20 premium-shadow">
              <div className="w-12 h-12 rounded-2xl bg-gradient-gold flex items-center justify-center text-white font-black shadow-gold-sm text-sm border-t border-white/20">{initials}</div>
              <div className="min-w-0">
-               <p className="text-[11px] font-black uppercase tracking-widest text-foreground leading-none">{profile?.full_name?.split(' ')[0] || 'Usuário'}</p>
+               <p className="text-[14px] font-semibold tracking-tight text-foreground leading-none font-display">{profile?.full_name?.split(' ')[0] || 'Usuário'}</p>
                <div className="flex items-center gap-1.5 mt-1.5">
                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate">{profile?.role || 'Acesso Ativo'}</p>
-               </div>
-             </div>
-           </div>
+                 <p className="text-[10px] font-semibold text-foreground/55 tracking-wide truncate">{profile?.role || 'Acesso Ativo'}</p>
+                </div>
+              </div>
+            </div>
          ) : (
            <div className="w-12 h-12 rounded-2xl bg-gradient-gold flex items-center justify-center text-white font-black shadow-gold-sm text-sm border-t border-white/20">{initials}</div>
          )}

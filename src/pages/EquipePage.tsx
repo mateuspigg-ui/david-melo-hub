@@ -20,6 +20,7 @@ const ALL_MODULES = [
   { key: 'eventos', label: 'Eventos' },
   { key: 'agenda', label: 'Agenda' },
   { key: 'financeiro', label: 'Financeiro (Dashboard, Pagamentos, Contas, Recebimentos, Conciliação, Contas Bancárias)' },
+  { key: 'almoxarifado', label: 'Almoxarifado (Dashboard, Alimentação, Mobiliário, Seleção por Festa, Movimentações, Relatórios)' },
   { key: 'equipe', label: 'Equipe' },
 ];
 
