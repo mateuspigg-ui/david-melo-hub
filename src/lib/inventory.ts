@@ -124,10 +124,13 @@ export interface EventInventoryReservation {
 export interface EventInventoryItem {
   id: string;
   reservation_id: string;
-  inventory_item_id: string;
+  inventory_item_id: string | null;
   quantity: number;
   unit: string | null;
   notes: string | null;
+  is_rental?: boolean;
+  rental_supplier?: string | null;
+  rental_item_name?: string | null;
   created_at: string;
   updated_at: string;
   inventory_items?: InventoryItem | null;
@@ -295,19 +298,25 @@ export const updateReservationStatus = async (reservationId: string, reservation
 
 export const addReservationItem = async (payload: {
   reservation_id: string;
-  inventory_item_id: string;
+  inventory_item_id?: string | null;
   quantity: number;
   unit?: string | null;
   notes?: string | null;
+  is_rental?: boolean;
+  rental_supplier?: string | null;
+  rental_item_name?: string | null;
 }) => {
   const { data, error } = await sb
     .from('event_inventory_items')
     .insert({
       reservation_id: payload.reservation_id,
-      inventory_item_id: payload.inventory_item_id,
+      inventory_item_id: payload.inventory_item_id || null,
       quantity: payload.quantity,
       unit: payload.unit || null,
       notes: payload.notes || null,
+      is_rental: payload.is_rental || false,
+      rental_supplier: payload.rental_supplier || null,
+      rental_item_name: payload.rental_item_name || null,
     })
     .select('*')
     .single();

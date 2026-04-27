@@ -122,13 +122,13 @@ export const openReservationPdfPrint = ({
     <tbody>
       ${furnitureItems.length === 0 ? '<tr><td colspan="8">Nenhum item selecionado.</td></tr>' : furnitureItems.map((item) => `
         <tr>
-          <td class="furniture-photo-cell">${item.inventory_items?.inventory_item_photos?.[0]?.photo_url ? `<img class="thumb" src="${item.inventory_items.inventory_item_photos[0].photo_url}" />` : '-'}</td>
-          <td>${escapeHtml(item.inventory_items?.name)}</td>
-          <td>${escapeHtml(categoryLabel(item.inventory_items?.category || ''))}</td>
+          <td class="furniture-photo-cell">${item.is_rental ? '-' : item.inventory_items?.inventory_item_photos?.[0]?.photo_url ? `<img class="thumb" src="${item.inventory_items.inventory_item_photos[0].photo_url}" />` : '-'}</td>
+          <td>${escapeHtml(item.is_rental ? `${item.rental_item_name || 'Peça alugada'} (Aluguel)` : item.inventory_items?.name)}</td>
+          <td>${escapeHtml(item.is_rental ? `Aluguel • ${item.rental_supplier || 'Fornecedor não informado'}` : categoryLabel(item.inventory_items?.category || ''))}</td>
           <td>${item.quantity}</td>
-          <td>${escapeHtml(item.inventory_items?.color)}</td>
-          <td>${escapeHtml(item.inventory_items?.dimensions)}</td>
-          <td>${escapeHtml(item.inventory_items?.storage_location)}</td>
+          <td>${escapeHtml(item.is_rental ? '-' : item.inventory_items?.color)}</td>
+          <td>${escapeHtml(item.is_rental ? '-' : item.inventory_items?.dimensions)}</td>
+          <td>${escapeHtml(item.is_rental ? item.rental_supplier : item.inventory_items?.storage_location)}</td>
           <td class="furniture-notes">${escapeHtml(item.notes)}</td>
         </tr>`).join('')}
     </tbody>
