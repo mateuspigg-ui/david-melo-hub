@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { FOOD_CATEGORIES, UNITS, calculateExpirationAlert, categoryLabel, fetchInventoryItems, statusLabel, upsertInventoryItem, deleteInventoryItem, type InventoryItem } from '@/lib/inventory';
+import { supabase } from '@/integrations/supabase/client';
 
 const emptyForm = {
   name: '',
@@ -39,6 +40,15 @@ const AlimentacaoPage = () => {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['inventory_food_items'],
     queryFn: () => fetchInventoryItems('food'),
+  });
+
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ['suppliers_for_inventory_food'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('suppliers').select('company_name').order('company_name');
+      if (error) throw error;
+      return (data || []).map((row) => row.company_name).filter(Boolean);
+    },
   });
 
   const filteredItems = useMemo(() => {
@@ -271,7 +281,20 @@ const AlimentacaoPage = () => {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2"><Label>Fornecedor</Label><Input value={form.supplier} onChange={(e) => setForm((p: any) => ({ ...p, supplier: e.target.value }))} /></div>
+              <div className="space-y-2">
+                <Label>Fornecedor (buscar cadastrados)</Label>
+                <Input
+                  list="food-suppliers-list"
+                  value={form.supplier}
+                  onChange={(e) => setForm((p: any) => ({ ...p, supplier: e.target.value }))}
+                  placeholder="Digite para buscar fornecedor cadastrado"
+                />
+                <datalist id="food-suppliers-list">
+                  {suppliers.map((supplier) => (
+                    <option key={supplier} value={supplier} />
+                  ))}
+                </datalist>
+              </div>
               <div className="space-y-2"><Label>Custo por unidade</Label><Input type="number" value={form.cost_per_unit} onChange={(e) => setForm((p: any) => ({ ...p, cost_per_unit: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Data de compra</Label><Input type="date" value={form.purchase_date} onChange={(e) => setForm((p: any) => ({ ...p, purchase_date: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Validade</Label><Input type="date" value={form.expiration_date} onChange={(e) => setForm((p: any) => ({ ...p, expiration_date: e.target.value }))} /></div>
