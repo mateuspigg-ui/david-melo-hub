@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Loader2, CalendarHeart, LayoutGrid, List } from 'lucide-react';
+import { Plus, Loader2, CalendarHeart, LayoutGrid, List, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EventCard } from '@/components/events/EventCard';
@@ -21,15 +21,35 @@ const EventosPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select(`
-          *,
-          clients:client_id (first_name, last_name),
-          leads:lead_id (title)
-        `)
+        .select('*')
         .order('event_date', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      const eventsList = data || [];
+      const clientIds = Array.from(new Set(eventsList.map((evt: any) => evt.client_id).filter(Boolean)));
+      const leadIds = Array.from(new Set(eventsList.map((evt: any) => evt.lead_id).filter(Boolean)));
+
+      const [clientsResult, leadsResult] = await Promise.all([
+        clientIds.length
+          ? supabase.from('clients').select('id, first_name, last_name').in('id', clientIds as string[])
+          : Promise.resolve({ data: [], error: null } as any),
+        leadIds.length
+          ? supabase.from('leads').select('id, title').in('id', leadIds as string[])
+          : Promise.resolve({ data: [], error: null } as any),
+      ]);
+
+      if (clientsResult.error) throw clientsResult.error;
+      if (leadsResult.error) throw leadsResult.error;
+
+      const clientById = new Map((clientsResult.data || []).map((client: any) => [client.id, client]));
+      const leadById = new Map((leadsResult.data || []).map((lead: any) => [lead.id, lead]));
+
+      return eventsList.map((evt: any) => ({
+        ...evt,
+        clients: evt.client_id ? clientById.get(evt.client_id) || null : null,
+        leads: evt.lead_id ? leadById.get(evt.lead_id) || null : null,
+      }));
     }
   });
 
