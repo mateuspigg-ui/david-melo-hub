@@ -19,24 +19,31 @@ export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTask
   return (
     <div
       ref={setNodeRef}
-      className={`min-w-[320px] max-w-[360px] flex-1 rounded-2xl border-2 transition-all duration-200 snap-start ${
+      className={cn(
+        "min-w-[340px] max-w-[380px] flex-1 rounded-[28px] border-2 transition-all duration-300 snap-start flex flex-col h-full min-h-[600px]",
         isOver 
-          ? 'border-gold/60 bg-gold/[0.04] shadow-lg shadow-gold/10 scale-[1.01]' 
-          : 'border-transparent bg-secondary/40'
-      }`}
+          ? 'border-gold/40 bg-gold/[0.04] shadow-2xl shadow-gold/10 scale-[1.01]' 
+          : 'border-transparent bg-white/40 backdrop-blur-sm'
+      )}
     >
-      <div className="p-4 border-b border-border/15 rounded-t-2xl">
+      <div className="p-6 border-b border-border/10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full shadow-sm ring-2 ring-white" style={{ backgroundColor: stage.color }} />
-            <span className="text-[11px] font-black text-foreground tracking-tight uppercase">{stage.label}</span>
+          <div className="flex items-center gap-3">
+            <div className="w-3.5 h-3.5 rounded-full shadow-gold-sm ring-4 ring-white" style={{ backgroundColor: stage.color }} />
+            <h3 className="text-[11px] font-black text-foreground tracking-[0.1em] uppercase">{stage.label}</h3>
           </div>
-          <span className="text-[11px] font-black text-foreground/70 bg-white/80 px-2.5 py-1 rounded-lg border border-border/20 shadow-sm min-w-[28px] text-center">
-            {leads.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-gold/80 bg-gold/5 px-3 py-1 rounded-full border border-gold/10 shadow-sm min-w-[32px] text-center">
+              {leads.length}
+            </span>
+          </div>
         </div>
       </div>
-      <div className={`p-2.5 space-y-2 min-h-[200px] max-h-[calc(100vh-300px)] overflow-y-auto no-scrollbar transition-colors duration-200 ${isOver ? 'bg-gold/[0.03]' : ''}`}>
+
+      <div className={cn(
+        "flex-1 p-3 space-y-3 overflow-y-auto no-scrollbar transition-colors duration-300",
+        isOver ? 'bg-gold/[0.02]' : ''
+      )}>
         <SortableContext items={leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map(lead => (
             <LeadCard
@@ -50,15 +57,21 @@ export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTask
             />
           ))}
         </SortableContext>
+
         {leads.length === 0 && !isOver && (
-          <div className="text-center py-12 flex flex-col items-center justify-center opacity-30">
-            <div className="w-10 h-10 rounded-xl border-2 border-dashed border-foreground/20 mb-3 flex items-center justify-center">
-              <span className="text-foreground/30 text-lg">+</span>
+          <div className="flex-1 flex flex-col items-center justify-center py-20 opacity-20 group/empty">
+            <div className="w-16 h-16 rounded-[20px] border-2 border-dashed border-foreground/30 mb-4 flex items-center justify-center transition-all group-hover/empty:scale-110 group-hover/empty:border-gold/50 group-hover/empty:text-gold">
+              <span className="text-foreground/40 text-2xl font-light">+</span>
             </div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-foreground/60">Arraste aqui</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/60 group-hover/empty:text-gold transition-colors">Pronto para leads</p>
           </div>
         )}
-        {isOver && <div className="h-10 rounded-xl border-2 border-dashed border-gold/40 bg-gold/5 animate-pulse" />}
+        
+        {isOver && (
+          <div className="h-24 rounded-2xl border-2 border-dashed border-gold/30 bg-gold/5 animate-pulse flex items-center justify-center">
+            <p className="text-[9px] font-black uppercase tracking-widest text-gold/60">Solte para mover</p>
+          </div>
+        )}
       </div>
     </div>
   );

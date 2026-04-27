@@ -67,6 +67,32 @@ const sections: NavSection[] = [
       { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
     ],
   },
+    ],
+  },
+  {
+    label: 'Eventos',
+    items: [
+      { label: 'Eventos', path: '/eventos', icon: ShoppingBag, module: 'eventos' },
+      { label: 'Agenda', path: '/agenda', icon: Calendar, module: 'agenda' },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard, module: 'financeiro' },
+      { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark, module: 'financeiro' },
+      { label: 'Pagamentos', path: '/pagamentos', icon: CreditCard, module: 'financeiro' },
+      { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp, module: 'financeiro' },
+      { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt, module: 'financeiro' },
+      { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp, module: 'financeiro' },
+    ],
+  },
+  {
+    label: 'Equipe',
+    items: [
+      { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
+    ],
+  },
 ];
 
 interface Props {
@@ -118,31 +144,31 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
 
   return (
     <aside className={cn(
-      "shrink-0 bg-white/78 backdrop-blur-xl flex flex-col border-r border-border/50 transition-all duration-300 shadow-xl z-20",
+      "shrink-0 bg-white/70 backdrop-blur-xl flex flex-col border-r border-border/40 transition-all duration-500 z-20",
       mobile ? "h-full w-full" : "h-screen",
-      mobile ? "w-[86vw] max-w-[340px]" : collapsed ? "w-20" : "w-72"
+      mobile ? "w-[86vw] max-w-[340px]" : collapsed ? "w-24" : "w-80"
     )}>
-      <div className={cn("flex items-center justify-center border-b border-border/10 bg-white/40 backdrop-blur-sm", mobile ? "p-5" : collapsed ? "p-4" : "p-8")}>
-        <img src={logo} alt="David Melo" className={cn("transition-all duration-500", mobile ? "h-20" : collapsed ? "h-14 grayscale brightness-110" : "h-28")} />
+      <div className={cn("flex items-center justify-center bg-white/10 p-10", mobile ? "p-6" : collapsed ? "p-4" : "p-10")}>
+        <img src={logo} alt="David Melo" className={cn("transition-all duration-700 hover:scale-105", mobile ? "h-20" : collapsed ? "h-12 grayscale brightness-110" : "h-32")} />
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-8 scrollbar-hide">
+      <nav className="flex-1 overflow-y-auto py-6 px-6 space-y-10 scrollbar-hide">
         {sections.map((section) => (
-          <div key={section.label} className="space-y-3">
+          <div key={section.label} className="space-y-4">
             {!collapsed && (
               <button
                 onClick={() => toggleSection(section.label)}
-                className="w-full flex items-center justify-between px-4 py-2 text-[10px] uppercase tracking-[0.25em] text-foreground/30 font-black hover:text-gold transition-colors"
+                className="w-full flex items-center justify-between px-2 py-1 text-[10px] font-black uppercase tracking-[0.3em] text-foreground/30 hover:text-gold transition-colors font-display"
               >
                 {section.label}
                 <ChevronDown className={cn(
-                  "w-3 h-3 transition-transform duration-300",
+                  "w-3 h-3 transition-transform duration-500",
                   !openSections[section.label] && "-rotate-90"
                 )} />
               </button>
             )}
             {(collapsed || openSections[section.label]) && (
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -152,12 +178,14 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
                     return (
                       <div
                         key={item.path}
-                        className="flex items-center gap-4 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground/50 cursor-not-allowed"
+                        className="flex items-center gap-4 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 cursor-not-allowed opacity-50"
                         title={collapsed ? `${item.label} (sem acesso)` : undefined}
                       >
-                        <Icon size={18} />
+                        <div className="w-8 h-8 rounded-xl bg-secondary/50 flex items-center justify-center shrink-0">
+                          <Icon size={16} />
+                        </div>
                         {!collapsed && <span className="flex-1">{item.label}</span>}
-                        {!collapsed && <Lock size={13} className="opacity-70" />}
+                        {!collapsed && <Lock size={12} className="opacity-40" />}
                       </div>
                     );
                   }
@@ -168,26 +196,34 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
                       to={item.path}
                       onClick={onNavigate}
                       className={cn(
-                        "flex items-center gap-4 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 group",
+                        "flex items-center gap-4 px-4 py-3 rounded-[20px] text-[10px] font-black uppercase tracking-widest transition-all duration-500 group relative overflow-hidden",
                         isActive
-                          ? "bg-gradient-gold text-white shadow-gold scale-[1.02]"
-                          : "text-muted-foreground hover:bg-secondary/50 hover:text-gold"
+                          ? "bg-gradient-gold text-white shadow-gold-sm scale-[1.02] border-t border-white/20"
+                          : "text-muted-foreground/70 hover:bg-gold/5 hover:text-gold border border-transparent hover:border-gold/10"
                       )}
                       title={collapsed ? item.label : undefined}
                     >
                       <div className={cn(
-                        "transition-transform duration-300",
-                        isActive ? "scale-110" : "group-hover:scale-110"
+                        "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500",
+                        isActive ? "bg-white/20 shadow-inner" : "bg-secondary group-hover:bg-gold/10"
                       )}>
-                        <Icon size={18} />
+                        <Icon size={16} className={cn("transition-transform duration-500", isActive ? "scale-110" : "group-hover:scale-110")} />
                       </div>
-                      {!collapsed && <span className="flex-1">{item.label}</span>}
+                      
+                      {!collapsed && <span className="flex-1 transition-colors duration-300">{item.label}</span>}
+                      
                       {item.path === '/mensagens' && unreadChats > 0 && (
-                        <span className="ml-auto text-[9px] font-black bg-gold text-white rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                        <span className={cn(
+                          "ml-auto text-[9px] font-black rounded-full px-2 py-0.5 min-w-[20px] text-center shadow-sm",
+                          isActive ? "bg-white text-gold" : "bg-gold text-white"
+                        )}>
                           {unreadChats > 99 ? '99+' : unreadChats}
                         </span>
                       )}
-                      {isActive && !collapsed && <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse" />}
+                      
+                      {isActive && !collapsed && (
+                        <div className="absolute right-0 top-0 h-full w-1 bg-white/40 blur-[2px]" />
+                      )}
                     </NavLink>
                   );
                 })}
@@ -197,17 +233,20 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
         ))}
       </nav>
 
-      <div className={cn("border-t border-border/10 bg-secondary/10", mobile ? "p-5" : collapsed ? "p-4 items-center" : "p-6")}>
+      <div className={cn("bg-secondary/20 border-t border-border/10", mobile ? "p-5" : collapsed ? "p-4 flex flex-col items-center" : "p-8")}>
          {!collapsed ? (
-           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">{initials}</div>
+           <div className="flex items-center gap-4 p-2 rounded-[24px] bg-white/40 border border-white/50 premium-shadow">
+             <div className="w-12 h-12 rounded-2xl bg-gradient-gold flex items-center justify-center text-white font-black shadow-gold-sm text-sm border-t border-white/20">{initials}</div>
              <div className="min-w-0">
-               <p className="text-[10px] font-black uppercase text-foreground leading-none">{profile?.full_name || 'Usuário'}</p>
-               <p className="text-[9px] font-bold text-muted-foreground mt-1 truncate">{profile?.role || 'Colaborador'}</p>
+               <p className="text-[11px] font-black uppercase tracking-widest text-foreground leading-none">{profile?.full_name?.split(' ')[0] || 'Usuário'}</p>
+               <div className="flex items-center gap-1.5 mt-1.5">
+                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest truncate">{profile?.role || 'Acesso Ativo'}</p>
+               </div>
              </div>
            </div>
          ) : (
-           <div className="w-10 h-10 mx-auto rounded-xl bg-gradient-gold flex items-center justify-center text-white font-bold shadow-gold-sm">{initials}</div>
+           <div className="w-12 h-12 rounded-2xl bg-gradient-gold flex items-center justify-center text-white font-black shadow-gold-sm text-sm border-t border-white/20">{initials}</div>
          )}
       </div>
     </aside>

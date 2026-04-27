@@ -474,190 +474,215 @@ export default function PagamentosPage() {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3">
-            <DollarSign className="h-8 w-8 text-gold" />
-            Gestão de Recebíveis
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1 font-body font-medium">Controle estratégico de contratos e parcelas</p>
+    <div className="space-y-10 animate-fade-in max-w-[1700px] mx-auto pb-10">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gold rounded-full" />
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão Financeira</h1>
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Fluxo de Recebíveis e Contratos</p>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-8 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
-          <Plus className="w-4 h-4 mr-2" /> Novo Contrato
+        <Button 
+          onClick={() => { resetForm(); setDialogOpen(true); }} 
+          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-8 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <Plus className="w-5 h-5 mr-2" /> Novo Contrato
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input 
-          placeholder="Buscar por cliente ou evento..." 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl shadow-sm" 
-        />
+      <div className="px-2">
+        <div className="relative group max-w-xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-gold transition-colors" />
+          <Input 
+            placeholder="Buscar por cliente ou evento..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            className="pl-12 bg-white/50 backdrop-blur-sm border-border/30 focus:border-gold/50 h-14 rounded-2xl transition-all focus:ring-4 focus:ring-gold/5 premium-shadow" 
+          />
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4">
+        <div className="grid gap-6 px-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-white rounded-2xl animate-pulse border border-border/40 premium-shadow" />
+            <div key={i} className="h-32 bg-white/40 rounded-[32px] animate-pulse border border-border/20 shadow-sm" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white premium-shadow rounded-2xl p-20 border border-border/40 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
-            <DollarSign className="w-8 h-8 text-muted-foreground/30" />
+        <div className="mx-2 bg-white/40 backdrop-blur-md rounded-[40px] p-24 border border-border/20 text-center flex flex-col items-center justify-center premium-shadow">
+          <div className="w-20 h-20 rounded-3xl bg-secondary/30 flex items-center justify-center mb-6">
+            <DollarSign className="w-10 h-10 text-muted-foreground/30" />
           </div>
-          <p className="text-foreground font-bold text-lg">Nenhum contrato encontrado</p>
-          <p className="text-sm text-muted-foreground/60 mt-1 font-medium">Sua base de contratos ativos está vazia no momento.</p>
+          <h3 className="text-2xl font-display text-foreground uppercase tracking-tight">Nenhum contrato ativo</h3>
+          <p className="text-xs text-muted-foreground/60 mt-2 font-black uppercase tracking-widest max-w-xs leading-relaxed">
+            Sua base de recebíveis está limpa. Comece gerando um novo contrato para seus clientes.
+          </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6 px-2">
           {filtered.map((p) => {
             const expanded = expandedId === p.id;
             return (
-              <div key={p.id} className="bg-white rounded-2xl border border-border/40 premium-shadow overflow-hidden transition-all duration-300">
+              <div key={p.id} className={cn(
+                "group bg-white rounded-[32px] border transition-all duration-500 relative overflow-hidden",
+                expanded ? 'premium-shadow-lg border-gold/20' : 'premium-shadow border-border/30 hover:border-gold/20'
+              )}>
+                <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                
                 <div
-                  className="flex items-center justify-between p-6 cursor-pointer hover:bg-secondary/20 transition-colors"
+                  className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between p-8 cursor-pointer gap-8"
                   onClick={() => setExpandedId(expanded ? null : p.id)}
                 >
-                  <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center shadow-sm">
-                      <DollarSign className="w-6 h-6 text-gold" />
+                  <div className="flex items-center gap-6">
+                    <div className={cn(
+                      "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm shrink-0",
+                      expanded ? 'bg-gold text-white rotate-6' : 'bg-gold/10 text-gold'
+                    )}>
+                      <DollarSign className="w-8 h-8" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-foreground text-base tracking-tight leading-tight uppercase">
-                        {p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Sem cliente vinculado"}
+                    <div className="space-y-2">
+                      <h4 className="text-xl font-display text-foreground tracking-tight leading-none uppercase">
+                        {p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Cliente não identificado"}
                       </h4>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <p className="text-[10px] font-bold text-gold uppercase tracking-wider">
-                          {p.events?.title || "Evento s/ Título"}
-                        </p>
-                        <span className="text-muted-foreground/30 text-[10px]">•</span>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-60">
-                          {p.installment_count} parcela{p.installment_count !== 1 ? 's' : ''} programada{p.installment_count !== 1 ? 's' : ''}
-                        </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-[10px] font-black text-gold uppercase tracking-[0.15em] bg-gold/5 px-2.5 py-1 rounded-lg border border-gold/10">
+                          {p.events?.title || "Evento sem título"}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-border" />
+                          <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
+                            {p.installment_count} {p.installment_count === 1 ? 'parcela' : 'parcelas'} programada{p.installment_count === 1 ? '' : 's'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center justify-between lg:justify-end gap-10">
                     <div className="text-right">
-                      <p className="font-display text-foreground text-xl tracking-tighter">{currencyFmt(p.total_event_value)}</p>
+                      <p className="text-[10px] font-black text-muted-foreground/50 uppercase tracking-[0.2em] mb-1">Valor Total</p>
+                      <p className="text-3xl font-display text-foreground tracking-tighter leading-none">{currencyFmt(p.total_event_value)}</p>
                       {p.has_entry_payment && p.entry_amount && (
-                        <div className="mt-0.5 space-y-0.5">
-                          <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Entrada: {currencyFmt(p.entry_amount)}</p>
-                          <p className="text-[9px] font-bold text-emerald-700/80 uppercase tracking-widest">
-                            Data: {p.entry_date ? format(new Date(p.entry_date + "T12:00:00"), "dd/MM/yyyy", { locale: ptBR }) : 'Não informada'}
-                          </p>
+                        <div className="mt-3 flex items-center justify-end gap-2 text-emerald-600">
+                          <span className="text-[9px] font-black uppercase tracking-widest">Entrada: {currencyFmt(p.entry_amount)}</span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 text-gold/60 hover:text-gold hover:bg-gold/5 rounded-xl transition-colors"
+                        className="h-12 w-12 text-muted-foreground/40 hover:text-gold hover:bg-gold/5 rounded-2xl transition-all"
                         onClick={(e) => { e.stopPropagation(); openEditDialog(p); }}
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="w-5 h-5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/5 rounded-xl transition-colors"
+                        className="h-12 w-12 text-muted-foreground/40 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
                         onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(p.id); }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </Button>
-                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all ${expanded ? 'bg-gold/10 text-gold' : 'bg-secondary/50 text-muted-foreground'}`}>
-                        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      <div className={cn(
+                        "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                        expanded ? 'bg-gold/10 text-gold' : 'bg-secondary/50 text-muted-foreground/50'
+                      )}>
+                        <ChevronDown className={cn("w-5 h-5 transition-transform duration-500", expanded && "rotate-180")} />
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {expanded && (
-                  <div className="bg-secondary/10 border-t border-border/20 p-6 space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between mb-2">
-                       <h5 className="text-[10px] font-bold text-foreground/50 uppercase tracking-[0.2em]">Cronograma de Liquidação</h5>
+                  <div className="relative z-10 bg-secondary/20 border-t border-border/10 p-8 animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-2 mb-8">
+                      <div className="h-4 w-1 bg-gold rounded-full" />
+                      <h5 className="text-[10px] font-black text-foreground/40 uppercase tracking-[0.25em]">Cronograma de Liquidação</h5>
                     </div>
-                    {p.has_entry_payment && p.entry_amount && (
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-200 shadow-sm transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                            <Calendar className="w-4 h-4 text-emerald-700" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-emerald-900 uppercase tracking-tight">Entrada do Contrato</p>
-                            <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5 text-emerald-700">
-                              {p.entry_date ? format(new Date(p.entry_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR }) : 'Data não informada'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="font-bold text-sm tracking-tighter text-emerald-900">{currencyFmt(p.entry_amount)}</span>
-                          {p.entry_paid_at ? (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all px-3"
-                              onClick={() => toggleEntryPaidMutation.mutate({ id: p.id, currentPaidAt: p.entry_paid_at })}
-                            >
-                              Desfazer
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 border-amber-500/50 text-amber-700 hover:bg-amber-600 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all"
-                              onClick={() => toggleEntryPaidMutation.mutate({ id: p.id, currentPaidAt: p.entry_paid_at })}
-                            >
-                              Baixar / OK
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-                      {installments.map((inst) => (
-                        <div key={inst.id} className="flex items-center justify-between p-4 rounded-xl bg-white border border-border/20 shadow-sm transition-all hover:border-gold/30">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-secondary/30 flex items-center justify-center">
-                              <Calendar className="w-4 h-4 text-muted-foreground/60" />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {p.has_entry_payment && p.entry_amount && (
+                        <div className="col-span-1 md:col-span-2 lg:col-span-1 flex items-center justify-between p-6 rounded-[24px] bg-emerald-50/50 border border-emerald-200/50 shadow-sm hover:shadow-md transition-all group/entry">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center shadow-sm group-hover/entry:scale-110 transition-transform">
+                              <Calendar className="w-5 h-5 text-emerald-600" />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-foreground uppercase tracking-tight">Parcela {inst.installment_number.toString().padStart(2, '0')}</p>
-                              <p className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${isInstallmentPaid(inst.status, inst.paid_at) ? 'text-emerald-500' : 'text-muted-foreground'}`}>
-                                {format(new Date(inst.due_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })}
+                              <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1">Entrada</p>
+                              <p className="text-sm font-bold text-emerald-900">
+                                {p.entry_date ? format(new Date(p.entry_date + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR }) : 'Pendente'}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <span className="font-bold text-sm tracking-tighter">{currencyFmt(inst.amount)}</span>
-                            {isInstallmentPaid(inst.status, inst.paid_at) ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all px-3"
-                                onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
-                              >
-                                Desfazer
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 border-amber-500/50 text-amber-700 hover:bg-amber-600 hover:text-white font-bold uppercase text-[9px] tracking-widest rounded-lg transition-all"
-                                onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
-                              >
-                                Baixar / OK
-                              </Button>
-                            )}
+                          <div className="text-right space-y-3">
+                            <p className="text-xl font-display text-emerald-900 tracking-tight leading-none">{currencyFmt(p.entry_amount)}</p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={cn(
+                                "h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm",
+                                p.entry_paid_at 
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                                  : 'bg-white text-emerald-600 hover:bg-emerald-50'
+                              )}
+                              onClick={() => toggleEntryPaidMutation.mutate({ id: p.id, currentPaidAt: p.entry_paid_at })}
+                            >
+                              {p.entry_paid_at ? 'Liquidado' : 'Validar'}
+                            </Button>
                           </div>
                         </div>
-                      ))}
+                      )}
+                      
+                      {installments.map((inst) => {
+                        const paid = isInstallmentPaid(inst.status, inst.paid_at);
+                        return (
+                          <div key={inst.id} className={cn(
+                            "flex items-center justify-between p-6 rounded-[24px] bg-white border transition-all group/inst",
+                            paid ? 'border-emerald-100' : 'border-border/30 hover:border-gold/30'
+                          )}>
+                            <div className="flex items-center gap-4">
+                              <div className={cn(
+                                "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-all group-hover/inst:scale-110",
+                                paid ? 'bg-emerald-100 text-emerald-600' : 'bg-secondary text-muted-foreground/40'
+                              )}>
+                                <Calendar className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <p className={cn(
+                                  "text-[10px] font-black uppercase tracking-widest mb-1",
+                                  paid ? 'text-emerald-700' : 'text-muted-foreground/60'
+                                )}>Parcela {inst.installment_number.toString().padStart(2, '0')}</p>
+                                <p className="text-sm font-bold text-foreground">
+                                  {format(new Date(inst.due_date + "T12:00:00"), "dd 'de' MMM", { locale: ptBR })}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right space-y-3">
+                              <p className={cn(
+                                "text-xl font-display tracking-tight leading-none",
+                                paid ? 'text-emerald-800' : 'text-foreground'
+                              )}>{currencyFmt(inst.amount)}</p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={cn(
+                                  "h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm",
+                                  paid 
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                                    : 'bg-secondary text-foreground/70 hover:bg-gold hover:text-white'
+                                )}
+                                onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                              >
+                                {paid ? 'Pago' : 'Baixar'}
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

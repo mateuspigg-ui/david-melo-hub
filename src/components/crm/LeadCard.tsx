@@ -34,22 +34,22 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
       : null;
 
   const cardBorder = isDragging
-    ? ''
+    ? 'border-gold/30'
     : isOverlay
-    ? 'border-gold/60 ring-2 ring-gold/20'
+    ? 'border-gold/60 ring-4 ring-gold/10'
     : isOverdue
-    ? 'border-red-400/70 ring-1 ring-red-200'
+    ? 'border-red-400/50 ring-1 ring-red-100'
     : hasPendingTasks
-    ? 'border-emerald-400/60 ring-1 ring-emerald-100'
-    : 'border-border/40 hover:border-gold/40';
+    ? 'border-emerald-400/40 ring-1 ring-emerald-50'
+    : 'border-border/30 hover:border-gold/30';
 
   const cardBg = isOverlay
     ? 'bg-white'
     : isOverdue
-    ? 'bg-gradient-to-br from-red-50 to-white'
+    ? 'bg-gradient-to-br from-red-50/50 to-white'
     : hasPendingTasks
-    ? 'bg-gradient-to-br from-emerald-50/80 to-white'
-    : 'bg-white';
+    ? 'bg-gradient-to-br from-emerald-50/30 to-white'
+    : 'bg-white/80 backdrop-blur-sm';
 
   return (
     <div
@@ -57,37 +57,51 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
       style={!isOverlay ? style : undefined}
       {...(!isOverlay ? { ...attributes, ...listeners } : {})}
       onClick={onClick}
-      className={`touch-pan-y select-none p-4 rounded-xl border cursor-grab active:cursor-grabbing transition-all duration-200 ${
-        isDragging ? 'opacity-30 scale-[0.97]' : 'hover:-translate-y-0.5 hover:shadow-lg'
-      } ${
-        isOverlay ? 'shadow-[0_16px_48px_-10px_rgba(0,0,0,0.3)] rotate-[2deg] scale-[1.04]' : 'shadow-sm'
-      } ${cardBorder} ${cardBg}`}
+      className={cn(
+        "touch-pan-y select-none p-5 rounded-2xl border cursor-grab active:cursor-grabbing transition-all duration-300",
+        isDragging ? 'opacity-40 scale-[0.98] blur-[1px]' : 'hover:-translate-y-1 hover:shadow-xl',
+        isOverlay ? 'shadow-2xl rotate-[1deg] scale-[1.05] z-50' : 'premium-shadow',
+        cardBorder,
+        cardBg
+      )}
     >
-      {/* Status badge - unified (no duplicates) */}
+      {/* Status Indicators */}
       {hasPendingTasks && (
-        <div className={`flex items-center justify-between gap-2 mb-3 rounded-lg px-3 py-2 ${
+        <div className={cn(
+          "flex items-center justify-between gap-2 mb-4 rounded-xl px-3 py-2 border",
           isOverdue
-            ? 'bg-red-100 border border-red-300/60'
-            : 'bg-emerald-100 border border-emerald-300/60'
-        }`}>
-          <div className="flex items-center gap-1.5">
+            ? 'bg-red-50/80 border-red-200/50'
+            : 'bg-emerald-50/80 border-emerald-200/50'
+        )}>
+          <div className="flex items-center gap-2">
             {isOverdue ? (
-              <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />
             ) : (
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <div className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </div>
             )}
-            <span className={`text-[9px] font-black uppercase tracking-widest ${
+            <span className={cn(
+              "text-[9px] font-black uppercase tracking-[0.1em]",
               isOverdue ? 'text-red-700' : 'text-emerald-700'
-            }`}>
-              {isOverdue ? 'Atraso' : ''} {taskMeta!.pendingCount} tarefa{taskMeta!.pendingCount > 1 ? 's' : ''}
+            )}>
+              {isOverdue ? 'Atrasado' : 'Ativo'} • {taskMeta!.pendingCount} {taskMeta!.pendingCount > 1 ? 'Tarefas' : 'Tarefa'}
             </span>
           </div>
           {taskMeta!.assignees.length > 0 && (
-            <span className={`text-[8px] font-bold uppercase tracking-wider truncate max-w-[100px] ${
-              isOverdue ? 'text-red-600' : 'text-emerald-600'
-            }`} title={taskMeta!.assignees.join(', ')}>
-              {taskMeta!.assignees[0]}{taskMeta!.assignees.length > 1 ? ` +${taskMeta!.assignees.length - 1}` : ''}
-            </span>
+            <div className="flex -space-x-2">
+              {taskMeta!.assignees.slice(0, 2).map((name, i) => (
+                <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-secondary flex items-center justify-center text-[8px] font-black uppercase overflow-hidden" title={name}>
+                  {name[0]}
+                </div>
+              ))}
+              {taskMeta!.assignees.length > 2 && (
+                <div className="w-5 h-5 rounded-full border-2 border-white bg-secondary flex items-center justify-center text-[7px] font-black">
+                  +{taskMeta!.assignees.length - 2}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -101,78 +115,88 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
             onCompleteTasks();
           }}
           disabled={isCompleting}
-          className="w-full mb-3 h-7 rounded-lg bg-foreground/90 text-background text-[9px] font-black uppercase tracking-widest disabled:opacity-60 hover:bg-foreground transition-colors"
+          className="w-full mb-4 h-9 rounded-xl bg-foreground text-background text-[10px] font-black uppercase tracking-[0.2em] disabled:opacity-60 hover:bg-gold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm flex items-center justify-center gap-2"
         >
-          {isCompleting ? <Loader2 className="w-3 h-3 inline mr-1 animate-spin" /> : <CheckCircle2 className="w-3 h-3 inline mr-1" />}
-          Concluir
+          {isCompleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+          Concluir Tarefas
         </button>
       )}
 
-      {/* Title + event type */}
-      <div className="flex justify-between items-start gap-2">
-        <h4 className="text-[13px] font-bold text-foreground leading-snug tracking-tight line-clamp-2">{lead.title}</h4>
-        {lead.event_type && (
-          <span className="shrink-0 bg-gold/10 text-gold text-[8px] font-black px-2 py-0.5 rounded-md border border-gold/15 uppercase tracking-wider">
-            {lead.event_type}
-          </span>
-        )}
-      </div>
-
-      {/* Client */}
-      {clientName && (
-        <p className="text-[11px] font-semibold text-gold/90 mt-1.5 truncate">{clientName}</p>
-      )}
-      {lead.phone && (
-        <p className="text-[10px] font-medium text-muted-foreground/60 mt-0.5 truncate">{lead.phone}</p>
-      )}
-
-      {/* Details */}
-      <div className="mt-3 space-y-1.5">
-        {lead.event_date && (
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
-            <Calendar className="w-3.5 h-3.5 text-gold/50" />
-            {format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMM, yyyy", { locale: ptBR })}
-          </div>
-        )}
-        
-        {lead.total_budget && (
-          <div className="flex items-center gap-2 text-[10px] font-bold text-foreground/90 bg-gold/5 w-fit px-2.5 py-1 rounded-md border border-gold/10">
-            <DollarSign className="w-3.5 h-3.5 text-gold" />
-            {Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 pt-0.5">
-          {lead.event_location && (
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 font-medium truncate max-w-[140px]">
-              <MapPin className="w-3 h-3 shrink-0 text-gold/40" />
-              <span className="truncate">{lead.event_location}</span>
-            </div>
-          )}
-          {lead.guest_count && (
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 font-medium">
-              <Users className="w-3 h-3 text-gold/40" />
-              {lead.guest_count}
-            </div>
+      {/* Title + Badge */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-start gap-3">
+          <h4 className="text-[14px] font-bold text-foreground leading-tight tracking-tight line-clamp-2 group-hover:text-gold transition-colors">{lead.title}</h4>
+          {lead.event_type && (
+            <span className="shrink-0 bg-gold/5 text-gold text-[8px] font-black px-2 py-1 rounded-lg border border-gold/10 uppercase tracking-widest">
+              {lead.event_type}
+            </span>
           )}
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="mt-3 pt-2.5 border-t border-border/10 flex items-center justify-between">
-        {lead.profiles?.full_name ? (
-          <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-gold/15 flex items-center justify-center text-[8px] font-black text-gold">
-              {lead.profiles.full_name[0]}
+        {/* Client info */}
+        <div className="space-y-0.5">
+          {clientName && (
+            <p className="text-[11px] font-black uppercase tracking-wider text-gold/80">{clientName}</p>
+          )}
+          {lead.phone && (
+            <p className="text-[10px] font-bold text-muted-foreground/50 tracking-tight">{lead.phone}</p>
+          )}
+        </div>
+
+        <div className="h-px w-full bg-gradient-to-r from-border/40 to-transparent" />
+
+        {/* Details bento style */}
+        <div className="grid grid-cols-1 gap-2.5">
+          {lead.event_date && (
+            <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground/80 font-bold uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5 text-gold/60" />
+              {format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMM, yyyy", { locale: ptBR })}
             </div>
-            <span className="text-[9px] text-muted-foreground/70 font-bold">{lead.profiles.full_name}</span>
+          )}
+          
+          <div className="flex flex-wrap gap-2">
+            {lead.total_budget && (
+              <div className="flex items-center gap-2 text-[10px] font-black text-emerald-700 bg-emerald-50/50 px-3 py-1.5 rounded-xl border border-emerald-100/50">
+                <DollarSign className="w-3 h-3" />
+                {Number(lead.total_budget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </div>
+            )}
+            
+            {(lead.event_location || lead.guest_count) && (
+              <div className="flex items-center gap-3 text-[9px] text-muted-foreground/60 font-bold uppercase tracking-widest bg-secondary/30 px-3 py-1.5 rounded-xl">
+                {lead.guest_count && (
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-3 h-3 opacity-60" />
+                    {lead.guest_count}
+                  </div>
+                )}
+                {lead.event_location && (
+                  <div className="flex items-center gap-1.5 max-w-[120px]">
+                    <MapPin className="w-3 h-3 opacity-60 shrink-0" />
+                    <span className="truncate">{lead.event_location}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        ) : <span />}
-        <div className="flex items-center gap-1">
-          <Clock className="w-2.5 h-2.5 text-muted-foreground/30" />
-          <span className="text-[8px] text-muted-foreground/40 font-medium">
-            {format(new Date(lead.created_at), "dd/MM/yy", { locale: ptBR })}
-          </span>
+        </div>
+
+        {/* Responsible + Date */}
+        <div className="pt-3 flex items-center justify-between">
+          {lead.profiles?.full_name ? (
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-gold/20 to-gold/10 flex items-center justify-center text-[9px] font-black text-gold border border-gold/20 shadow-sm">
+                {lead.profiles.full_name[0]}
+              </div>
+              <span className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-wider">{lead.profiles.full_name.split(' ')[0]}</span>
+            </div>
+          ) : <div />}
+          <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-60 transition-opacity">
+            <Clock className="w-3 h-3" />
+            <span className="text-[9px] font-bold">
+              {format(new Date(lead.created_at), "dd/MM/yy")}
+            </span>
+          </div>
         </div>
       </div>
     </div>

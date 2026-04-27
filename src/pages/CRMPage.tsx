@@ -274,73 +274,83 @@ export default function CRMPage() {
   const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1900px] mx-auto p-2">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Gestão Comercial</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2">David Melo Produções • Pipeline de Leads e Oportunidades</p>
+    <div className="space-y-10 animate-fade-in max-w-[1900px] mx-auto pb-10">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gold rounded-full" />
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão Comercial</h1>
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Pipeline de Leads e Oportunidades</p>
         </div>
         <Button 
           onClick={() => { setEditingLead(null); setIsFormOpen(true); }} 
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-11 px-6 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
+          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-8 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus className="w-5 h-5 mr-2" /> Novo Lead
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por título, cliente ou local..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            className="pl-11 bg-secondary/30 border-border/40 focus:border-gold h-11 rounded-xl" 
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-gold" />
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[180px] bg-secondary/30 border-border/40 h-11 rounded-xl focus:ring-gold font-medium">
-              <SelectValue placeholder="Tipo de evento" />
-            </SelectTrigger>
-            <SelectContent className="bg-white border-border/40 rounded-xl shadow-2xl">
-              <SelectItem value="all" className="font-medium text-xs">Todos os tipos</SelectItem>
-              {EVENT_TYPES.map(t => (
-                <SelectItem key={t.value} value={t.value} className="font-medium text-xs font-bold">{t.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="px-2">
+        <div className="flex flex-col md:flex-row gap-4 p-4 bg-white/50 backdrop-blur-sm border border-border/40 rounded-[24px] premium-shadow">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-gold transition-colors" />
+            <Input 
+              placeholder="Buscar por título, cliente ou local..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+              className="pl-12 bg-white/50 border-border/30 focus:border-gold/50 h-14 rounded-2xl transition-all focus:ring-4 focus:ring-gold/5" 
+            />
+          </div>
+          <div className="flex items-center gap-3 bg-white/50 border border-border/30 rounded-2xl px-4 h-14 group focus-within:border-gold/50 transition-all">
+            <Filter className="w-4 h-4 text-gold" />
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[200px] border-none bg-transparent h-full focus:ring-0 font-black uppercase text-[10px] tracking-widest text-foreground/70">
+                <SelectValue placeholder="Tipo de evento" />
+              </SelectTrigger>
+              <SelectContent className="bg-white/95 backdrop-blur-xl border-border/40 rounded-2xl shadow-2xl p-2">
+                <SelectItem value="all" className="font-black text-[10px] uppercase tracking-widest rounded-xl mb-1">Todos os tipos</SelectItem>
+                {EVENT_TYPES.map(t => (
+                  <SelectItem key={t.value} value={t.value} className="font-black text-[10px] uppercase tracking-widest rounded-xl">{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="rounded-2xl border border-border/30 bg-secondary/20 p-3">
-          <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
-          {STAGES.map(s => (
-              <div key={s.id} className="min-w-[320px] flex-1 bg-card/70 rounded-xl p-4 border border-border/30 animate-pulse h-[420px]" />
-          ))}
+        <div className="px-2">
+          <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-6">
+            <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
+              {STAGES.map(s => (
+                <div key={s.id} className="min-w-[340px] flex-1 bg-white/40 rounded-[28px] p-6 border border-border/20 animate-pulse h-[600px] shadow-sm" />
+              ))}
+            </div>
           </div>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="rounded-2xl border border-border/30 bg-secondary/20 p-3">
-            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory">
-              {STAGES.map(stage => (
-                <KanbanColumn
-                  key={stage.id}
-                  stage={stage}
-                leads={leadsByStage[stage.id] || []}
-                onCardClick={setDetailLead}
-                onCompleteTasks={(leadId) => completeLeadTasksMutation.mutate(leadId)}
-                completingLeadId={completingLeadId}
-                overdueLeadIds={overdueLeadIds}
-                leadTaskMeta={leadTaskMeta}
-              />
-              ))}
+          <div className="px-2">
+            <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-6 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide relative z-10">
+                {STAGES.map(stage => (
+                  <KanbanColumn
+                    key={stage.id}
+                    stage={stage}
+                    leads={leadsByStage[stage.id] || []}
+                    onCardClick={setDetailLead}
+                    onCompleteTasks={(leadId) => completeLeadTasksMutation.mutate(leadId)}
+                    completingLeadId={completingLeadId}
+                    overdueLeadIds={overdueLeadIds}
+                    leadTaskMeta={leadTaskMeta}
+                  />
+                ))}
+              </div>
             </div>
           </div>
-          <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+          <DragOverlay dropAnimation={{ duration: 250, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
             {activeLead && <LeadCard lead={activeLead} isOverlay taskMeta={leadTaskMeta[activeLead.id]} />}
           </DragOverlay>
         </DndContext>

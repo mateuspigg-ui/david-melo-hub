@@ -13,6 +13,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Plus, Search, Phone, Mail, Instagram, Pencil, Trash2, User, LayoutGrid, List, Hash, MapPin } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface Client {
   id: string;
@@ -238,199 +241,201 @@ const ClientesPage = () => {
   }, [clients, search]);
 
   return (
-    <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8 border-b border-border/10 pb-10">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase whitespace-nowrap">Base de Clientes</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">David Melo Produções • Gestão de Relacionamento</p>
+  return (
+    <div className="space-y-12 animate-fade-in max-w-[1700px] mx-auto pb-12">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gold rounded-full" />
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Base de Clientes</h1>
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Gestão de Relacionamento Premium</p>
         </div>
         <Button
           onClick={() => { setForm(emptyForm); setEditingClient(null); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
+          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-10 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus size={20} className="mr-3" /> Novo Cliente
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-xl group">
-        <div className="absolute -inset-1 bg-gradient-gold opacity-0 group-focus-within:opacity-10 rounded-2xl blur transition duration-500" />
-        <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-gold transition-colors" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome, email, telefone, CPF/CNPJ ou endereço..."
-          className="pl-14 bg-white border-border/10 focus:border-gold h-14 rounded-2xl shadow-sm text-sm font-medium relative z-10"
-        />
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 px-2">
+        {/* Search */}
+        <div className="relative group max-w-xl flex-1">
+          <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-gold transition-colors z-10" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome, email, telefone, CPF/CNPJ ou endereço..."
+            className="pl-14 bg-white/50 backdrop-blur-sm border-border/30 focus:border-gold/50 h-14 rounded-2xl transition-all focus:ring-4 focus:ring-gold/5 premium-shadow text-sm font-medium"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 bg-white/30 backdrop-blur-md p-1.5 rounded-2xl border border-border/10 shadow-sm">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setViewMode('cards')}
+            className={cn(
+              "h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all",
+              viewMode === 'cards' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground/60 hover:text-gold hover:bg-gold/5'
+            )}
+          >
+            <LayoutGrid size={14} className="mr-2" /> Cards
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setViewMode('list')}
+            className={cn(
+              "h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all",
+              viewMode === 'list' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground/60 hover:text-gold hover:bg-gold/5'
+            )}
+          >
+            <List size={14} className="mr-2" /> Lista
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant={viewMode === 'cards' ? 'default' : 'outline'}
-          onClick={() => setViewMode('cards')}
-          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
-        >
-          <LayoutGrid size={14} className="mr-2" /> Cards
-        </Button>
-        <Button
-          type="button"
-          variant={viewMode === 'list' ? 'default' : 'outline'}
-          onClick={() => setViewMode('list')}
-          className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
-        >
-          <List size={14} className="mr-2" /> Lista
-        </Button>
-      </div>
-
-      {/* Cards Grid */}
+      {/* Content Area */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-card premium-shadow rounded-2xl p-6 border border-border/40 animate-pulse h-52" />
+            <div key={i} className="h-64 bg-white/40 rounded-[32px] animate-pulse border border-border/20 shadow-sm" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-card premium-shadow rounded-2xl p-20 border border-border/40 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
-            <User size={32} className="text-muted-foreground/30" />
+        <div className="mx-2 bg-white/40 backdrop-blur-md rounded-[40px] p-24 border border-border/20 text-center flex flex-col items-center justify-center premium-shadow">
+          <div className="w-20 h-20 rounded-3xl bg-secondary/30 flex items-center justify-center mb-6">
+            <User size={40} className="text-muted-foreground/30" />
           </div>
-          <p className="text-foreground font-bold text-lg mb-1">
-            {search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+          <h3 className="text-2xl font-display text-foreground uppercase tracking-tight">Nenhum cliente na base</h3>
+          <p className="text-xs text-muted-foreground/60 mt-2 font-black uppercase tracking-widest max-w-xs leading-relaxed">
+            {search ? 'Nenhum resultado para sua busca. Tente novos termos.' : 'Sua lista de clientes está vazia. Comece a construir seu império.'}
           </p>
-          <p className="text-sm text-muted-foreground/60 mb-6 font-medium">
-            {search ? 'Tente outros termos de busca.' : 'Comece cadastrando seu primeiro cliente.'}
-          </p>
-          {!search && (
-            <Button variant="outline" onClick={() => { setForm(emptyForm); setEditingClient(null); setSelectedClosedLeadId(''); setDialogOpen(true); }} className="border-gold text-gold hover:bg-gold/5 font-bold uppercase text-[10px] tracking-widest">
-              Cadastrar Agora
-            </Button>
-          )}
         </div>
       ) : viewMode === 'cards' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-2">
           {filtered.map((c) => {
             const entryDate = firstLeadEntryByClient[c.id] || c.created_at;
+            const initials = `${c.first_name[0]}${c.last_name?.[0] || ''}`.toUpperCase();
+            
             return (
-            <div
-              key={c.id}
-              className="bg-card premium-shadow rounded-2xl p-6 border border-border/40 hover:border-gold/30 hover:-translate-y-1 transition-all duration-300 group"
-            >
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center shrink-0 border border-gold/10 group-hover:bg-gold group-hover:text-white transition-all duration-300">
-                    <span className="text-sm font-bold uppercase tracking-tighter">
-                      {c.first_name[0]}{c.last_name?.[0] || ''}
-                    </span>
+              <div
+                key={c.id}
+                className="group bg-white rounded-[32px] border border-border/30 p-8 premium-shadow transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-8">
+                    <div className="w-16 h-16 rounded-2xl bg-gold/10 flex items-center justify-center text-gold border border-gold/10 group-hover:bg-gold group-hover:text-white group-hover:rotate-6 transition-all duration-500 shadow-sm">
+                      <span className="text-lg font-black tracking-tighter">{initials}</span>
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                      <button onClick={() => openEdit(c)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-secondary/80 text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all shadow-sm">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => setDeleteId(c.id)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-secondary/80 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 transition-all shadow-sm">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-foreground truncate text-base tracking-tight leading-tight">
+
+                  <div className="space-y-1 mb-8">
+                    <h4 className="text-xl font-display text-foreground tracking-tight leading-tight uppercase group-hover:text-gold transition-colors">
                       {c.first_name} {c.last_name}
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-[0.2em]">
+                      Desde {format(new Date(entryDate), "MMM yyyy", { locale: ptBR })}
                     </p>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-1 opacity-60">
-                      Entrada: {new Date(entryDate).toLocaleDateString('pt-BR')}
-                    </p>
+                  </div>
+
+                  <div className="space-y-4 flex-1">
+                    {c.phone && (
+                      <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors group/item">
+                        <div className="w-8 h-8 rounded-lg bg-secondary/30 flex items-center justify-center shrink-0 group-hover/item:bg-gold/10 group-hover/item:text-gold transition-colors">
+                          <Phone size={14} />
+                        </div>
+                        <span className="truncate tracking-wide">{c.phone}</span>
+                      </div>
+                    )}
+                    {c.email && (
+                      <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors group/item">
+                        <div className="w-8 h-8 rounded-lg bg-secondary/30 flex items-center justify-center shrink-0 group-hover/item:bg-gold/10 group-hover/item:text-gold transition-colors">
+                          <Mail size={14} />
+                        </div>
+                        <span className="truncate tracking-tight lowercase">{c.email}</span>
+                      </div>
+                    )}
+                    {c.cpf_cnpj && (
+                      <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors group/item">
+                        <div className="w-8 h-8 rounded-lg bg-secondary/30 flex items-center justify-center shrink-0 group-hover/item:bg-gold/10 group-hover/item:text-gold transition-colors">
+                          <Hash size={14} />
+                        </div>
+                        <span className="truncate tracking-widest opacity-60">{c.cpf_cnpj}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(c)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all">
-                    <Pencil size={16} />
-                  </button>
-                  <button onClick={() => setDeleteId(c.id)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
               </div>
-              <div className="space-y-3">
-                {c.phone && (
-                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
-                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
-                      <Phone size={14} className="text-gold/60" />
-                    </div>
-                    <span className="truncate">{c.phone}</span>
-                  </div>
-                )}
-                {c.email && (
-                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
-                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
-                      <Mail size={14} className="text-gold/60" />
-                    </div>
-                    <span className="truncate">{c.email}</span>
-                  </div>
-                )}
-                {c.cpf_cnpj && (
-                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
-                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
-                      <Hash size={14} className="text-gold/60" />
-                    </div>
-                    <span className="truncate">{c.cpf_cnpj}</span>
-                  </div>
-                )}
-                {c.address && (
-                  <div className="flex items-start gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
-                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center mt-0.5 shrink-0">
-                      <MapPin size={14} className="text-gold/60" />
-                    </div>
-                    <span className="break-words">{c.address}</span>
-                  </div>
-                )}
-                {c.instagram && (
-                  <div className="flex items-center gap-3 text-sm font-medium text-foreground/80 hover:text-gold transition-colors">
-                    <div className="w-7 h-7 rounded-md bg-secondary/30 flex items-center justify-center">
-                      <Instagram size={14} className="text-gold/60" />
-                    </div>
-                    <span className="truncate">{c.instagram}</span>
-                  </div>
-                )}
-              </div>
-            </div>
             );
           })}
         </div>
       ) : (
-        <div className="bg-card premium-shadow rounded-2xl border border-border/40 overflow-hidden">
+        <div className="mx-2 bg-white rounded-[32px] border border-border/30 premium-shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-secondary/10 border-b border-border/20">
-                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Cliente</th>
-                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Contato</th>
-                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Documento</th>
-                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Endereço</th>
-                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Entrada</th>
-                  <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
+                <tr className="bg-secondary/20 border-b border-border/10">
+                  <th className="text-left py-6 px-8 text-muted-foreground font-black text-[10px] uppercase tracking-[0.3em]">Perfil do Cliente</th>
+                  <th className="text-left py-6 px-8 text-muted-foreground font-black text-[10px] uppercase tracking-[0.3em]">Contato Executivo</th>
+                  <th className="text-left py-6 px-8 text-muted-foreground font-black text-[10px] uppercase tracking-[0.3em]">Fiscal / Endereço</th>
+                  <th className="text-left py-6 px-8 text-muted-foreground font-black text-[10px] uppercase tracking-[0.3em]">Data Entrada</th>
+                  <th className="text-right py-6 px-8 text-muted-foreground font-black text-[10px] uppercase tracking-[0.3em]">Gestão</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/10">
+              <tbody className="divide-y divide-border/5">
                 {filtered.map((c) => {
                   const entryDate = firstLeadEntryByClient[c.id] || c.created_at;
                   return (
-                    <tr key={c.id} className="hover:bg-secondary/5 transition-colors">
-                      <td className="py-4 px-6">
-                        <p className="font-bold text-foreground">{c.first_name} {c.last_name}</p>
-                        {c.instagram && <p className="text-xs text-muted-foreground">{c.instagram}</p>}
+                    <tr key={c.id} className="group hover:bg-gold/5 transition-colors duration-300">
+                      <td className="py-6 px-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-gold/5 flex items-center justify-center text-gold font-black text-xs border border-gold/10 group-hover:bg-gold group-hover:text-white transition-all duration-500">
+                            {c.first_name[0]}
+                          </div>
+                          <div>
+                            <p className="font-bold text-foreground text-base tracking-tight uppercase group-hover:text-gold transition-colors">{c.first_name} {c.last_name}</p>
+                            {c.instagram && <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5 opacity-60">{c.instagram}</p>}
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-4 px-6">
-                        <p className="text-sm">{c.phone || 'Sem telefone'}</p>
-                        <p className="text-xs text-muted-foreground">{c.email || 'Sem e-mail'}</p>
+                      <td className="py-6 px-8">
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-foreground tracking-wide">{c.phone || '—'}</p>
+                          <p className="text-[10px] text-muted-foreground font-medium lowercase tracking-tight">{c.email || '—'}</p>
+                        </div>
                       </td>
-                      <td className="py-4 px-6 text-sm text-foreground/80">
-                        {c.cpf_cnpj || 'Não informado'}
+                      <td className="py-6 px-8">
+                        <div className="space-y-1 max-w-[280px]">
+                          <p className="text-[10px] font-black text-foreground/70 uppercase tracking-widest">{c.cpf_cnpj || 'Não Informado'}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold line-clamp-1">{c.address || 'Sem Endereço'}</p>
+                        </div>
                       </td>
-                      <td className="py-4 px-6 text-sm text-foreground/80 max-w-[320px]">
-                        <span className="break-words">{c.address || 'Não informado'}</span>
+                      <td className="py-6 px-8">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                          {format(new Date(entryDate), "dd MMM yyyy", { locale: ptBR })}
+                        </span>
                       </td>
-                      <td className="py-4 px-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        {new Date(entryDate).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => openEdit(c)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all">
-                            <Pencil size={16} />
+                      <td className="py-6 px-8">
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button onClick={() => openEdit(c)} className="h-9 w-9 flex items-center justify-center rounded-lg bg-white border border-border/20 text-muted-foreground hover:text-gold hover:border-gold/30 transition-all shadow-sm">
+                            <Pencil size={14} />
                           </button>
-                          <button onClick={() => setDeleteId(c.id)} className="p-2 rounded-lg bg-secondary/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-                            <Trash2 size={16} />
+                          <button onClick={() => setDeleteId(c.id)} className="h-9 w-9 flex items-center justify-center rounded-lg bg-white border border-border/20 text-muted-foreground hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm">
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>

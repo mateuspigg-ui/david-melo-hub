@@ -6,77 +6,78 @@
 
 @layer base {
   :root {
-    --background: 30 20% 97%; /* #F8F7F4 approx */
-    --foreground: 0 0% 10%; /* Deeper executive black */
+    --background: 210 20% 98%; /* Softer, cleaner gray-blue background */
+    --foreground: 224 71% 4%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
+    --card-foreground: 224 71% 4%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover-foreground: 224 71% 4%;
 
     --primary: 38 45% 56%; /* #C5A059 - Brand Gold */
-    --primary-foreground: 30 20% 98%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 30 15% 90%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 71% 4%;
 
-    --muted: 30 10% 94%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8% 46%;
 
-    --accent: 38 45% 95%;
+    --accent: 38 45% 96%;
     --accent-foreground: 38 45% 30%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 30 15% 85%;
-    --input: 30 15% 85%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 38 45% 56%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
 
     --gold: 38 45% 56%;
-    --gold-light: 38 30% 70%;
-    --gold-dark: 38 40% 35%;
-    --cream: 40 20% 98%;
-    --dark: 0 0% 10%;
-    --dark-card: 0 0% 15%;
-    --dark-surface: 30 15% 90%;
+    --gold-light: 38 35% 65%;
+    --gold-dark: 38 50% 35%;
+    --cream: 40 25% 98%;
+    --dark: 224 71% 4%;
+    --dark-card: 224 71% 8%;
+    --dark-surface: 220 14% 92%;
     --success: 142 71% 45%;
     --warning: 38 92% 50%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 15%;
+    --sidebar-foreground: 224 71% 8%;
     --sidebar-primary: 38 45% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 37 42% 52%;
+    --sidebar-accent: 38 45% 96%;
+    --sidebar-accent-foreground: 38 45% 20%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 38 45% 56%;
 
     font-family: 'Manrope', sans-serif;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 37 42% 52%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 213 27% 84%;
+    --background: 224 71% 4%;
+    --foreground: 210 20% 98%;
+    --card: 224 71% 4%;
+    --card-foreground: 210 20% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 38 45% 56%;
+    --primary-foreground: 224 71% 4%;
+    --secondary: 215 27% 12%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 215 27% 12%;
+    --muted-foreground: 217 19% 68%;
+    --accent: 215 27% 12%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 215 27% 12%;
+    --input: 215 27% 12%;
+    --ring: 38 45% 56%;
   }
 }
 
@@ -88,14 +89,14 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     background-image:
-      radial-gradient(circle at 8% 0%, hsl(var(--gold) / 0.12), transparent 34%),
-      radial-gradient(circle at 100% 100%, hsl(var(--gold) / 0.1), transparent 30%),
-      linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--secondary)) 100%);
+      radial-gradient(circle at 0% 0%, hsl(var(--gold) / 0.08), transparent 40%),
+      radial-gradient(circle at 100% 100%, hsl(var(--gold) / 0.05), transparent 40%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--secondary) / 0.3) 100%);
     background-attachment: fixed;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
-    @apply tracking-tight font-semibold;
+    @apply tracking-tight font-bold;
   }
   input, textarea, select, button {
     font-family: 'Manrope', sans-serif;
@@ -111,24 +112,16 @@
     background-image: linear-gradient(135deg, hsl(var(--gold)), hsl(var(--gold-dark)));
   }
   .shadow-gold {
-    box-shadow: 0 4px 20px -4px hsl(var(--gold) / 0.3);
+    box-shadow: 0 10px 25px -5px hsl(var(--gold) / 0.3), 0 4px 10px -5px hsl(var(--gold) / 0.2);
+  }
+  .shadow-gold-sm {
+    box-shadow: 0 4px 12px -2px hsl(var(--gold) / 0.25);
   }
   .glass-card {
-    @apply backdrop-blur-md border border-border/50 shadow-sm;
-    background: hsla(0, 0%, 100%, 0.8);
+    @apply backdrop-blur-xl border border-white/20 shadow-xl;
+    background: rgba(255, 255, 255, 0.7);
   }
   .premium-shadow {
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 10px -5px rgba(0, 0, 0, 0.02);
-  }
-  .app-surface {
-    @apply rounded-[28px] border border-border/30 bg-white/65 backdrop-blur-sm;
-    box-shadow: 0 25px 60px -35px rgba(15, 23, 42, 0.3);
-  }
-}
-
-::-webkit-scrollbar {
-  width: 6px;
-}
 ::-webkit-scrollbar-track {
   background: hsl(var(--background));
 }
