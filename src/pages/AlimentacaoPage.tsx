@@ -225,47 +225,51 @@ const AlimentacaoPage = () => {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl rounded-[28px]">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl h-[88vh] rounded-[28px] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/20 bg-white">
             <DialogTitle className="font-display text-2xl">{editing ? 'Editar item de alimentação' : 'Novo item de alimentação'}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2 space-y-2">
-              <Label>Nome do item</Label>
-              <Input value={form.name} onChange={(e) => setForm((p: any) => ({ ...p, name: e.target.value }))} />
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2 space-y-2">
+                <Label>Nome do item</Label>
+                <Input value={form.name} onChange={(e) => setForm((p: any) => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{FOOD_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Unidade</Label>
+                <Select value={form.unit} onValueChange={(v) => setForm((p: any) => ({ ...p, unit: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{UNITS.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Quantidade total</Label><Input type="number" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Estoque mínimo</Label><Input type="number" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Fornecedor</Label><Input value={form.supplier} onChange={(e) => setForm((p: any) => ({ ...p, supplier: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Custo por unidade</Label><Input type="number" value={form.cost_per_unit} onChange={(e) => setForm((p: any) => ({ ...p, cost_per_unit: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Data de compra</Label><Input type="date" value={form.purchase_date} onChange={(e) => setForm((p: any) => ({ ...p, purchase_date: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Validade</Label><Input type="date" value={form.expiration_date} onChange={(e) => setForm((p: any) => ({ ...p, expiration_date: e.target.value }))} /></div>
+              <div className="md:col-span-2 space-y-2"><Label>Local de armazenamento</Label><Input value={form.storage_location} onChange={(e) => setForm((p: any) => ({ ...p, storage_location: e.target.value }))} /></div>
+              <div className="md:col-span-2 space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} /></div>
             </div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{FOOD_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Unidade</Label>
-              <Select value={form.unit} onValueChange={(v) => setForm((p: any) => ({ ...p, unit: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{UNITS.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label>Quantidade total</Label><Input type="number" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Estoque mínimo</Label><Input type="number" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Fornecedor</Label><Input value={form.supplier} onChange={(e) => setForm((p: any) => ({ ...p, supplier: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Custo por unidade</Label><Input type="number" value={form.cost_per_unit} onChange={(e) => setForm((p: any) => ({ ...p, cost_per_unit: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Data de compra</Label><Input type="date" value={form.purchase_date} onChange={(e) => setForm((p: any) => ({ ...p, purchase_date: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Validade</Label><Input type="date" value={form.expiration_date} onChange={(e) => setForm((p: any) => ({ ...p, expiration_date: e.target.value }))} /></div>
-            <div className="md:col-span-2 space-y-2"><Label>Local de armazenamento</Label><Input value={form.storage_location} onChange={(e) => setForm((p: any) => ({ ...p, storage_location: e.target.value }))} /></div>
-            <div className="md:col-span-2 space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} /></div>
           </div>
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
-              {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
-          <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex items-start gap-2">
-            <AlertTriangle size={14} className="mt-0.5" />
-            O sistema recalcula automaticamente quantidade disponível com base em reservados, avariados e manutenção.
+          <div className="border-t border-border/20 bg-white px-6 py-4 space-y-3">
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800 flex items-start gap-2">
+              <AlertTriangle size={14} className="mt-0.5" />
+              O sistema recalcula automaticamente quantidade disponível com base em reservados, avariados e manutenção.
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>
+                {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

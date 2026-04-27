@@ -213,33 +213,52 @@ const MobiliarioDecoracaoPage = () => {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl rounded-[28px]">
-          <DialogHeader><DialogTitle className="font-display text-2xl">{editing ? 'Editar item de mobiliário' : 'Novo item de mobiliário'}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2 space-y-2"><Label>Nome do item</Label><Input value={form.name} onChange={(e) => setForm((p: any) => ({ ...p, name: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Categoria</Label><Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FURNITURE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>SKU interno</Label><Input value={form.sku} onChange={(e) => setForm((p: any) => ({ ...p, sku: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Quantidade total</Label><Input type="number" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Estoque mínimo</Label><Input type="number" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Quantidade danificada</Label><Input type="number" value={form.damaged_quantity} onChange={(e) => setForm((p: any) => ({ ...p, damaged_quantity: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Quantidade em manutenção</Label><Input type="number" value={form.maintenance_quantity} onChange={(e) => setForm((p: any) => ({ ...p, maintenance_quantity: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Cor</Label><Input value={form.color} onChange={(e) => setForm((p: any) => ({ ...p, color: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Material</Label><Input value={form.material} onChange={(e) => setForm((p: any) => ({ ...p, material: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Dimensões</Label><Input value={form.dimensions} onChange={(e) => setForm((p: any) => ({ ...p, dimensions: e.target.value }))} /></div>
-            <div className="space-y-2"><Label>Valor de reposição</Label><Input type="number" value={form.replacement_value} onChange={(e) => setForm((p: any) => ({ ...p, replacement_value: e.target.value }))} /></div>
-            <div className="md:col-span-2 space-y-2"><Label>Local de armazenamento</Label><Input value={form.storage_location} onChange={(e) => setForm((p: any) => ({ ...p, storage_location: e.target.value }))} /></div>
-            <div className="md:col-span-2 space-y-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm((p: any) => ({ ...p, description: e.target.value }))} /></div>
-            <div className="md:col-span-2 space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} /></div>
-            <div className="md:col-span-2 space-y-2">
-              <Label>Galeria de fotos</Label>
-              <label className="h-12 border border-dashed border-gold/40 rounded-xl flex items-center justify-center gap-2 text-sm text-gold cursor-pointer bg-gold/5">
-                <Upload size={16} /> Selecionar imagens
-                <input type="file" className="hidden" multiple accept="image/*" onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))} />
-              </label>
-              {photoFiles.length > 0 && <p className="text-xs text-muted-foreground">{photoFiles.length} arquivo(s) selecionado(s)</p>}
+        <DialogContent className="max-w-4xl h-[90vh] rounded-[28px] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b border-border/20 bg-white">
+            <DialogTitle className="font-display text-2xl">{editing ? 'Editar item de mobiliário' : 'Novo item de mobiliário'}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2 space-y-2"><Label>Nome do item</Label><Input value={form.name} onChange={(e) => setForm((p: any) => ({ ...p, name: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Categoria</Label><Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FURNITURE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>SKU interno</Label><Input value={form.sku} onChange={(e) => setForm((p: any) => ({ ...p, sku: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Quantidade total</Label><Input type="number" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Estoque mínimo</Label><Input type="number" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Quantidade danificada</Label><Input type="number" value={form.damaged_quantity} onChange={(e) => setForm((p: any) => ({ ...p, damaged_quantity: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Quantidade em manutenção</Label><Input type="number" value={form.maintenance_quantity} onChange={(e) => setForm((p: any) => ({ ...p, maintenance_quantity: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Cor</Label><Input value={form.color} onChange={(e) => setForm((p: any) => ({ ...p, color: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Material</Label><Input value={form.material} onChange={(e) => setForm((p: any) => ({ ...p, material: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Dimensões</Label><Input value={form.dimensions} onChange={(e) => setForm((p: any) => ({ ...p, dimensions: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Valor de reposição</Label><Input type="number" value={form.replacement_value} onChange={(e) => setForm((p: any) => ({ ...p, replacement_value: e.target.value }))} /></div>
+              <div className="md:col-span-2 space-y-2"><Label>Local de armazenamento</Label><Input value={form.storage_location} onChange={(e) => setForm((p: any) => ({ ...p, storage_location: e.target.value }))} /></div>
+              <div className="md:col-span-2 space-y-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm((p: any) => ({ ...p, description: e.target.value }))} /></div>
+              <div className="md:col-span-2 space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} /></div>
+
+              <div className="md:col-span-2 rounded-xl border border-gold/20 bg-gold/[0.04] p-4 space-y-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-gold">Upload de fotos do mobiliário</p>
+                <p className="text-xs text-muted-foreground">Selecione as imagens neste bloco. As fotos serão enviadas ao clicar em <b>Salvar item</b>.</p>
+                <label className="h-12 border border-dashed border-gold/40 rounded-xl flex items-center justify-center gap-2 text-sm text-gold cursor-pointer bg-white">
+                  <Upload size={16} /> Selecionar imagens
+                  <input type="file" className="hidden" multiple accept="image/*" onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))} />
+                </label>
+                {photoFiles.length > 0 ? (
+                  <div className="text-xs text-foreground/75 space-y-1">
+                    <p className="font-semibold">{photoFiles.length} arquivo(s) selecionado(s):</p>
+                    {photoFiles.slice(0, 4).map((file) => (
+                      <p key={file.name} className="truncate">- {file.name}</p>
+                    ))}
+                    {photoFiles.length > 4 && <p className="text-muted-foreground">...e mais {photoFiles.length - 4} arquivo(s)</p>}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nenhuma imagem selecionada ainda.</p>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex justify-end gap-3 mt-3"><Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button><Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>{saveMutation.isPending ? 'Salvando...' : 'Salvar item'}</Button></div>
+          <div className="border-t border-border/20 bg-white px-6 py-4 flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>{saveMutation.isPending ? 'Salvando...' : 'Salvar item'}</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
