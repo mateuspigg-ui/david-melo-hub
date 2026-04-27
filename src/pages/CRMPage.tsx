@@ -219,11 +219,13 @@ export default function CRMPage() {
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
       const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
+      const leadTitle = (lead.title || '').toLowerCase();
+      const searchText = search.toLowerCase();
       const matchesSearch = !search || 
-        lead.title.toLowerCase().includes(search.toLowerCase()) ||
-        (lead.clients && `${lead.clients.first_name} ${lead.clients.last_name}`.toLowerCase().includes(search.toLowerCase())) ||
-        (lead.event_location && lead.event_location.toLowerCase().includes(search.toLowerCase())) ||
-        leadName.toLowerCase().includes(search.toLowerCase()) ||
+        leadTitle.includes(searchText) ||
+        (lead.clients && `${lead.clients.first_name} ${lead.clients.last_name}`.toLowerCase().includes(searchText)) ||
+        (lead.event_location && lead.event_location.toLowerCase().includes(searchText)) ||
+        leadName.toLowerCase().includes(searchText) ||
         (lead.phone && lead.phone.includes(search));
       const matchesType = filterType === 'all' || lead.event_type === filterType;
       return matchesSearch && matchesType;

@@ -4,6 +4,7 @@ import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle, CheckCircle2
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Lead } from '@/pages/CRMPage';
+import { cn } from '@/lib/utils';
 
 interface Props {
   lead: Lead;
@@ -125,7 +126,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
       {/* Title + Badge */}
       <div className="space-y-3">
         <div className="flex justify-between items-start gap-3">
-          <h4 className="text-[14px] font-bold text-foreground leading-tight tracking-tight line-clamp-2 group-hover:text-gold transition-colors">{lead.title}</h4>
+          <h4 className="text-[14px] font-bold text-foreground leading-tight tracking-tight line-clamp-2 group-hover:text-gold transition-colors">{lead.title || 'Sem titulo'}</h4>
           {lead.event_type && (
             <span className="shrink-0 bg-gold/5 text-gold text-[8px] font-black px-2 py-1 rounded-lg border border-gold/10 uppercase tracking-widest">
               {lead.event_type}
