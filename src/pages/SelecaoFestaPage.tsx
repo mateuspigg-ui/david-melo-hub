@@ -26,6 +26,17 @@ import {
 import { openReservationPdfPrint } from '@/lib/inventoryPdf';
 import logo from '@/assets/logo.png';
 
+type PendingReservationItem = {
+  localId: string;
+  source: 'inventory' | 'rental';
+  inventory_item_id?: string;
+  itemName: string;
+  supplier?: string;
+  quantity: number;
+  unit: string;
+  notes?: string;
+};
+
 const SelecaoFestaPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,6 +50,7 @@ const SelecaoFestaPage = () => {
   const [newReservationOpen, setNewReservationOpen] = useState(false);
   const [itemForm, setItemForm] = useState({ itemId: '', quantity: 1, notes: '' });
   const [rentalForm, setRentalForm] = useState({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
+  const [pendingItems, setPendingItems] = useState<PendingReservationItem[]>([]);
   const [editItemForm, setEditItemForm] = useState({ id: '', quantity: 1, notes: '' });
   const [newReservationEventId, setNewReservationEventId] = useState('');
   const [responsibleName, setResponsibleName] = useState('');
@@ -76,6 +88,17 @@ const SelecaoFestaPage = () => {
     });
   }, [selectedReservation, reservationTypeFilter]);
 
+  const queuedByInventoryId = useMemo(() => {
+    const map = new Map<string, number>();
+    pendingItems
+      .filter((item) => item.source === 'inventory' && item.inventory_item_id)
+      .forEach((item) => {
+        const id = item.inventory_item_id as string;
+        map.set(id, (map.get(id) || 0) + Number(item.quantity || 0));
+      });
+    return map;
+  }, [pendingItems]);
+
   const createReservationMutation = useMutation({
     mutationFn: async () => {
       const event = events.find((entry: any) => entry.id === newReservationEventId);
@@ -94,36 +117,36 @@ const SelecaoFestaPage = () => {
     },
   });
 
-  const addItemMutation = useMutation({
+  const finalizeReservationMutation = useMutation({
     mutationFn: async () => {
       if (!selectedReservation) throw new Error('Selecione uma reserva');
-      if (itemSource === 'rental') {
-        if (!rentalForm.pieceName.trim()) throw new Error('Informe o nome da peça alugada');
-        if (!rentalForm.supplier.trim()) throw new Error('Selecione ou informe o fornecedor do aluguel');
-        if (Number(rentalForm.quantity) <= 0) throw new Error('Quantidade inválida para aluguel');
-        return addReservationItem({
+      if (pendingItems.length === 0) throw new Error('Adicione itens à lista antes de finalizar');
+
+      for (const row of pendingItems) {
+        if (row.source === 'rental') {
+          await addReservationItem({
+            reservation_id: selectedReservation.id,
+            quantity: Number(row.quantity),
+            unit: row.unit || 'unidade',
+            notes: row.notes || null,
+            is_rental: true,
+            rental_supplier: row.supplier || null,
+            rental_item_name: row.itemName,
+          });
+          continue;
+        }
+
+        await addReservationItem({
           reservation_id: selectedReservation.id,
-          quantity: Number(rentalForm.quantity),
-          unit: rentalForm.unit || 'unidade',
-          notes: rentalForm.notes || null,
-          is_rental: true,
-          rental_supplier: rentalForm.supplier,
-          rental_item_name: rentalForm.pieceName,
+          inventory_item_id: row.inventory_item_id,
+          quantity: Number(row.quantity),
+          unit: row.unit || null,
+          notes: row.notes || null,
         });
       }
 
-      const inventoryItem = items.find((item) => item.id === itemForm.itemId);
-      if (!inventoryItem) throw new Error('Item não encontrado');
-      if (itemForm.quantity > inventoryItem.available_quantity) {
-        throw new Error(`Quantidade acima do disponível (${inventoryItem.available_quantity})`);
-      }
-      return addReservationItem({
-        reservation_id: selectedReservation.id,
-        inventory_item_id: inventoryItem.id,
-        quantity: Number(itemForm.quantity),
-        unit: inventoryItem.unit,
-        notes: itemForm.notes || null,
-      });
+      await updateReservationStatus(selectedReservation.id, 'confirmed');
+      return true;
     },
     onSuccess: async () => {
       await Promise.all([
@@ -132,11 +155,12 @@ const SelecaoFestaPage = () => {
       ]);
       setItemForm({ itemId: '', quantity: 1, notes: '' });
       setRentalForm({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
+      setPendingItems([]);
       setAddOpen(false);
-      toast({ title: 'Item reservado com sucesso' });
+      toast({ title: 'Pedido finalizado com sucesso', description: 'Todos os itens foram reservados e o pedido foi confirmado.' });
     },
     onError: (error: any) => {
-      toast({ title: 'Falha ao reservar item', description: error?.message || 'Tente novamente', variant: 'destructive' });
+      toast({ title: 'Falha ao finalizar pedido', description: error?.message || 'Tente novamente', variant: 'destructive' });
     },
   });
 
@@ -191,7 +215,78 @@ const SelecaoFestaPage = () => {
     setItemSource('inventory');
     setItemForm({ itemId: '', quantity: 1, notes: '' });
     setRentalForm({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
+    setPendingItems([]);
     setAddOpen(true);
+  };
+
+  const addDraftItem = () => {
+    if (itemSource === 'rental') {
+      if (!rentalForm.pieceName.trim()) {
+        toast({ title: 'Informe o nome da peça alugada', variant: 'destructive' });
+        return;
+      }
+      if (!rentalForm.supplier.trim()) {
+        toast({ title: 'Selecione/informe o fornecedor do aluguel', variant: 'destructive' });
+        return;
+      }
+      if (Number(rentalForm.quantity) <= 0) {
+        toast({ title: 'Quantidade inválida', variant: 'destructive' });
+        return;
+      }
+
+      setPendingItems((prev) => [
+        ...prev,
+        {
+          localId: `${Date.now()}-${Math.random()}`,
+          source: 'rental',
+          itemName: rentalForm.pieceName,
+          supplier: rentalForm.supplier,
+          quantity: Number(rentalForm.quantity),
+          unit: rentalForm.unit || 'unidade',
+          notes: rentalForm.notes || '',
+        },
+      ]);
+      setRentalForm({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
+      return;
+    }
+
+    const inventoryItem = items.find((item) => item.id === itemForm.itemId);
+    if (!inventoryItem) {
+      toast({ title: 'Selecione um item do estoque', variant: 'destructive' });
+      return;
+    }
+
+    const requested = Number(itemForm.quantity || 0);
+    if (requested <= 0) {
+      toast({ title: 'Quantidade inválida', variant: 'destructive' });
+      return;
+    }
+
+    const alreadyQueued = queuedByInventoryId.get(inventoryItem.id) || 0;
+    const remaining = Number(inventoryItem.available_quantity) - alreadyQueued;
+    if (requested > remaining) {
+      toast({ title: 'Quantidade acima do disponível', description: `Disponível para adicionar agora: ${remaining}`, variant: 'destructive' });
+      return;
+    }
+
+    setPendingItems((prev) => [
+      ...prev,
+      {
+        localId: `${Date.now()}-${Math.random()}`,
+        source: 'inventory',
+        inventory_item_id: inventoryItem.id,
+        itemName: inventoryItem.name,
+        quantity: requested,
+        unit: inventoryItem.unit || 'unidade',
+        notes: itemForm.notes || '',
+      },
+    ]);
+
+    setItemForm({ itemId: '', quantity: 1, notes: '' });
+  };
+
+  const removeDraftItem = (localId: string) => {
+    setPendingItems((prev) => prev.filter((row) => row.localId !== localId));
   };
 
   return (
@@ -340,7 +435,12 @@ const SelecaoFestaPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1">
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <Select value={selectedType} onValueChange={(v: any) => setSelectedType(v)}>
+              <Select value={selectedType} onValueChange={(v: any) => {
+                setSelectedType(v);
+                if (v !== 'furniture') {
+                  setItemSource('inventory');
+                }
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">Todas categorias</SelectItem><SelectItem value="food">Alimentação</SelectItem><SelectItem value="furniture">Mobiliário</SelectItem></SelectContent>
               </Select>
@@ -390,7 +490,36 @@ const SelecaoFestaPage = () => {
             <div className="md:col-span-3 space-y-2"><Label>Observações</Label><Textarea value={itemForm.notes} onChange={(e) => setItemForm((p) => ({ ...p, notes: e.target.value }))} /></div>
           </div>
           )}
-          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button><Button onClick={() => addItemMutation.mutate()} disabled={(itemSource === 'inventory' && !itemForm.itemId) || (itemSource === 'rental' && !rentalForm.pieceName.trim()) || !selectedReservation}>Reservar item</Button></div>
+          <div className="rounded-xl border border-border/40 p-3 mt-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[11px] uppercase tracking-[0.14em] font-bold text-muted-foreground">Itens adicionados ao pedido</p>
+              <span className="text-xs font-semibold text-foreground/70">{pendingItems.length} item(ns)</span>
+            </div>
+            <div className="max-h-44 overflow-y-auto space-y-2">
+              {pendingItems.map((row) => (
+                <div key={row.localId} className="flex items-start justify-between gap-3 rounded-lg border border-border/40 px-3 py-2 text-sm">
+                  <div>
+                    <p className="font-semibold">{row.itemName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {row.source === 'rental' ? `Aluguel • ${row.supplier}` : 'Estoque interno'} • {row.quantity} {row.unit}
+                    </p>
+                  </div>
+                  <Button size="icon" variant="ghost" onClick={() => removeDraftItem(row.localId)}><Trash2 size={14} className="text-rose-600" /></Button>
+                </div>
+              ))}
+              {pendingItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item adicionado ainda.</p>}
+            </div>
+          </div>
+
+          <div className="flex justify-between gap-2">
+            <Button type="button" variant="outline" onClick={addDraftItem} disabled={!selectedReservation}>Adicionar à lista</Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+              <Button onClick={() => finalizeReservationMutation.mutate()} disabled={!selectedReservation || pendingItems.length === 0 || finalizeReservationMutation.isPending}>
+                {finalizeReservationMutation.isPending ? 'Finalizando...' : 'Fechar pedido e reservar tudo'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
