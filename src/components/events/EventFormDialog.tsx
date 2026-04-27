@@ -149,6 +149,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
       queryClient.invalidateQueries({ queryKey: ['dashboard_kpis'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard_metrics'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events_page'] });
       
       onSaved();
       onOpenChange(false);
@@ -186,6 +187,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
       toast({ title: 'Sucesso', description: 'Evento excluído com sucesso!', style: { backgroundColor: '#DAA520', color: '#000' } });
 
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['events_page'] });
       queryClient.invalidateQueries({ queryKey: ['agenda-events'] });
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       queryClient.invalidateQueries({ queryKey: ['payments'] });

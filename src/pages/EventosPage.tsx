@@ -17,7 +17,7 @@ const EventosPage = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
 
   const { data: events, isLoading, refetch } = useQuery({
-    queryKey: ['events'],
+    queryKey: ['events_page'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
