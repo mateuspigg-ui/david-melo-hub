@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Upload, ImageIcon, Pencil, Trash2, LayoutGrid, Table2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,30 @@ const emptyForm = {
   notes: '',
 };
 
+const tokenPart = (value: string, fallback: string) => {
+  const normalized = (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+  return (normalized.slice(0, 3) || fallback).padEnd(3, 'X');
+};
+
+const buildAutoSku = (existingSkus: string[], category: string, name: string, color?: string) => {
+  const categoryCode = tokenPart(category, 'CAT');
+  const nameCode = tokenPart(name, 'PEC');
+  const colorCode = tokenPart(color || 'STD', 'STD');
+  const prefix = `MB-${categoryCode}-${nameCode}-${colorCode}`;
+  const regex = new RegExp(`^${prefix}-(\\d{3})$`);
+  const next = existingSkus.reduce((max, sku) => {
+    const match = sku.match(regex);
+    if (!match) return max;
+    return Math.max(max, Number(match[1]));
+  }, 0) + 1;
+
+  return `${prefix}-${String(next).padStart(3, '0')}`;
+};
+
 const MobiliarioDecoracaoPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -38,6 +62,7 @@ const MobiliarioDecoracaoPage = () => {
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState<any>(emptyForm);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [autoSku, setAutoSku] = useState(true);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['inventory_furniture_items'],
@@ -56,6 +81,18 @@ const MobiliarioDecoracaoPage = () => {
       return matchText && matchCategory && matchStatus;
     });
   }, [items, search, categoryFilter, statusFilter]);
+
+  const existingSkus = useMemo(() => {
+    return items.filter((item) => item.id !== editing?.id).map((item) => item.sku || '').filter(Boolean);
+  }, [items, editing]);
+
+  useEffect(() => {
+    if (!open || editing || !autoSku) return;
+    const generated = buildAutoSku(existingSkus, form.category, form.name, form.color);
+    if (generated !== form.sku) {
+      setForm((prev: any) => ({ ...prev, sku: generated }));
+    }
+  }, [autoSku, editing, existingSkus, form.category, form.color, form.name, form.sku, open]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -111,6 +148,7 @@ const MobiliarioDecoracaoPage = () => {
   const openForm = (item?: InventoryItem) => {
     if (item) {
       setEditing(item);
+      setAutoSku(false);
       setForm({
         name: item.name,
         category: item.category,
@@ -129,6 +167,7 @@ const MobiliarioDecoracaoPage = () => {
       });
     } else {
       setEditing(null);
+      setAutoSku(true);
       setForm(emptyForm);
     }
     setPhotoFiles([]);
@@ -221,7 +260,32 @@ const MobiliarioDecoracaoPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2 space-y-2"><Label>Nome do item</Label><Input value={form.name} onChange={(e) => setForm((p: any) => ({ ...p, name: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Categoria</Label><Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FURNITURE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent></Select></div>
-              <div className="space-y-2"><Label>SKU interno</Label><Input value={form.sku} onChange={(e) => setForm((p: any) => ({ ...p, sku: e.target.value }))} /></div>
+              <div className="space-y-2">
+                <Label>SKU interno</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={form.sku}
+                    onChange={(e) => {
+                      setAutoSku(false);
+                      setForm((p: any) => ({ ...p, sku: e.target.value }));
+                    }}
+                    placeholder="Gerado automaticamente"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const generated = buildAutoSku(existingSkus, form.category, form.name, form.color);
+                      setAutoSku(true);
+                      setForm((p: any) => ({ ...p, sku: generated }));
+                    }}
+                    className="whitespace-nowrap"
+                  >
+                    Gerar SKU
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Padrão: <b>MB-CAT-NOM-COR-001</b> (automático).</p>
+              </div>
               <div className="space-y-2"><Label>Quantidade total</Label><Input type="number" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Estoque mínimo</Label><Input type="number" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Quantidade danificada</Label><Input type="number" value={form.damaged_quantity} onChange={(e) => setForm((p: any) => ({ ...p, damaged_quantity: e.target.value }))} /></div>
