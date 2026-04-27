@@ -77,7 +77,11 @@ const EquipePage = () => {
   const { data: invitations = [] } = useQuery({
     queryKey: ['team_invitations'],
     queryFn: async () => {
-      const { data } = await supabase.from('team_invitations').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase
+        .from('team_invitations')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
       return data || [];
     },
     enabled: !!isAdmin,
@@ -379,24 +383,21 @@ const EquipePage = () => {
                   <div>
                     <p className="text-sm font-bold">{inv.email || 'Link genérico'}</p>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                      Status: <span className={inv.status === 'accepted' ? 'text-green-600' : 'text-gold'}>{inv.status === 'pending' ? 'Pendente' : 'Aceito'}</span>
-                      {' • '}{(inv.modules || []).length} módulos
+                      {(inv.modules || []).length} módulos
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {inv.status === 'pending' && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(getInviteLink(inv.token));
-                        toast({ title: 'Link copiado!' });
-                      }}
-                    >
-                      <Copy size={14} className="mr-1" /> Copiar Link
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getInviteLink(inv.token));
+                      toast({ title: 'Link copiado!' });
+                    }}
+                  >
+                    <Copy size={14} className="mr-1" /> Copiar Link
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteInvite.mutate(inv.id)} className="text-muted-foreground hover:text-destructive">
                     <Trash2 size={16} />
                   </Button>

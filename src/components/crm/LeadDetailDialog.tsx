@@ -123,15 +123,19 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [isLeadTasksUnavailable, setIsLeadTasksUnavailable] = useState(false);
 
+  const registeredTeamMembers = (teamMembers || [])
+    .filter((member) => member?.id && String(member.full_name || '').trim().length > 0)
+    .map((member) => ({ id: member.id, full_name: member.full_name.trim() }));
+
   const isLeadTasksMissingTableError = (error: any) => {
     const message = String(error?.message || '');
     return /could not find the table ['"]public\.lead_tasks['"]/i.test(message);
   };
 
   useEffect(() => {
-    setNewTaskAssignee(lead?.assigned_to || '');
+    setNewTaskAssignee('');
     setIsLeadTasksUnavailable(false);
-  }, [lead?.id, lead?.assigned_to]);
+  }, [lead?.id]);
 
   const { data: tasks = [] } = useQuery({
     queryKey: ['lead_tasks', lead?.id],
@@ -248,7 +252,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
     },
     onSuccess: (_data, variables) => {
       const assigneeName = variables.assigned_to
-        ? teamMembers.find(member => member.id === variables.assigned_to)?.full_name || 'Responsável não encontrado'
+        ? registeredTeamMembers.find(member => member.id === variables.assigned_to)?.full_name || 'Responsável não encontrado'
         : 'Sem responsável definido';
       const targetClientName = lead?.clients
         ? `${lead.clients.first_name} ${lead.clients.last_name}`.trim()
@@ -260,7 +264,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setNewTask('');
       setNewTaskDueDate('');
-      setNewTaskAssignee(lead?.assigned_to || '');
+      setNewTaskAssignee('');
       onClose();
       playTaskCreatedAlert();
       void showTaskCreatedSystemNotification({
@@ -430,10 +434,12 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
       return;
     }
 
+    const assigneeIsRegistered = registeredTeamMembers.some((member) => member.id === newTaskAssignee);
+
     addTaskMutation.mutate({
       title: taskTitle,
       due_date: newTaskDueDate || null,
-      assigned_to: newTaskAssignee || null,
+      assigned_to: assigneeIsRegistered ? newTaskAssignee : null,
     });
   };
 
@@ -741,12 +747,12 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                 <div className="flex-1 space-y-1">
                   <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 ml-1">Responsavel</label>
                   <select
-                    value={newTaskAssignee}
+                    value={registeredTeamMembers.some((member) => member.id === newTaskAssignee) ? newTaskAssignee : ''}
                     onChange={(e) => setNewTaskAssignee(e.target.value)}
                     className="flex h-10 w-full rounded-xl bg-white border border-border/10 px-3 text-xs font-bold focus:border-gold outline-none shadow-sm"
                   >
                     <option value="">Sem responsavel</option>
-                    {teamMembers.map((member) => (
+                    {registeredTeamMembers.map((member) => (
                       <option key={member.id} value={member.id}>
                         {member.full_name}
                       </option>
