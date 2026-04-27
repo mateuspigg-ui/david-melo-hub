@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { Lead } from '@/pages/CRMPage';
 import { publishLeadAlert } from '@/lib/leadAlerts';
+import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
 
 interface Props {
   open: boolean;
@@ -65,7 +66,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
           event_date: lead.event_date || '',
           event_time: lead.event_time || '',
           guest_count: lead.guest_count?.toString() || '',
-          total_budget: lead.total_budget?.toString() || '',
+          total_budget: lead.total_budget != null ? formatCurrencyInput(lead.total_budget) : '',
           notes: lead.notes || '',
           assigned_to: lead.assigned_to || '',
         });
@@ -90,7 +91,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
         event_date: data.event_date || null,
         event_time: data.event_time || null,
         guest_count: data.guest_count ? parseInt(data.guest_count) : null,
-        total_budget: data.total_budget ? parseFloat(data.total_budget) : null,
+        total_budget: data.total_budget ? parseCurrencyInput(data.total_budget) : null,
         notes: data.notes || null,
         assigned_to: data.assigned_to || null,
       };
@@ -291,7 +292,15 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Budget Estimado (R$)</Label>
-                <Input type="number" step="0.01" {...register('total_budget')} placeholder="0,00" className="h-11 bg-gold/5 border-gold/20 focus:border-gold font-display text-lg text-gold rounded-xl text-center shadow-sm" />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  {...register('total_budget')}
+                  value={watch('total_budget') || ''}
+                  onChange={(e) => setValue('total_budget', maskCurrencyInput(e.target.value), { shouldDirty: true })}
+                  placeholder="0,00"
+                  className="h-11 bg-gold/5 border-gold/20 focus:border-gold font-display text-lg text-gold rounded-xl text-center shadow-sm"
+                />
               </div>
 
               <div className="sm:col-span-2 space-y-2">

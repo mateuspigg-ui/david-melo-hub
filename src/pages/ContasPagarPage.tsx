@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, Trash2, Check } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
+import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -23,13 +24,6 @@ const isAccountPaid = (status: string | null | undefined, paidAt?: string | null
 const isAccountPending = (status: string | null | undefined, paidAt?: string | null) => {
   if (isAccountPaid(status, paidAt)) return false;
   return PENDING_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PENDING_STATUS_VALUES)[number]) || !status;
-};
-
-const parseCurrencyInput = (value: string) => {
-  const normalized = value.includes(",")
-    ? value.replace(/\./g, "").replace(",", ".")
-    : value;
-  return Number(normalized);
 };
 
 const getFriendlyAccountsPayableError = (error: any) => {
@@ -339,9 +333,10 @@ export default function ContasPagarPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor do Título *</Label>
                 <Input 
-                  type="number" 
+                  type="text"
+                  inputMode="numeric"
                   value={form.amount} 
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })} 
+                  onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })} 
                   className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-bold text-gold" 
                   placeholder="0,00"
                 />

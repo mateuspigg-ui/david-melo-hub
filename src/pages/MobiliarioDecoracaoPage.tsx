@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { FURNITURE_CATEGORIES, categoryLabel, fetchInventoryItems, statusLabel, upsertInventoryItem, deleteInventoryItem, uploadInventoryPhotos, type InventoryItem } from '@/lib/inventory';
+import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
 
 const emptyForm = {
   name: '',
@@ -22,7 +23,7 @@ const emptyForm = {
   material: '',
   dimensions: '',
   storage_location: '',
-  replacement_value: 0,
+  replacement_value: '',
   sku: '',
   notes: '',
 };
@@ -111,7 +112,7 @@ const MobiliarioDecoracaoPage = () => {
         material: form.material || null,
         dimensions: form.dimensions || null,
         storage_location: form.storage_location || null,
-        replacement_value: form.replacement_value ? Number(form.replacement_value) : null,
+        replacement_value: form.replacement_value ? parseCurrencyInput(form.replacement_value) : null,
         sku: form.sku || null,
         notes: form.notes || null,
       };
@@ -161,7 +162,7 @@ const MobiliarioDecoracaoPage = () => {
         material: item.material || '',
         dimensions: item.dimensions || '',
         storage_location: item.storage_location || '',
-        replacement_value: item.replacement_value || 0,
+        replacement_value: item.replacement_value != null ? formatCurrencyInput(item.replacement_value) : '',
         sku: item.sku || '',
         notes: item.notes || '',
       });
@@ -293,7 +294,7 @@ const MobiliarioDecoracaoPage = () => {
               <div className="space-y-2"><Label>Cor</Label><Input value={form.color} onChange={(e) => setForm((p: any) => ({ ...p, color: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Material</Label><Input value={form.material} onChange={(e) => setForm((p: any) => ({ ...p, material: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Dimensões</Label><Input value={form.dimensions} onChange={(e) => setForm((p: any) => ({ ...p, dimensions: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Valor de reposição</Label><Input type="number" value={form.replacement_value} onChange={(e) => setForm((p: any) => ({ ...p, replacement_value: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Valor de reposição</Label><Input type="text" inputMode="numeric" placeholder="0,00" value={form.replacement_value} onChange={(e) => setForm((p: any) => ({ ...p, replacement_value: maskCurrencyInput(e.target.value) }))} /></div>
               <div className="md:col-span-2 space-y-2"><Label>Local de armazenamento</Label><Input value={form.storage_location} onChange={(e) => setForm((p: any) => ({ ...p, storage_location: e.target.value }))} /></div>
               <div className="md:col-span-2 space-y-2"><Label>Descrição</Label><Textarea value={form.description} onChange={(e) => setForm((p: any) => ({ ...p, description: e.target.value }))} /></div>
               <div className="md:col-span-2 space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm((p: any) => ({ ...p, notes: e.target.value }))} /></div>

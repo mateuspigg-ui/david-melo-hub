@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { FOOD_CATEGORIES, UNITS, calculateExpirationAlert, categoryLabel, fetchInventoryItems, statusLabel, upsertInventoryItem, deleteInventoryItem, type InventoryItem } from '@/lib/inventory';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
 
 const emptyForm = {
   name: '',
@@ -20,7 +21,7 @@ const emptyForm = {
   supplier: '',
   purchase_date: '',
   expiration_date: '',
-  cost_per_unit: 0,
+  cost_per_unit: '',
   storage_location: '',
   notes: '',
 };
@@ -77,7 +78,7 @@ const AlimentacaoPage = () => {
         supplier: form.supplier || null,
         purchase_date: form.purchase_date || null,
         expiration_date: form.expiration_date || null,
-        cost_per_unit: form.cost_per_unit ? Number(form.cost_per_unit) : null,
+        cost_per_unit: form.cost_per_unit ? parseCurrencyInput(form.cost_per_unit) : null,
         storage_location: form.storage_location || null,
         notes: form.notes || null,
       };
@@ -120,7 +121,7 @@ const AlimentacaoPage = () => {
         supplier: item.supplier || '',
         purchase_date: item.purchase_date || '',
         expiration_date: item.expiration_date || '',
-        cost_per_unit: item.cost_per_unit || 0,
+        cost_per_unit: item.cost_per_unit != null ? formatCurrencyInput(item.cost_per_unit) : '',
         storage_location: item.storage_location || '',
         notes: item.notes || '',
       });
@@ -295,7 +296,7 @@ const AlimentacaoPage = () => {
                   ))}
                 </datalist>
               </div>
-              <div className="space-y-2"><Label>Custo por unidade</Label><Input type="number" value={form.cost_per_unit} onChange={(e) => setForm((p: any) => ({ ...p, cost_per_unit: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Custo por unidade</Label><Input type="text" inputMode="numeric" placeholder="0,00" value={form.cost_per_unit} onChange={(e) => setForm((p: any) => ({ ...p, cost_per_unit: maskCurrencyInput(e.target.value) }))} /></div>
               <div className="space-y-2"><Label>Data de compra</Label><Input type="date" value={form.purchase_date} onChange={(e) => setForm((p: any) => ({ ...p, purchase_date: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Validade</Label><Input type="date" value={form.expiration_date} onChange={(e) => setForm((p: any) => ({ ...p, expiration_date: e.target.value }))} /></div>
               <div className="md:col-span-2 space-y-2"><Label>Local de armazenamento</Label><Input value={form.storage_location} onChange={(e) => setForm((p: any) => ({ ...p, storage_location: e.target.value }))} /></div>

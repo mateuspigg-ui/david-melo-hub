@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Search, DollarSign, Calendar, ChevronDown, ChevronUp, Trash2, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
 type Payment = {
   id: string;
@@ -74,7 +75,6 @@ export default function PagamentosPage() {
   });
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
 
-  const parseMoney = (value: string | number) => Number(String(value).replace(',', '.'));
   const isMissingEntryPaidAtColumnError = (error: any) => {
     const message = String(error?.message || '');
     return /column .*entry_paid_at.* does not exist/i.test(message)
@@ -92,7 +92,7 @@ export default function PagamentosPage() {
       return {
         installment_number: i + 1,
         due_date: due.toISOString().split("T")[0],
-        amount: (Math.round(perInstallment * 100) / 100).toFixed(2),
+        amount: formatCurrencyInput(Math.round(perInstallment * 100) / 100),
         status: 'pending',
         paid_at: null,
       };
@@ -102,10 +102,10 @@ export default function PagamentosPage() {
   useEffect(() => {
     if (!dialogOpen) return;
 
-    const totalValue = parseMoney(form.total_event_value);
+    const totalValue = parseCurrencyInput(form.total_event_value);
     const count = Number(form.installment_count);
     const hasEntry = form.has_entry_payment;
-    const entryAmount = hasEntry ? parseMoney(form.entry_amount) : 0;
+    const entryAmount = hasEntry ? parseCurrencyInput(form.entry_amount) : 0;
 
     if (!Number.isFinite(totalValue) || totalValue <= 0 || !Number.isInteger(count) || count < 1) {
       setInstallmentPlan([]);
@@ -171,7 +171,7 @@ export default function PagamentosPage() {
       event_id: eventId,
       total_event_value:
         selectedEvent && selectedEvent.budget_value != null
-          ? String(selectedEvent.budget_value)
+          ? formatCurrencyInput(selectedEvent.budget_value)
           : prev.total_event_value,
     }));
   };
@@ -187,7 +187,7 @@ export default function PagamentosPage() {
       event_id: preferredEvent?.id || "",
       total_event_value:
         preferredEvent && preferredEvent.budget_value != null
-          ? String(preferredEvent.budget_value)
+          ? formatCurrencyInput(preferredEvent.budget_value)
           : prev.total_event_value,
     }));
   };
@@ -208,10 +208,10 @@ export default function PagamentosPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const totalValue = parseMoney(form.total_event_value);
+      const totalValue = parseCurrencyInput(form.total_event_value);
       const count = Number(form.installment_count);
       const hasEntry = form.has_entry_payment;
-      const entryAmount = hasEntry ? parseMoney(form.entry_amount) : null;
+      const entryAmount = hasEntry ? parseCurrencyInput(form.entry_amount) : null;
 
       if (!Number.isFinite(totalValue) || totalValue <= 0) {
         throw new Error('Informe um valor total válido maior que zero.');
@@ -277,7 +277,7 @@ export default function PagamentosPage() {
         payment_id: paymentId,
         installment_number: item.installment_number,
         due_date: item.due_date,
-        amount: parseMoney(item.amount),
+        amount: parseCurrencyInput(item.amount),
         status: item.status || 'pending',
         paid_at: item.paid_at || null,
       }));
@@ -428,10 +428,10 @@ export default function PagamentosPage() {
   const openEditDialog = async (payment: Payment) => {
     setEditingPayment(payment);
     setForm({
-      total_event_value: String(payment.total_event_value ?? ''),
+      total_event_value: payment.total_event_value != null ? formatCurrencyInput(payment.total_event_value) : '',
       installment_count: String(payment.installment_count ?? 1),
       has_entry_payment: !!payment.has_entry_payment,
-      entry_amount: payment.entry_amount != null ? String(payment.entry_amount) : '',
+      entry_amount: payment.entry_amount != null ? formatCurrencyInput(payment.entry_amount) : '',
       entry_date: payment.entry_date || '',
       client_id: payment.client_id || '',
       event_id: payment.event_id || '',
@@ -452,7 +452,7 @@ export default function PagamentosPage() {
       (data || []).map((item: any) => ({
         installment_number: item.installment_number,
         due_date: item.due_date,
-        amount: String(item.amount ?? ''),
+        amount: item.amount != null ? formatCurrencyInput(item.amount) : '',
         status: item.status,
         paid_at: item.paid_at,
       }))
@@ -463,7 +463,13 @@ export default function PagamentosPage() {
 
   const updateInstallment = (index: number, field: 'due_date' | 'amount', value: string) => {
     setInstallmentPlan((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        if (field === 'amount') {
+          return { ...item, amount: maskCurrencyInput(value) };
+        }
+        return { ...item, due_date: value };
+      })
     );
   };
 
@@ -734,10 +740,11 @@ export default function PagamentosPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Total *</Label>
                 <Input 
-                  type="number" 
+                  type="text"
+                  inputMode="numeric"
                   placeholder="0,00" 
                   value={form.total_event_value} 
-                  onChange={(e) => setForm({ ...form, total_event_value: e.target.value })} 
+                  onChange={(e) => setForm({ ...form, total_event_value: maskCurrencyInput(e.target.value) })} 
                   className="bg-secondary/30 border-border/40 focus:border-gold h-11 h-11 font-bold text-gold" 
                 />
               </div>
@@ -763,10 +770,12 @@ export default function PagamentosPage() {
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Entrada</Label>
                   <Input 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
                     value={form.entry_amount} 
-                    onChange={(e) => setForm({ ...form, entry_amount: e.target.value })} 
+                    onChange={(e) => setForm({ ...form, entry_amount: maskCurrencyInput(e.target.value) })} 
                     className="bg-background border-border/40 h-10 text-xs font-bold" 
+                    placeholder="0,00"
                   />
                 </div>
                 <div className="space-y-2">
@@ -798,11 +807,12 @@ export default function PagamentosPage() {
                         className="h-10 text-sm bg-secondary/20"
                       />
                       <Input
-                        type="number"
-                        step="0.01"
+                        type="text"
+                        inputMode="numeric"
                         value={item.amount}
                         onChange={(e) => updateInstallment(index, 'amount', e.target.value)}
                         className="h-10 text-base font-bold bg-secondary/20"
+                        placeholder="0,00"
                       />
                     </div>
                   ))}

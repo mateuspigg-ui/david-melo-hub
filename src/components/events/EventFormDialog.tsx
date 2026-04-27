@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Trash2 } from 'lucide-react';
+import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
 
 export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => {
   const { toast } = useToast();
@@ -19,7 +20,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     event_date: '',
     event_time: '',
     location: '',
-    budget_value: 0,
+    budget_value: '',
     payment_status: 'pending',
     client_id: '',
     lead_id: '',
@@ -43,7 +44,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
         event_date: event.event_date || '',
         event_time: event.event_time || '',
         location: event.location || '',
-        budget_value: event.budget_value || 0,
+        budget_value: event.budget_value != null ? formatCurrencyInput(event.budget_value) : '',
         payment_status: event.payment_status || 'pending',
         client_id: event.client_id || '',
         lead_id: event.lead_id || '',
@@ -52,7 +53,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
     } else {
       setForm({
         title: '', event_type: 'Casamento', event_date: '', event_time: '',
-        location: '', budget_value: 0, payment_status: 'pending',
+        location: '', budget_value: '', payment_status: 'pending',
         client_id: '', lead_id: '', notes: ''
       });
     }
@@ -107,7 +108,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
       event_date: selectedLead.event_date || prev.event_date,
       event_time: selectedLead.event_time || prev.event_time,
       location: selectedLead.event_location || prev.location,
-      budget_value: selectedLead.total_budget ?? prev.budget_value,
+      budget_value: selectedLead.total_budget != null ? formatCurrencyInput(selectedLead.total_budget) : prev.budget_value,
       notes: selectedLead.notes || prev.notes,
       client_id: resolvedClientId || prev.client_id,
     }));
@@ -129,7 +130,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
         event_date: form.event_date || null,
         event_time: form.event_time || null,
         location: form.location,
-        budget_value: Number(form.budget_value),
+        budget_value: Number.isFinite(parseCurrencyInput(form.budget_value)) ? parseCurrencyInput(form.budget_value) : 0,
         payment_status: form.payment_status,
         client_id: form.client_id || null,
         lead_id: form.lead_id || null,
@@ -323,10 +324,12 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
             <div className="space-y-2 md:col-span-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Orçamento Global do Projeto R$</Label>
               <Input 
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={form.budget_value} 
-                onChange={e => handleChange('budget_value', e.target.value)} 
+                onChange={e => handleChange('budget_value', maskCurrencyInput(e.target.value))} 
                 className="bg-gold/5 border-gold/20 focus:border-gold h-12 rounded-xl font-display text-xl text-gold shadow-sm"
+                placeholder="0,00"
               />
             </div>
 

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Building2, Landmark, Search, Trash2, Loader2, LayoutGrid, List } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
 
 const BankAccountsPage = () => {
   const qc = useQueryClient();
@@ -38,11 +39,10 @@ const BankAccountsPage = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const normalizedBalance = form.default_initial_balance.trim().replace(',', '.');
-      const parsedBalance = Number(normalizedBalance);
+      const parsedBalance = parseCurrencyInput(form.default_initial_balance);
       const payload = {
         ...form,
-        default_initial_balance: normalizedBalance === '' || Number.isNaN(parsedBalance) ? 0 : parsedBalance,
+        default_initial_balance: form.default_initial_balance.trim() === '' || Number.isNaN(parsedBalance) ? 0 : parsedBalance,
       };
       if (editingAccount) {
         const { error } = await (supabase as any).from('bank_accounts').update(payload).eq('id', editingAccount.id);
@@ -192,7 +192,7 @@ const BankAccountsPage = () => {
                        account_digit: account.account_digit || '',
                         description: account.description || '',
                         account_type: account.account_type || 'corrente',
-                        default_initial_balance: account.default_initial_balance != null ? String(account.default_initial_balance) : '',
+                        default_initial_balance: account.default_initial_balance != null ? formatCurrencyInput(account.default_initial_balance) : '',
                         accounting_account_id: account.accounting_account_id || ''
                       });
                      setDialogOpen(true);
@@ -254,7 +254,7 @@ const BankAccountsPage = () => {
                               account_digit: account.account_digit || '',
                               description: account.description || '',
                               account_type: account.account_type || 'corrente',
-                              default_initial_balance: account.default_initial_balance != null ? String(account.default_initial_balance) : '',
+                              default_initial_balance: account.default_initial_balance != null ? formatCurrencyInput(account.default_initial_balance) : '',
                               accounting_account_id: account.accounting_account_id || ''
                             });
                             setDialogOpen(true);
@@ -375,7 +375,7 @@ const BankAccountsPage = () => {
                   type="text"
                   inputMode="decimal"
                   value={form.default_initial_balance} 
-                  onChange={e => setForm({...form, default_initial_balance: e.target.value})} 
+                  onChange={e => setForm({...form, default_initial_balance: maskCurrencyInput(e.target.value)})} 
                   className="bg-gold/5 h-12 border-gold/20 focus:border-gold rounded-xl font-display text-xl text-gold text-center"
                   placeholder="Ex: 1500,75"
                 />
