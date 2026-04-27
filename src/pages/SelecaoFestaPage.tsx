@@ -483,9 +483,33 @@ const SelecaoFestaPage = () => {
             </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="md:col-span-2 relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={searchItems} onChange={(e) => setSearchItems(e.target.value)} className="pl-9" placeholder="Buscar item" /></div>
-            <div className="md:col-span-2" />
-            <Select value={itemForm.itemId} onValueChange={(v) => setItemForm((p) => ({ ...p, itemId: v }))}><SelectTrigger><SelectValue placeholder="Item" /></SelectTrigger><SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent></Select>
+            <div className="md:col-span-4 space-y-2">
+              <Label>Buscar item</Label>
+              <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={searchItems} onChange={(e) => setSearchItems(e.target.value)} className="pl-9" placeholder="Digite para ver opções de item" /></div>
+              {searchItems.trim().length > 0 && (
+                <div className="max-h-44 overflow-y-auto rounded-xl border border-border/50 bg-white p-1">
+                  {availableItems.slice(0, 12).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setItemForm((p) => ({ ...p, itemId: item.id }));
+                        setSearchItems(item.name);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-gold/5 transition text-sm"
+                    >
+                      <span className="font-semibold">{item.name}</span>
+                      <span className="text-xs text-muted-foreground"> • disp. {Number(item.available_quantity)} {item.unit || ''}</span>
+                    </button>
+                  ))}
+                  {availableItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item encontrado.</p>}
+                </div>
+              )}
+              <Select value={itemForm.itemId} onValueChange={(v) => setItemForm((p) => ({ ...p, itemId: v }))}>
+                <SelectTrigger><SelectValue placeholder="Ou selecione na lista completa" /></SelectTrigger>
+                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={(e) => setItemForm((p) => ({ ...p, quantity: Number(e.target.value || 1) }))} /></div>
             <div className="md:col-span-3 space-y-2"><Label>Observações</Label><Textarea value={itemForm.notes} onChange={(e) => setItemForm((p) => ({ ...p, notes: e.target.value }))} /></div>
           </div>
