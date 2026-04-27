@@ -62,12 +62,6 @@ const sections: NavSection[] = [
     ],
   },
   {
-    label: 'Equipe',
-    items: [
-      { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
-    ],
-  },
-  {
     label: 'Almoxarifado',
     items: [
       { label: 'Dashboard do Estoque', path: '/almoxarifado', icon: Boxes, module: 'almoxarifado' },
@@ -76,6 +70,12 @@ const sections: NavSection[] = [
       { label: 'Seleção por Festa', path: '/almoxarifado/selecao-festa', icon: Boxes, module: 'almoxarifado' },
       { label: 'Movimentações', path: '/almoxarifado/movimentacoes', icon: Boxes, module: 'almoxarifado' },
       { label: 'Relatórios', path: '/almoxarifado/relatorios', icon: Boxes, module: 'almoxarifado' },
+    ],
+  },
+  {
+    label: 'Equipe',
+    items: [
+      { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
     ],
   },
 ];

@@ -47,7 +47,7 @@ export const openReservationPdfPrint = ({
     body { font-family: 'Manrope', Arial, sans-serif; color: #1f2937; margin: 0; }
     .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 16px; }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .logo { width: 54px; height: 54px; object-fit: contain; border-radius: 12px; background: #fff9ee; border: 1px solid #e8d9bb; }
+    .logo { width: 78px; height: 78px; object-fit: contain; border-radius: 14px; background: #fff9ee; border: 1px solid #e8d9bb; padding: 6px; }
     h1 { font-size: 18px; margin: 0; color: #9a6e2f; letter-spacing: .03em; }
     h2 { font-size: 13px; margin: 18px 0 8px; color: #111827; }
     .meta { text-align: right; font-size: 11px; color: #6b7280; }
@@ -57,7 +57,10 @@ export const openReservationPdfPrint = ({
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
     th { text-align: left; background: #fff7e8; color: #7a5c2a; padding: 8px; border: 1px solid #f1e4ca; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
     td { border: 1px solid #e5e7eb; padding: 8px; vertical-align: top; }
-    .thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid #e5e7eb; }
+    .furniture-table { table-layout: fixed; }
+    .furniture-photo-cell { width: 168px; min-width: 168px; }
+    .thumb { width: 150px; height: 150px; border-radius: 12px; object-fit: cover; border: 1px solid #e5e7eb; display: block; margin: 0 auto; }
+    .furniture-notes { word-break: break-word; white-space: normal; }
     .summary { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; background: #fafafa; }
     .signatures { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 26px; font-size: 11px; }
     .line { border-top: 1px solid #9ca3af; margin-top: 30px; padding-top: 6px; text-align: center; color: #6b7280; }
@@ -114,19 +117,19 @@ export const openReservationPdfPrint = ({
   </table>
 
   <h2>Mobiliário e Decoração</h2>
-  <table>
+  <table class="furniture-table">
     <thead><tr><th>Foto</th><th>Item</th><th>Categoria</th><th>Qtd.</th><th>Cor</th><th>Dimensões</th><th>Local</th><th>Observações</th></tr></thead>
     <tbody>
       ${furnitureItems.length === 0 ? '<tr><td colspan="8">Nenhum item selecionado.</td></tr>' : furnitureItems.map((item) => `
         <tr>
-          <td>${item.inventory_items?.inventory_item_photos?.[0]?.photo_url ? `<img class="thumb" src="${item.inventory_items.inventory_item_photos[0].photo_url}" />` : '-'}</td>
+          <td class="furniture-photo-cell">${item.inventory_items?.inventory_item_photos?.[0]?.photo_url ? `<img class="thumb" src="${item.inventory_items.inventory_item_photos[0].photo_url}" />` : '-'}</td>
           <td>${escapeHtml(item.inventory_items?.name)}</td>
           <td>${escapeHtml(categoryLabel(item.inventory_items?.category || ''))}</td>
           <td>${item.quantity}</td>
           <td>${escapeHtml(item.inventory_items?.color)}</td>
           <td>${escapeHtml(item.inventory_items?.dimensions)}</td>
           <td>${escapeHtml(item.inventory_items?.storage_location)}</td>
-          <td>${escapeHtml(item.notes)}</td>
+          <td class="furniture-notes">${escapeHtml(item.notes)}</td>
         </tr>`).join('')}
     </tbody>
   </table>
