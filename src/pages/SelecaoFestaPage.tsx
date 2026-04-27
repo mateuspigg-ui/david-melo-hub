@@ -201,6 +201,42 @@ const SelecaoFestaPage = () => {
     },
   });
 
+  const deleteEventMutation = useMutation({
+    mutationFn: async ({ reservationId, eventId }: { reservationId: string; eventId: string }) => {
+      const { data: reservationRows } = await supabase.from('event_inventory_reservations').select('id').eq('event_id', eventId);
+      const reservationIds = (reservationRows || []).map((row: any) => row.id);
+      if (reservationIds.length > 0) {
+        await supabase.from('event_inventory_items').delete().in('reservation_id', reservationIds);
+      }
+
+      const { error: reservationsError } = await supabase.from('event_inventory_reservations').delete().eq('event_id', eventId);
+      if (reservationsError) throw reservationsError;
+
+      await supabase.from('contracts').delete().eq('event_id', eventId);
+
+      const { error: eventError } = await supabase.from('events').delete().eq('id', eventId);
+      if (eventError) throw eventError;
+
+      return { reservationId, eventId };
+    },
+    onSuccess: async ({ reservationId }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['event_inventory_reservations'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
+        queryClient.invalidateQueries({ queryKey: ['events_for_inventory'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_reservations_dashboard'] }),
+      ]);
+      if (selectedReservationId === reservationId) {
+        setSelectedReservationId('');
+      }
+      toast({ title: 'Evento excluído com sucesso' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Não foi possível excluir o evento', description: error?.message || 'Verifique vínculos e tente novamente.', variant: 'destructive' });
+    },
+  });
+
   const openPrint = (reservation: EventInventoryReservation) => {
     openReservationPdfPrint({
       reservation,
@@ -307,9 +343,29 @@ const SelecaoFestaPage = () => {
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Reservas de eventos</div>
           {reservations.map((reservation) => (
             <button key={reservation.id} onClick={() => setSelectedReservationId(reservation.id)} className={`w-full text-left rounded-2xl border p-3 transition ${selectedReservationId === reservation.id ? 'border-gold bg-gold/5' : 'border-border/40 hover:border-gold/30'}`}>
-              <p className="font-semibold text-sm">{reservation.events?.title || 'Evento sem título'}</p>
-              <p className="text-xs text-muted-foreground">{reservation.events?.event_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${reservation.events.event_date}T00:00:00`)) : 'Sem data'} • {reservation.events?.location || 'Sem local'}</p>
-              <p className="text-[10px] text-gold font-bold uppercase tracking-wider mt-1">{statusLabel(reservation.reservation_status)}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-sm">{reservation.events?.title || 'Evento sem título'}</p>
+                  <p className="text-xs text-muted-foreground">{reservation.events?.event_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${reservation.events.event_date}T00:00:00`)) : 'Sem data'} • {reservation.events?.location || 'Sem local'}</p>
+                  <p className="text-[10px] text-gold font-bold uppercase tracking-wider mt-1">{statusLabel(reservation.reservation_status)}</p>
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                  disabled={!reservation.event_id || deleteEventMutation.isPending}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!reservation.event_id) return;
+                    const confirmed = window.confirm('Deseja realmente excluir este evento e todas as reservas vinculadas? Esta ação não pode ser desfeita.');
+                    if (!confirmed) return;
+                    deleteEventMutation.mutate({ reservationId: reservation.id, eventId: reservation.event_id });
+                  }}
+                >
+                  <Trash2 size={15} />
+                </Button>
+              </div>
             </button>
           ))}
           {reservations.length === 0 && <div className="text-sm text-muted-foreground border border-dashed rounded-xl p-6 text-center">Nenhuma reserva criada.</div>}
