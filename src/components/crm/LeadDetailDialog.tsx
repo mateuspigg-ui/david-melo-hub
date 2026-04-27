@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus, MessageCircle } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus, MessageCircle, Upload, FileText, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -24,6 +24,25 @@ interface Props {
   stages: { id: string; label: string; color: string }[];
   eventTypes: { value: string; label: string }[];
 }
+
+interface LeadFile {
+  id: string;
+  lead_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string | null;
+  file_size: number | null;
+  created_at: string;
+}
+
+const formatFileSize = (size?: number | null) => {
+  if (!size) return '-';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const isImageFile = (fileType?: string | null) => Boolean(fileType && fileType.startsWith('image/'));
 
 const playTaskCreatedAlert = () => {
   if (typeof window === 'undefined') return;
@@ -127,6 +146,63 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
       return data;
     },
     enabled: !!lead,
+  });
+
+  const { data: leadFiles = [], isLoading: isLoadingLeadFiles } = useQuery({
+    queryKey: ['lead_files', lead?.id],
+    queryFn: async () => {
+      if (!lead) return [];
+      const { data, error } = await (supabase as any)
+        .from('lead_files')
+        .select('*')
+        .eq('lead_id', lead.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []) as LeadFile[];
+    },
+    enabled: !!lead,
+  });
+
+  const uploadFilesMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      if (!lead) return;
+      if (!files.length) return;
+
+      const { data: userData } = await supabase.auth.getUser();
+      const uploadedBy = userData.user?.id || null;
+
+      for (const file of files) {
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${lead.id}/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
+
+        const { error: uploadError } = await (supabase as any).storage.from('lead-files').upload(filePath, file, {
+          upsert: false,
+          contentType: file.type || 'application/octet-stream',
+        });
+        if (uploadError) throw uploadError;
+
+        const { data: publicData } = (supabase as any).storage.from('lead-files').getPublicUrl(filePath);
+        const fileUrl = publicData?.publicUrl;
+        if (!fileUrl) throw new Error('Falha ao gerar URL do arquivo');
+
+        const { error: insertError } = await (supabase as any).from('lead_files').insert({
+          lead_id: lead.id,
+          file_name: file.name,
+          file_url: fileUrl,
+          file_type: file.type || null,
+          file_size: file.size || null,
+          uploaded_by: uploadedBy,
+        });
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead_files', lead?.id] });
+      toast({ title: 'Arquivos enviados com sucesso' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao enviar arquivos', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
   });
 
   const addTaskMutation = useMutation({
@@ -447,6 +523,77 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
               </div>
             </div>
           )}
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black text-gold/80 uppercase tracking-[0.25em] ml-1">Arquivos do cliente</h4>
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-gold/30 bg-gold/5 text-gold text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-gold/10 transition">
+                <Upload className="w-3.5 h-3.5" />
+                {uploadFilesMutation.isPending ? 'Enviando...' : 'Enviar arquivos'}
+                <input
+                  type="file"
+                  className="hidden"
+                  multiple
+                  disabled={uploadFilesMutation.isPending}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length === 0) return;
+                    uploadFilesMutation.mutate(files);
+                    e.currentTarget.value = '';
+                  }}
+                />
+              </label>
+            </div>
+
+            {isLoadingLeadFiles ? (
+              <div className="rounded-2xl border border-border/20 bg-white p-6 text-sm text-muted-foreground">Carregando arquivos...</div>
+            ) : leadFiles.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/30 bg-white p-6 text-sm text-muted-foreground">
+                Nenhum arquivo enviado ainda. Faça upload de orçamentos, contratos e inspirações visuais.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {leadFiles.filter((file) => isImageFile(file.file_type)).map((file) => (
+                    <a
+                      key={file.id}
+                      href={file.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group rounded-2xl border border-border/20 bg-white overflow-hidden hover:border-gold/40 transition"
+                    >
+                      <div className="aspect-[4/3] bg-secondary/20">
+                        <img src={file.file_url} alt={file.file_name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="p-2.5">
+                        <p className="text-[11px] font-bold text-foreground truncate">{file.file_name}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  {leadFiles.filter((file) => !isImageFile(file.file_type)).map((file) => (
+                    <div key={file.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/20 bg-white px-3 py-2.5">
+                      <div className="min-w-0 flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-gold/10 text-gold flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-foreground truncate">{file.file_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                        </div>
+                      </div>
+                      <a href={file.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gold hover:text-gold-dark">
+                        <ExternalLink className="w-3.5 h-3.5" /> Abrir
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Tarefas */}
           <div className="space-y-5 bg-secondary/10 p-6 rounded-[28px] border border-border/10 shadow-inner">
