@@ -24,6 +24,8 @@ const emptyForm = {
   notes: '',
 };
 
+const QUANTITY_OPTIONS = ['0.5', '1', '2', '5', '10', '20', '30', '50', '75', '100', '150', '200', '300', '500'];
+
 const AlimentacaoPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -249,8 +251,26 @@ const AlimentacaoPage = () => {
                   <SelectContent>{UNITS.map((unit) => <SelectItem key={unit} value={unit}>{unit}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Quantidade total</Label><Input type="number" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Estoque mínimo</Label><Input type="number" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} /></div>
+              <div className="space-y-2">
+                <Label>Quantidade total</Label>
+                <div className="grid grid-cols-[1fr,140px] gap-2">
+                  <Input type="number" step="0.001" value={form.total_quantity} onChange={(e) => setForm((p: any) => ({ ...p, total_quantity: e.target.value }))} />
+                  <Select onValueChange={(v) => setForm((p: any) => ({ ...p, total_quantity: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Opções" /></SelectTrigger>
+                    <SelectContent>{QUANTITY_OPTIONS.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Estoque mínimo</Label>
+                <div className="grid grid-cols-[1fr,140px] gap-2">
+                  <Input type="number" step="0.001" value={form.minimum_stock} onChange={(e) => setForm((p: any) => ({ ...p, minimum_stock: e.target.value }))} />
+                  <Select onValueChange={(v) => setForm((p: any) => ({ ...p, minimum_stock: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Opções" /></SelectTrigger>
+                    <SelectContent>{QUANTITY_OPTIONS.map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="space-y-2"><Label>Fornecedor</Label><Input value={form.supplier} onChange={(e) => setForm((p: any) => ({ ...p, supplier: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Custo por unidade</Label><Input type="number" value={form.cost_per_unit} onChange={(e) => setForm((p: any) => ({ ...p, cost_per_unit: e.target.value }))} /></div>
               <div className="space-y-2"><Label>Data de compra</Label><Input type="date" value={form.purchase_date} onChange={(e) => setForm((p: any) => ({ ...p, purchase_date: e.target.value }))} /></div>

@@ -44,7 +44,7 @@ export const FURNITURE_CATEGORIES = [
   'other',
 ];
 
-export const UNITS = ['kg', 'g', 'liter', 'ml', 'unit', 'box', 'package'];
+export const UNITS = ['kg', 'g', 'litro', 'ml', 'unidade', 'caixa', 'pacote', 'garrafa', 'lata', 'bandeja', 'fardo'];
 
 export const RESERVATION_STATUSES: ReservationStatus[] = ['draft', 'reserved', 'confirmed', 'returned', 'partially_returned', 'canceled'];
 
