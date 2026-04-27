@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Boxes, AlertTriangle, PackageCheck, PackageOpen, Ban, ClipboardList } from 'lucide-react';
-import { fetchInventoryItems, fetchReservations, categoryLabel, seedInventoryDemoData } from '@/lib/inventory';
+import { fetchInventoryItems, fetchReservations, categoryLabel, seedInventoryDemoData, clearInventoryDemoData } from '@/lib/inventory';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,6 +42,29 @@ const AlmoxarifadoDashboardPage = () => {
     },
     onError: (error: any) => {
       toast({ title: 'Falha ao criar amostra', description: error?.message || 'Tente novamente', variant: 'destructive' });
+    },
+  });
+
+  const clearMutation = useMutation({
+    mutationFn: clearInventoryDemoData,
+    onSuccess: async (payload) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_food_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_reservations_dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['event_inventory_reservations'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
+        queryClient.invalidateQueries({ queryKey: ['events_for_inventory'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock_movements'] }),
+      ]);
+      toast({
+        title: 'Amostra removida',
+        description: `Itens removidos: ${payload.removed_items} • Reservas removidas: ${payload.removed_reservations}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Falha ao limpar amostra', description: error?.message || 'Tente novamente', variant: 'destructive' });
     },
   });
 
@@ -110,9 +133,23 @@ const AlmoxarifadoDashboardPage = () => {
           </div>
           <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Dashboard do Estoque • Visão Integrada</p>
         </div>
-        <Button onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]">
-          {seedMutation.isPending ? 'Criando amostra...' : 'Preencher com amostra'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending || clearMutation.isPending} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]">
+            {seedMutation.isPending ? 'Criando amostra...' : 'Preencher com amostra'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (window.confirm('Deseja remover todos os dados de demonstração de estoque?')) {
+                clearMutation.mutate();
+              }
+            }}
+            disabled={seedMutation.isPending || clearMutation.isPending}
+            className="h-12 rounded-2xl border-rose-200 text-rose-700 hover:bg-rose-50 font-bold uppercase text-[11px] tracking-[0.14em]"
+          >
+            {clearMutation.isPending ? 'Limpando...' : 'Limpar amostra'}
+          </Button>
+        </div>
       </div>
 
       <div className="px-2">

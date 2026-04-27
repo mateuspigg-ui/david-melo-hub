@@ -639,3 +639,62 @@ export const seedInventoryDemoData = async () => {
     reservation_items_seeded: reservationTemplate.length,
   };
 };
+
+export const clearInventoryDemoData = async () => {
+  const demoClientEmail = 'demo.almoxarifado@davidmelo.local';
+  const demoEventTitle = 'DEMO | Casamento Isabella & Rafael';
+  const demoContractTitle = 'CONTRATO DEMO | CAS-2026-001';
+  const demoItemNames = [
+    'Filé Mignon Premium',
+    'Camarão VG Limpo',
+    'Espumante Brut Reserva',
+    'Mesa Provençal Off-white',
+    'Cadeira Tiffany Dourada',
+    'Lustre Pendente Cristal Siena',
+  ];
+
+  const { data: demoItems } = await sb
+    .from('inventory_items')
+    .select('id, name')
+    .in('name', demoItemNames);
+
+  const demoItemIds = (demoItems || []).map((item: any) => item.id);
+
+  const { data: demoEvent } = await sb.from('events').select('id').eq('title', demoEventTitle).maybeSingle();
+  const demoEventId = demoEvent?.id as string | undefined;
+
+  const { data: demoReservations } = demoEventId
+    ? await sb.from('event_inventory_reservations').select('id').eq('event_id', demoEventId)
+    : { data: [] as Array<{ id: string }> };
+
+  const reservationIds = (demoReservations || []).map((reservation: any) => reservation.id);
+
+  if (reservationIds.length > 0) {
+    await sb.from('event_inventory_items').delete().in('reservation_id', reservationIds);
+    await sb.from('event_inventory_reservations').delete().in('id', reservationIds);
+  }
+
+  if (demoEventId) {
+    await sb.from('contracts').delete().eq('event_id', demoEventId).eq('title', demoContractTitle);
+    await sb.from('stock_movements').delete().eq('event_id', demoEventId);
+    await sb.from('events').delete().eq('id', demoEventId);
+  }
+
+  if (demoItemIds.length > 0) {
+    await sb.from('stock_movements').delete().in('inventory_item_id', demoItemIds);
+    await sb.from('inventory_items').delete().in('id', demoItemIds);
+  }
+
+  const { data: demoClient } = await sb.from('clients').select('id').eq('email', demoClientEmail).maybeSingle();
+  if (demoClient?.id) {
+    await sb.from('stock_movements').delete().eq('client_id', demoClient.id);
+    await sb.from('clients').delete().eq('id', demoClient.id);
+  }
+
+  return {
+    removed_items: demoItemIds.length,
+    removed_reservations: reservationIds.length,
+    removed_event: Boolean(demoEventId),
+    removed_client: Boolean(demoClient?.id),
+  };
+};
