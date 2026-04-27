@@ -23,6 +23,7 @@ import {
   type EventInventoryReservation,
 } from '@/lib/inventory';
 import { openReservationPdfPrint } from '@/lib/inventoryPdf';
+import logo from '@/assets/logo.png';
 
 const SelecaoFestaPage = () => {
   const { toast } = useToast();
@@ -30,6 +31,7 @@ const SelecaoFestaPage = () => {
   const [selectedReservationId, setSelectedReservationId] = useState<string>('');
   const [searchItems, setSearchItems] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'food' | 'furniture'>('all');
+  const [reservationTypeFilter, setReservationTypeFilter] = useState<'all' | 'food' | 'furniture'>('all');
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
@@ -53,6 +55,12 @@ const SelecaoFestaPage = () => {
       .filter((item) => (item.status === 'maintenance' || item.status === 'damaged' || item.status === 'expired' ? false : true))
       .filter((item) => item.name.toLowerCase().includes(text) || item.category.toLowerCase().includes(text));
   }, [items, selectedType, searchItems]);
+
+  const filteredReservationItems = useMemo(() => {
+    const reservationItems = selectedReservation?.event_inventory_items || [];
+    if (reservationTypeFilter === 'all') return reservationItems;
+    return reservationItems.filter((item) => item.inventory_items?.type === reservationTypeFilter);
+  }, [selectedReservation, reservationTypeFilter]);
 
   const createReservationMutation = useMutation({
     mutationFn: async () => {
@@ -143,7 +151,7 @@ const SelecaoFestaPage = () => {
     openReservationPdfPrint({
       reservation,
       companyName: 'David Melo Produções',
-      logoUrl: '/logo.png',
+      logoUrl: logo,
       responsibleName,
       guestCount,
     });
@@ -204,6 +212,18 @@ const SelecaoFestaPage = () => {
                   <div className="space-y-2"><Label>Responsável do evento</Label><Input value={responsibleName} onChange={(e) => setResponsibleName(e.target.value)} placeholder="Ex.: Juliana Costa" /></div>
                   <div className="space-y-2"><Label>Número de convidados</Label><Input type="number" value={guestCount ?? ''} onChange={(e) => setGuestCount(e.target.value ? Number(e.target.value) : null)} placeholder="Ex.: 180" /></div>
                 </div>
+
+                <div className="mt-4 max-w-[260px]">
+                  <Label className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Filtrar itens reservados</Label>
+                  <Select value={reservationTypeFilter} onValueChange={(v: any) => setReservationTypeFilter(v)}>
+                    <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="food">Alimentação</SelectItem>
+                      <SelectItem value="furniture">Mobiliário</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </>
             ) : (
               <div className="text-sm text-muted-foreground">Selecione uma reserva de evento para iniciar.</div>
@@ -224,7 +244,7 @@ const SelecaoFestaPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {(selectedReservation?.event_inventory_items || []).map((item) => (
+                {filteredReservationItems.map((item) => (
                   <tr key={item.id} className="border-t border-border/30 text-sm">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -245,7 +265,7 @@ const SelecaoFestaPage = () => {
                 ))}
               </tbody>
             </table>
-            {selectedReservation && (selectedReservation.event_inventory_items || []).length === 0 && <div className="p-10 text-center text-sm text-muted-foreground">Nenhum item reservado para este evento.</div>}
+            {selectedReservation && filteredReservationItems.length === 0 && <div className="p-10 text-center text-sm text-muted-foreground">Nenhum item reservado para este filtro.</div>}
           </div>
         </div>
       </div>
