@@ -386,3 +386,256 @@ export const downloadCsv = (fileName: string, content: string) => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+export const seedInventoryDemoData = async () => {
+  const demoClientEmail = 'demo.almoxarifado@davidmelo.local';
+  const demoEventTitle = 'DEMO | Casamento Isabella & Rafael';
+  const demoContractTitle = 'CONTRATO DEMO | CAS-2026-001';
+
+  const { data: existingClient } = await sb.from('clients').select('id').eq('email', demoClientEmail).maybeSingle();
+
+  let clientId = existingClient?.id as string | undefined;
+  if (!clientId) {
+    const { data: createdClient, error: clientError } = await sb
+      .from('clients')
+      .insert({
+        first_name: 'Isabella',
+        last_name: 'Almeida',
+        email: demoClientEmail,
+        phone: '(11) 98888-1122',
+        instagram: '@isabella.almeida.demo',
+      })
+      .select('id')
+      .single();
+    if (clientError) throw clientError;
+    clientId = createdClient.id;
+  }
+
+  const { data: existingEvent } = await sb.from('events').select('id').eq('title', demoEventTitle).maybeSingle();
+  let eventId = existingEvent?.id as string | undefined;
+  if (!eventId) {
+    const { data: createdEvent, error: eventError } = await sb
+      .from('events')
+      .insert({
+        title: demoEventTitle,
+        client_id: clientId,
+        event_type: 'wedding',
+        event_date: '2026-11-21',
+        event_time: '19:30:00',
+        location: 'Palácio Dourado - São Paulo/SP',
+        notes: 'Evento fictício para demonstração do módulo de almoxarifado.',
+        budget_value: 185000,
+        payment_status: 'pendente',
+      })
+      .select('id')
+      .single();
+    if (eventError) throw eventError;
+    eventId = createdEvent.id;
+  }
+
+  const { data: existingContract } = await sb.from('contracts').select('id').eq('event_id', eventId).eq('title', demoContractTitle).maybeSingle();
+  if (!existingContract?.id) {
+    const { error: contractError } = await sb.from('contracts').insert({
+      title: demoContractTitle,
+      event_id: eventId,
+      client_id: clientId,
+      signed_status: 'pendente',
+    });
+    if (contractError) throw contractError;
+  }
+
+  const demoItems = [
+    {
+      name: 'Filé Mignon Premium',
+      type: 'food',
+      category: 'meat',
+      unit: 'kg',
+      total_quantity: 120,
+      minimum_stock: 25,
+      supplier: 'Boutique Carnes Nobres',
+      purchase_date: '2026-11-12',
+      expiration_date: '2026-11-26',
+      cost_per_unit: 89.9,
+      storage_location: 'Câmara fria A1',
+      notes: 'Lote selecionado para eventos premium.',
+    },
+    {
+      name: 'Camarão VG Limpo',
+      type: 'food',
+      category: 'seafood',
+      unit: 'kg',
+      total_quantity: 75,
+      minimum_stock: 20,
+      supplier: 'Costa Azul Frutos do Mar',
+      purchase_date: '2026-11-10',
+      expiration_date: '2026-11-24',
+      cost_per_unit: 112.5,
+      storage_location: 'Câmara fria A2',
+      notes: 'Controle rígido de validade.',
+    },
+    {
+      name: 'Espumante Brut Reserva',
+      type: 'food',
+      category: 'beverage',
+      unit: 'unit',
+      total_quantity: 220,
+      minimum_stock: 50,
+      supplier: 'Adega Monte Bello',
+      purchase_date: '2026-10-01',
+      expiration_date: '2027-10-01',
+      cost_per_unit: 56,
+      storage_location: 'Adega climatizada B1',
+      notes: 'Caixas lacradas para eventos sociais.',
+    },
+    {
+      name: 'Mesa Provençal Off-white',
+      type: 'furniture',
+      category: 'table',
+      unit: 'unit',
+      total_quantity: 24,
+      minimum_stock: 6,
+      replacement_value: 1650,
+      color: 'Off-white',
+      material: 'Madeira laqueada',
+      dimensions: '220x90x78 cm',
+      storage_location: 'Galpão C - Corredor 2',
+      sku: 'TB-PRO-220',
+      notes: 'Uso principal em ilhas gastronômicas.',
+      description: 'Mesa de apoio premium para buffet.',
+    },
+    {
+      name: 'Cadeira Tiffany Dourada',
+      type: 'furniture',
+      category: 'chair',
+      unit: 'unit',
+      total_quantity: 320,
+      minimum_stock: 80,
+      replacement_value: 390,
+      color: 'Dourado champagne',
+      material: 'Policarbonato reforçado',
+      dimensions: '40x45x92 cm',
+      storage_location: 'Galpão A - Prateleira 4',
+      sku: 'CH-TIF-GOLD',
+      notes: 'Modelo padrão para eventos de luxo.',
+      description: 'Cadeira clássica para área social.',
+    },
+    {
+      name: 'Lustre Pendente Cristal Siena',
+      type: 'furniture',
+      category: 'lighting',
+      unit: 'unit',
+      total_quantity: 18,
+      minimum_stock: 4,
+      replacement_value: 4800,
+      color: 'Cristal transparente',
+      material: 'Cristal e metal',
+      dimensions: '65x65x90 cm',
+      storage_location: 'Sala técnica iluminação',
+      sku: 'LG-CRS-65',
+      notes: 'Necessita montagem técnica.',
+      description: 'Lustre cênico para pista e salão principal.',
+    },
+  ] as Array<Record<string, any>>;
+
+  const photoMap: Record<string, string[]> = {
+    'Mesa Provençal Off-white': [
+      'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?auto=format&fit=crop&w=900&q=80',
+    ],
+    'Cadeira Tiffany Dourada': [
+      'https://images.unsplash.com/photo-1464146072230-91cabc968266?auto=format&fit=crop&w=900&q=80',
+    ],
+    'Lustre Pendente Cristal Siena': [
+      'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?auto=format&fit=crop&w=900&q=80',
+    ],
+  };
+
+  const createdItemIdsByName = new Map<string, string>();
+
+  for (const item of demoItems) {
+    const { data: existingItem } = await sb
+      .from('inventory_items')
+      .select('id, name')
+      .eq('name', item.name)
+      .eq('type', item.type)
+      .maybeSingle();
+
+    let itemId = existingItem?.id as string | undefined;
+    if (!itemId) {
+      const { data: createdItem, error: itemError } = await sb.from('inventory_items').insert(item).select('id, name').single();
+      if (itemError) throw itemError;
+      itemId = createdItem.id;
+    }
+
+    createdItemIdsByName.set(item.name, itemId);
+
+    if (item.type === 'furniture' && photoMap[item.name]?.length) {
+      const { data: existingPhotos } = await sb
+        .from('inventory_item_photos')
+        .select('id')
+        .eq('inventory_item_id', itemId)
+        .limit(1);
+
+      if (!existingPhotos?.length) {
+        const rows = photoMap[item.name].map((url) => ({ inventory_item_id: itemId, photo_url: url }));
+        const { error: photoError } = await sb.from('inventory_item_photos').insert(rows);
+        if (photoError) throw photoError;
+      }
+    }
+  }
+
+  const { data: existingReservation } = await sb.from('event_inventory_reservations').select('id').eq('event_id', eventId).maybeSingle();
+  let reservationId = existingReservation?.id as string | undefined;
+  if (!reservationId) {
+    const { data: createdReservation, error: reservationError } = await sb
+      .from('event_inventory_reservations')
+      .insert({
+        event_id: eventId,
+        client_id: clientId,
+        reservation_status: 'reserved',
+      })
+      .select('id')
+      .single();
+    if (reservationError) throw reservationError;
+    reservationId = createdReservation.id;
+  }
+
+  const reservationTemplate = [
+    { name: 'Filé Mignon Premium', quantity: 32, unit: 'kg', notes: 'Estação principal do jantar.' },
+    { name: 'Camarão VG Limpo', quantity: 18, unit: 'kg', notes: 'Coquetel volante e ilhas quentes.' },
+    { name: 'Espumante Brut Reserva', quantity: 96, unit: 'unit', notes: 'Brinde oficial e welcome drinks.' },
+    { name: 'Mesa Provençal Off-white', quantity: 8, unit: 'unit', notes: 'Ilhas de buffet e doces finos.' },
+    { name: 'Cadeira Tiffany Dourada', quantity: 180, unit: 'unit', notes: 'Salão principal e varanda.' },
+    { name: 'Lustre Pendente Cristal Siena', quantity: 4, unit: 'unit', notes: 'Montagem na pista central.' },
+  ];
+
+  for (const row of reservationTemplate) {
+    const itemId = createdItemIdsByName.get(row.name);
+    if (!itemId) continue;
+
+    const { data: existingReservationItem } = await sb
+      .from('event_inventory_items')
+      .select('id')
+      .eq('reservation_id', reservationId)
+      .eq('inventory_item_id', itemId)
+      .maybeSingle();
+
+    if (!existingReservationItem?.id) {
+      const { error: reservationItemError } = await sb.from('event_inventory_items').insert({
+        reservation_id: reservationId,
+        inventory_item_id: itemId,
+        quantity: row.quantity,
+        unit: row.unit,
+        notes: row.notes,
+      });
+      if (reservationItemError) throw reservationItemError;
+    }
+  }
+
+  return {
+    client_id: clientId,
+    event_id: eventId,
+    reservation_id: reservationId,
+    items_seeded: demoItems.length,
+    reservation_items_seeded: reservationTemplate.length,
+  };
+};

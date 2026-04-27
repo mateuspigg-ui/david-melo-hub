@@ -1,12 +1,17 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Boxes, AlertTriangle, PackageCheck, PackageOpen, Ban, ClipboardList } from 'lucide-react';
-import { fetchInventoryItems, fetchReservations, categoryLabel } from '@/lib/inventory';
+import { fetchInventoryItems, fetchReservations, categoryLabel, seedInventoryDemoData } from '@/lib/inventory';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const COLORS = ['#C5A059', '#111827', '#C7CDD7', '#E2A53B', '#7C8AA6'];
 
 const AlmoxarifadoDashboardPage = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['inventory_items_dashboard'],
     queryFn: () => fetchInventoryItems(),
@@ -15,6 +20,29 @@ const AlmoxarifadoDashboardPage = () => {
   const { data: reservations = [] } = useQuery({
     queryKey: ['inventory_reservations_dashboard'],
     queryFn: fetchReservations,
+  });
+
+  const seedMutation = useMutation({
+    mutationFn: seedInventoryDemoData,
+    onSuccess: async (payload) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_food_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_reservations_dashboard'] }),
+        queryClient.invalidateQueries({ queryKey: ['event_inventory_reservations'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
+        queryClient.invalidateQueries({ queryKey: ['events_for_inventory'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock_movements'] }),
+      ]);
+      toast({
+        title: 'Amostra criada com sucesso',
+        description: `Evento DEMO criado com ${payload.items_seeded} itens de estoque e ${payload.reservation_items_seeded} itens reservados.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Falha ao criar amostra', description: error?.message || 'Tente novamente', variant: 'destructive' });
+    },
   });
 
   const stats = useMemo(() => {
@@ -81,6 +109,16 @@ const AlmoxarifadoDashboardPage = () => {
             <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Almoxarifado / Controle de Estoque</h1>
           </div>
           <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Dashboard do Estoque • Visão Integrada</p>
+        </div>
+        <Button onClick={() => seedMutation.mutate()} disabled={seedMutation.isPending} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]">
+          {seedMutation.isPending ? 'Criando amostra...' : 'Preencher com amostra'}
+        </Button>
+      </div>
+
+      <div className="px-2">
+        <div className="bg-white rounded-[24px] border border-border/30 premium-shadow p-5">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gold/80">Como funciona a demonstração</p>
+          <p className="text-sm text-muted-foreground mt-2">Ao clicar em <b>Preencher com amostra</b>, o sistema cria um cliente e um evento fictício, cadastra itens de alimentação e mobiliário, adiciona fotos de peças e já reserva quantidades para o evento. Depois disso, você pode abrir <b>Seleção por Festa</b>, editar itens reservados, gerar PDF e acompanhar as movimentações automaticamente.</p>
         </div>
       </div>
 
