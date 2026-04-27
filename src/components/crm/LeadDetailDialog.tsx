@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus, MessageCircle, Upload, FileText, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus, MessageCircle, Upload, FileText, ExternalLink } from 'lucide-react';
 import { format, isPast, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -43,6 +43,13 @@ const formatFileSize = (size?: number | null) => {
 };
 
 const isImageFile = (fileType?: string | null) => Boolean(fileType && fileType.startsWith('image/'));
+
+const getLeadFileStoragePath = (fileUrl: string) => {
+  const marker = '/storage/v1/object/public/lead-files/';
+  const markerIndex = fileUrl.indexOf(marker);
+  if (markerIndex === -1) return null;
+  return decodeURIComponent(fileUrl.slice(markerIndex + marker.length));
+};
 
 const playTaskCreatedAlert = () => {
   if (typeof window === 'undefined') return;
@@ -202,6 +209,29 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao enviar arquivos', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
+  const deleteFileMutation = useMutation({
+    mutationFn: async (file: LeadFile) => {
+      const storagePath = getLeadFileStoragePath(file.file_url);
+
+      if (storagePath) {
+        const { error: removeError } = await (supabase as any).storage.from('lead-files').remove([storagePath]);
+        if (removeError && !/not\s+found/i.test(String(removeError?.message || ''))) {
+          throw removeError;
+        }
+      }
+
+      const { error: deleteError } = await (supabase as any).from('lead_files').delete().eq('id', file.id);
+      if (deleteError) throw deleteError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead_files', lead?.id] });
+      toast({ title: 'Arquivo removido com sucesso' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao remover arquivo', description: error?.message || 'Tente novamente.', variant: 'destructive' });
     },
   });
 
@@ -555,21 +585,30 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {leadFiles.filter((file) => isImageFile(file.file_type)).map((file) => (
-                    <a
-                      key={file.id}
-                      href={file.file_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="group rounded-2xl border border-border/20 bg-white overflow-hidden hover:border-gold/40 transition"
-                    >
-                      <div className="aspect-[4/3] bg-secondary/20">
-                        <img src={file.file_url} alt={file.file_name} className="w-full h-full object-cover" />
+                    <div key={file.id} className="group rounded-2xl border border-border/20 bg-white overflow-hidden hover:border-gold/40 transition">
+                      <a href={file.file_url} target="_blank" rel="noreferrer" className="block">
+                        <div className="aspect-[4/3] bg-secondary/20">
+                          <img src={file.file_url} alt={file.file_name} className="w-full h-full object-cover" />
+                        </div>
+                      </a>
+                      <div className="p-2.5 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold text-foreground truncate">{file.file_name}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatFileSize(file.file_size)}</p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={deleteFileMutation.isPending}
+                          onClick={() => {
+                            if (!window.confirm(`Remover o arquivo \"${file.file_name}\"?`)) return;
+                            deleteFileMutation.mutate(file);
+                          }}
+                          className="w-7 h-7 rounded-lg border border-destructive/30 text-destructive flex items-center justify-center hover:bg-destructive/10 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                      <div className="p-2.5">
-                        <p className="text-[11px] font-bold text-foreground truncate">{file.file_name}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatFileSize(file.file_size)}</p>
-                      </div>
-                    </a>
+                    </div>
                   ))}
                 </div>
 
@@ -585,9 +624,22 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                           <p className="text-[10px] text-muted-foreground">{formatFileSize(file.file_size)}</p>
                         </div>
                       </div>
-                      <a href={file.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gold hover:text-gold-dark">
-                        <ExternalLink className="w-3.5 h-3.5" /> Abrir
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a href={file.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gold hover:text-gold-dark">
+                          <ExternalLink className="w-3.5 h-3.5" /> Abrir
+                        </a>
+                        <button
+                          type="button"
+                          disabled={deleteFileMutation.isPending}
+                          onClick={() => {
+                            if (!window.confirm(`Remover o arquivo \"${file.file_name}\"?`)) return;
+                            deleteFileMutation.mutate(file);
+                          }}
+                          className="w-7 h-7 rounded-lg border border-destructive/30 text-destructive flex items-center justify-center hover:bg-destructive/10 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
