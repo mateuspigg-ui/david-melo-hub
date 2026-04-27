@@ -122,6 +122,16 @@
     background: rgba(255, 255, 255, 0.7);
   }
   .premium-shadow {
+    box-shadow: 0 12px 30px -12px hsl(var(--dark) / 0.18), 0 10px 16px -12px hsl(var(--gold) / 0.22);
+  }
+  .premium-shadow-sm {
+    box-shadow: 0 8px 18px -12px hsl(var(--dark) / 0.14), 0 6px 12px -10px hsl(var(--gold) / 0.2);
+  }
+  .premium-shadow-lg {
+    box-shadow: 0 24px 46px -20px hsl(var(--dark) / 0.24), 0 14px 24px -16px hsl(var(--gold) / 0.3);
+  }
+}
+
 ::-webkit-scrollbar-track {
   background: hsl(var(--background));
 }

@@ -67,32 +67,6 @@ const sections: NavSection[] = [
       { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
     ],
   },
-    ],
-  },
-  {
-    label: 'Eventos',
-    items: [
-      { label: 'Eventos', path: '/eventos', icon: ShoppingBag, module: 'eventos' },
-      { label: 'Agenda', path: '/agenda', icon: Calendar, module: 'agenda' },
-    ],
-  },
-  {
-    label: 'Financeiro',
-    items: [
-      { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard, module: 'financeiro' },
-      { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark, module: 'financeiro' },
-      { label: 'Pagamentos', path: '/pagamentos', icon: CreditCard, module: 'financeiro' },
-      { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp, module: 'financeiro' },
-      { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt, module: 'financeiro' },
-      { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp, module: 'financeiro' },
-    ],
-  },
-  {
-    label: 'Equipe',
-    items: [
-      { label: 'Equipe', path: '/equipe', icon: UserCog, module: 'equipe' },
-    ],
-  },
 ];
 
 interface Props {
