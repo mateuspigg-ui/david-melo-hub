@@ -134,7 +134,9 @@ const AppSidebar = ({ collapsed, mobile = false, onNavigate }: Props) => {
       mobile ? "w-[86vw] max-w-[340px]" : collapsed ? "w-24" : "w-80"
     )}>
       <div className={cn("flex items-center justify-center bg-gradient-to-b from-gold/10 to-transparent border-b border-gold/15 p-10", mobile ? "p-6" : collapsed ? "p-4" : "p-10")}>
-        <img src={logo} alt="David Melo" className={cn("transition-all duration-700 hover:scale-105", mobile ? "h-20" : collapsed ? "h-12 grayscale brightness-110" : "h-32")} />
+        <NavLink to="/" onClick={onNavigate} className="inline-flex" title="Ir para a página inicial">
+          <img src={logo} alt="David Melo" className={cn("transition-all duration-700 hover:scale-105", mobile ? "h-20" : collapsed ? "h-12 grayscale brightness-110" : "h-32")} />
+        </NavLink>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-6 px-6 space-y-10 scrollbar-hide">
