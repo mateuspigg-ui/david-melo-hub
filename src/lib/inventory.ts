@@ -741,50 +741,72 @@ export const seedPartyTestCatalog = async () => {
 
   const models = ['redonda de madeira', 'retangular provençal', 'espelhada premium'];
 
-  const { data: existingItems } = await sb.from('inventory_items').select('id, type');
-  const existingIds = (existingItems || []).map((row: any) => row.id);
-  if (existingIds.length > 0) {
-    await sb.from('event_inventory_items').delete().in('inventory_item_id', existingIds);
-    await sb.from('inventory_item_photos').delete().in('inventory_item_id', existingIds);
-    await sb.from('stock_movements').delete().in('inventory_item_id', existingIds);
-    const { error: deleteItemsError } = await sb.from('inventory_items').delete().in('id', existingIds);
-    if (deleteItemsError) throw deleteItemsError;
-  }
-
   let created = 0;
+  let updated = 0;
   for (const blueprint of categoryBlueprint) {
     for (const base of blueprint.bases) {
       for (let i = 0; i < models.length; i++) {
         const model = models[i];
-        const itemName = `${base} - ${model}`;
+        const itemName = `TESTE | ${base} - ${model}`;
         const total = 8 + i * 4;
-        const { data: inserted, error: insertError } = await sb
+        const { data: existingItem, error: findError } = await sb
           .from('inventory_items')
-          .insert({
-            name: itemName,
-            type: 'furniture',
-            category: blueprint.category,
-            unit: 'unidade',
-            total_quantity: total,
-            minimum_stock: 2,
-            available_quantity: total,
-            reserved_quantity: 0,
-            damaged_quantity: 0,
-            maintenance_quantity: 0,
-            replacement_value: 350 + i * 120,
-            storage_location: `galpão ${blueprint.category}`,
-            notes: `catálogo de teste • categoria: ${blueprint.category}`,
-          } as any)
           .select('id')
-          .single();
-        if (insertError) throw insertError;
+          .eq('name', itemName)
+          .eq('type', 'furniture')
+          .maybeSingle();
+        if (findError) throw findError;
 
-        const { error: photoError } = await sb.from('inventory_item_photos').insert({ inventory_item_id: inserted.id, photo_url: blueprint.photo } as any);
-        if (photoError) throw photoError;
-        created += 1;
+        let itemId = existingItem?.id as string | undefined;
+
+        if (!itemId) {
+          const { data: inserted, error: insertError } = await sb
+            .from('inventory_items')
+            .insert({
+              name: itemName,
+              type: 'furniture',
+              category: blueprint.category,
+              unit: 'unidade',
+              total_quantity: total,
+              minimum_stock: 2,
+              replacement_value: 350 + i * 120,
+              storage_location: `galpão ${blueprint.category}`,
+              notes: `catálogo de teste • categoria: ${blueprint.category}`,
+            } as any)
+            .select('id')
+            .single();
+          if (insertError) throw insertError;
+          itemId = inserted.id;
+          created += 1;
+        } else {
+          const { error: updateError } = await sb
+            .from('inventory_items')
+            .update({
+              category: blueprint.category,
+              total_quantity: total,
+              minimum_stock: 2,
+              replacement_value: 350 + i * 120,
+              storage_location: `galpão ${blueprint.category}`,
+              notes: `catálogo de teste • categoria: ${blueprint.category}`,
+            } as any)
+            .eq('id', itemId);
+          if (updateError) throw updateError;
+          updated += 1;
+        }
+
+        const { data: existingPhoto, error: photoFindError } = await sb
+          .from('inventory_item_photos')
+          .select('id')
+          .eq('inventory_item_id', itemId)
+          .limit(1);
+        if (photoFindError) throw photoFindError;
+        if (!existingPhoto?.length) {
+          const { error: photoError } = await sb.from('inventory_item_photos').insert({ inventory_item_id: itemId, photo_url: blueprint.photo } as any);
+          if (photoError) throw photoError;
+        }
       }
     }
   }
 
-  return { items_created: created, categories: categoryBlueprint.length };
+  return { items_created: created, items_updated: updated, categories: categoryBlueprint.length };
 };
