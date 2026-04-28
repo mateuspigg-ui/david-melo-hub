@@ -41,15 +41,18 @@ type PendingReservationItem = {
   notes?: string;
 };
 
-const MODEL_OPTIONS_BY_ITEM: Record<string, string[]> = {
-};
-
 const normalizeModelKey = (value: string) =>
   String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+
+const extractModelFromItemName = (name: string) => {
+  const parts = String(name || '').split(' - ');
+  if (parts.length < 2) return '';
+  return parts.slice(1).join(' - ').trim();
+};
 
 const CATEGORY_BY_ITEM_NAME: Record<string, string> = {
   // cozinha
@@ -195,10 +198,6 @@ const SelecaoFestaPage = () => {
 
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedReservationId) || null, [reservations, selectedReservationId]);
   const selectedInventoryItem = useMemo(() => items.find((item) => item.id === itemForm.itemId) || null, [items, itemForm.itemId]);
-  const modelOptions = useMemo(() => {
-    if (!selectedInventoryItem) return [] as string[];
-    return MODEL_OPTIONS_BY_ITEM[normalizeModelKey(selectedInventoryItem.name)] || [];
-  }, [selectedInventoryItem]);
 
   const availableCategories = useMemo(() => {
     if (selectedType === 'food') return FOOD_CATEGORIES;
@@ -457,7 +456,7 @@ const SelecaoFestaPage = () => {
       return;
     }
 
-    const normalizedModel = itemForm.model.trim();
+    const normalizedModel = (itemForm.model || extractModelFromItemName(inventoryItem.name)).trim();
 
     setPendingItems((prev) => [
       ...prev,
@@ -722,7 +721,7 @@ const SelecaoFestaPage = () => {
                       key={item.id}
                       type="button"
                       onClick={() => {
-                        setItemForm((p) => ({ ...p, itemId: item.id, model: '' }));
+                        setItemForm((p) => ({ ...p, itemId: item.id, model: extractModelFromItemName(item.name) }));
                         setSearchItems(item.name);
                       }}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-gold/5 transition text-sm"
@@ -734,20 +733,17 @@ const SelecaoFestaPage = () => {
                   {availableItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item encontrado.</p>}
                 </div>
               )}
-              <Select value={itemForm.itemId} onValueChange={(v) => setItemForm((p) => ({ ...p, itemId: v, model: '' }))}>
+              <Select value={itemForm.itemId} onValueChange={(v) => {
+                const selectedItem = availableItems.find((item) => item.id === v);
+                setItemForm((p) => ({ ...p, itemId: v, model: selectedItem ? extractModelFromItemName(selectedItem.name) : '' }));
+              }}>
                 <SelectTrigger><SelectValue placeholder="Ou selecione na lista completa" /></SelectTrigger>
                 <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • {categoryLabel(resolveCategory(item))} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2 space-y-2">
               <Label>Modelo</Label>
-              <Select value={itemForm.model || '__none__'} onValueChange={(v) => setItemForm((p) => ({ ...p, model: v === '__none__' ? '' : v }))}>
-                <SelectTrigger><SelectValue placeholder={selectedInventoryItem ? 'Selecione o modelo' : 'Selecione um item primeiro'} /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sem modelo</SelectItem>
-                  {modelOptions.map((model) => <SelectItem key={model} value={model}>{model}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Input value={itemForm.model || (selectedInventoryItem ? extractModelFromItemName(selectedInventoryItem.name) : '')} readOnly placeholder="O modelo vem do item selecionado" />
             </div>
             <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={(e) => setItemForm((p) => ({ ...p, quantity: Number(e.target.value || 1) }))} /></div>
             <div className="md:col-span-3 space-y-2"><Label>Observações</Label><Textarea value={itemForm.notes} onChange={(e) => setItemForm((p) => ({ ...p, notes: e.target.value }))} /></div>

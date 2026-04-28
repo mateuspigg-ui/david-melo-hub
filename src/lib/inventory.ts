@@ -696,31 +696,51 @@ export const clearInventoryDemoData = async () => {
 };
 
 export const seedPartyTestCatalog = async () => {
-  const categoryBlueprint: Array<{ category: string; bases: string[]; photo: string }> = [
+  const categoryBlueprint: Array<{ category: string; bases: string[]; photos: string[] }> = [
     {
       category: 'mobiliario',
       bases: ['mesa para bolo', 'aparador decorativo', 'mesa de convidados', 'cadeira cerimônia', 'stand by'],
-      photo: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1493666438817-866a91353ca9?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1517705008128-361805f42e86?auto=format&fit=crop&w=1200&q=80',
+      ],
     },
     {
       category: 'cozinha',
       bases: ['fogão industrial', 'frigideira chef', 'caixa térmica', 'tacho e escumadeira', 'bandeja para salgado'],
-      photo: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1556912167-f556f1f39fdf?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=80',
+      ],
     },
     {
       category: 'tecidos',
       bases: ['toalha mesa convidados', 'sobrepor mesa convidados', 'guardanapos', 'pano bandeja garçom', 'fundo de mesa'],
-      photo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1512100356356-de1b84283e18?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1594968591532-8f31d779d6bc?auto=format&fit=crop&w=1200&q=80',
+      ],
     },
     {
       category: 'espelhos',
       bases: ['espelho moldura dourada', 'espelho moldura prata', 'tampo espelho mesa convidado', 'tampo espelho mesa buffet', 'espelho decorativo'],
-      photo: 'https://images.unsplash.com/photo-1616628182509-6f66f12879a1?auto=format&fit=crop&w=900&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1617104680985-b0f8ef9b47b4?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1615874959474-d609969a20ed?auto=format&fit=crop&w=1200&q=80',
+      ],
     },
     {
       category: 'pecas_mesa_frios_cozinha',
       bases: ['travessa frios', 'petisqueira premium', 'suporte gastronômico', 'bandeja inox serviço', 'conjunto mesa frios'],
-      photo: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=900&q=80',
+      photos: [
+        'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=1200&q=80',
+        'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?auto=format&fit=crop&w=1200&q=80',
+      ],
     },
   ];
 
@@ -779,15 +799,28 @@ export const seedPartyTestCatalog = async () => {
           updated += 1;
         }
 
-        const { data: existingPhoto, error: photoFindError } = await sb
+        const photoUrl = blueprint.photos[i % blueprint.photos.length];
+
+        const { data: existingPhotos, error: photoFindError } = await sb
           .from('inventory_item_photos')
-          .select('id')
+          .select('id, photo_url')
           .eq('inventory_item_id', itemId)
-          .limit(1);
+          .order('created_at', { ascending: true });
         if (photoFindError) throw photoFindError;
-        if (!existingPhoto?.length) {
-          const { error: photoError } = await sb.from('inventory_item_photos').insert({ inventory_item_id: itemId, photo_url: blueprint.photo } as any);
+
+        if (!existingPhotos?.length) {
+          const { error: photoError } = await sb.from('inventory_item_photos').insert({ inventory_item_id: itemId, photo_url: photoUrl } as any);
           if (photoError) throw photoError;
+        } else {
+          const firstPhoto = existingPhotos[0];
+          if (firstPhoto.photo_url !== photoUrl) {
+            const { error: updatePhotoError } = await sb.from('inventory_item_photos').update({ photo_url: photoUrl } as any).eq('id', firstPhoto.id);
+            if (updatePhotoError) throw updatePhotoError;
+          }
+          const extraIds = existingPhotos.slice(1).map((photo: any) => photo.id);
+          if (extraIds.length > 0) {
+            await sb.from('inventory_item_photos').delete().in('id', extraIds);
+          }
         }
       }
     }
