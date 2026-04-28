@@ -59,6 +59,8 @@ const extractBaseFromItemName = (name: string) => {
   return parts[0]?.trim() || String(name || '').trim();
 };
 
+const DEFAULT_TEST_MODELS = ['redonda de madeira', 'retangular provençal', 'espelhada premium'];
+
 const CATEGORY_BY_ITEM_NAME: Record<string, string> = {
   // cozinha
   fogao: 'cozinha',
@@ -206,11 +208,12 @@ const SelecaoFestaPage = () => {
   const modelOptions = useMemo(() => {
     if (!selectedInventoryItem) return [] as string[];
     const selectedBase = extractBaseFromItemName(selectedInventoryItem.name);
-    const models = items
+    const modelsFromBase = items
       .filter((item) => extractBaseFromItemName(item.name) === selectedBase)
       .map((item) => extractModelFromItemName(item.name))
       .filter(Boolean);
-    return Array.from(new Set(models));
+    const currentModel = extractModelFromItemName(selectedInventoryItem.name);
+    return Array.from(new Set([...modelsFromBase, currentModel, ...DEFAULT_TEST_MODELS].filter(Boolean)));
   }, [items, selectedInventoryItem]);
 
   const availableCategories = useMemo(() => {
@@ -765,21 +768,7 @@ const SelecaoFestaPage = () => {
                 value={itemForm.model || '__none__'}
                 onValueChange={(v) => {
                   const nextModel = v === '__none__' ? '' : v;
-                  if (!selectedInventoryItem || !nextModel) {
-                    setItemForm((p) => ({ ...p, model: nextModel }));
-                    return;
-                  }
-
-                  const selectedBase = extractBaseFromItemName(selectedInventoryItem.name);
-                  const matchingItem = items.find(
-                    (item) => extractBaseFromItemName(item.name) === selectedBase && extractModelFromItemName(item.name) === nextModel
-                  );
-
-                  setItemForm((p) => ({
-                    ...p,
-                    model: nextModel,
-                    itemId: matchingItem?.id || p.itemId,
-                  }));
+                  setItemForm((p) => ({ ...p, model: nextModel }));
                 }}
               >
                 <SelectTrigger><SelectValue placeholder={selectedInventoryItem ? 'Escolha o modelo' : 'Selecione um item primeiro'} /></SelectTrigger>
