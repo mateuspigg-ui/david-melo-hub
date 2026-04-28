@@ -43,6 +43,7 @@ const SelecaoFestaPage = () => {
   const [selectedReservationId, setSelectedReservationId] = useState<string>('');
   const [searchItems, setSearchItems] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'food' | 'furniture'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [reservationTypeFilter, setReservationTypeFilter] = useState<'all' | 'food' | 'furniture'>('all');
   const [addOpen, setAddOpen] = useState(false);
   const [itemSource, setItemSource] = useState<'inventory' | 'rental'>('inventory');
@@ -70,14 +71,20 @@ const SelecaoFestaPage = () => {
 
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedReservationId) || null, [reservations, selectedReservationId]);
 
+  const availableCategories = useMemo(() => {
+    const filteredByType = items.filter((item) => (selectedType === 'all' ? true : item.type === selectedType));
+    return Array.from(new Set(filteredByType.map((item) => item.category).filter(Boolean)));
+  }, [items, selectedType]);
+
   const availableItems = useMemo(() => {
     const text = searchItems.toLowerCase();
     return items
       .filter((item) => item.available_quantity > 0)
       .filter((item) => (selectedType === 'all' ? true : item.type === selectedType))
+      .filter((item) => (selectedCategory === 'all' ? true : item.category === selectedCategory))
       .filter((item) => (item.status === 'maintenance' || item.status === 'damaged' || item.status === 'expired' ? false : true))
       .filter((item) => item.name.toLowerCase().includes(text) || item.category.toLowerCase().includes(text));
-  }, [items, selectedType, searchItems]);
+  }, [items, selectedType, selectedCategory, searchItems]);
 
   const filteredReservationItems = useMemo(() => {
     const reservationItems = selectedReservation?.event_inventory_items || [];
@@ -493,6 +500,7 @@ const SelecaoFestaPage = () => {
               <Label>Tipo</Label>
               <Select value={selectedType} onValueChange={(v: any) => {
                 setSelectedType(v);
+                setSelectedCategory('all');
                 if (v !== 'furniture') {
                   setItemSource('inventory');
                 }
@@ -539,6 +547,18 @@ const SelecaoFestaPage = () => {
             </div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2 space-y-2">
+              <Label>Categoria</Label>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger><SelectValue placeholder="Filtrar por categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas categorias</SelectItem>
+                  {availableCategories.map((category) => (
+                    <SelectItem key={category} value={category}>{categoryLabel(category)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="md:col-span-4 space-y-2">
               <Label>Buscar item</Label>
               <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input value={searchItems} onChange={(e) => setSearchItems(e.target.value)} className="pl-9" placeholder="Digite para ver opções de item" /></div>
@@ -555,7 +575,7 @@ const SelecaoFestaPage = () => {
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-gold/5 transition text-sm"
                     >
                       <span className="font-semibold">{item.name}</span>
-                      <span className="text-xs text-muted-foreground"> • disp. {Number(item.available_quantity)} {item.unit || ''}</span>
+                      <span className="text-xs text-muted-foreground"> • {categoryLabel(item.category)} • disp. {Number(item.available_quantity)} {item.unit || ''}</span>
                     </button>
                   ))}
                   {availableItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item encontrado.</p>}
@@ -563,7 +583,7 @@ const SelecaoFestaPage = () => {
               )}
               <Select value={itemForm.itemId} onValueChange={(v) => setItemForm((p) => ({ ...p, itemId: v }))}>
                 <SelectTrigger><SelectValue placeholder="Ou selecione na lista completa" /></SelectTrigger>
-                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
+                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • {categoryLabel(item.category)} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={(e) => setItemForm((p) => ({ ...p, quantity: Number(e.target.value || 1) }))} /></div>
