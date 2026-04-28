@@ -672,8 +672,11 @@ const SelecaoFestaPage = () => {
       </Dialog>
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-2xl rounded-[28px]">
+        <DialogContent className="max-w-2xl h-[88vh] rounded-[28px] p-0 overflow-hidden flex flex-col">
+          <div className="px-6 pt-6 pb-4 border-b border-border/20 bg-white">
           <DialogHeader><DialogTitle className="font-display text-2xl">Adicionar item à reserva</DialogTitle></DialogHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1">
             <div className="space-y-2">
               <Label>Tipo</Label>
@@ -813,8 +816,9 @@ const SelecaoFestaPage = () => {
               {pendingItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item adicionado ainda.</p>}
             </div>
           </div>
+          </div>
 
-          <div className="flex justify-between gap-2">
+          <div className="flex justify-between gap-2 border-t border-border/20 bg-white px-6 py-4">
             <Button type="button" variant="outline" onClick={addDraftItem} disabled={!selectedReservation}>Adicionar à lista</Button>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
