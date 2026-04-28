@@ -136,9 +136,28 @@ const CATEGORY_BY_ITEM_NAME: Record<string, string> = {
   'tampo de espelho m. buffet': 'espelhos',
 };
 
-const resolveCategory = (item: { name: string; category: string }) => {
-  const mapped = CATEGORY_BY_ITEM_NAME[normalizeModelKey(item.name)];
-  return mapped || item.category;
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  cozinha: ['fogao', 'frigideira', 'gas', 'gordura', 'caixa termica', 'tacho', 'escumadeira', 'bandeja para salgado', 'palete'],
+  mobiliario: ['mesa', 'cadeira', 'aparador', 'stand by', 'banqueta', 'pranchao', 'receptivo', 'digestiva', 'sushi', 'padre', 'brinde', 'lembranca', 'presente', 'frios', 'doce', 'jantar'],
+  tapetes: ['tapete', 'passarela', 'carpete', 'felpudo', 'sisal', 'listra', 'cupim', 'perca'],
+  tecidos: ['toalha', 'sobrepor', 'guardanapo', 'sacolao', 'pano', 'fundo de mesa'],
+  velas_carticais_lustres: ['vela', 'lustre', 'cupula', 'lampada', 'abajour', 'adereco', 'cartical', 'castical'],
+  espelhos: ['espelho', 'tampo de espelho'],
+};
+
+const resolveCategory = (item: { name: string; category: string; type?: string }) => {
+  const normalizedName = normalizeModelKey(item.name);
+  const mapped = CATEGORY_BY_ITEM_NAME[normalizedName];
+  if (mapped) return mapped;
+
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((keyword) => normalizedName.includes(keyword))) {
+      return category;
+    }
+  }
+
+  if (item.type === 'furniture') return 'mobiliario';
+  return item.category;
 };
 
 const SelecaoFestaPage = () => {
