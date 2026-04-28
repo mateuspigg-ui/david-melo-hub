@@ -13,8 +13,10 @@ import {
   addReservationItem,
   categoryLabel,
   createReservation,
+  FOOD_CATEGORIES,
   fetchEventsForInventory,
   fetchInventoryItems,
+  FURNITURE_CATEGORIES,
   fetchReservations,
   removeReservationItem,
   RESERVATION_STATUSES,
@@ -72,9 +74,10 @@ const SelecaoFestaPage = () => {
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedReservationId) || null, [reservations, selectedReservationId]);
 
   const availableCategories = useMemo(() => {
-    const filteredByType = items.filter((item) => (selectedType === 'all' ? true : item.type === selectedType));
-    return Array.from(new Set(filteredByType.map((item) => item.category).filter(Boolean)));
-  }, [items, selectedType]);
+    if (selectedType === 'food') return FOOD_CATEGORIES;
+    if (selectedType === 'furniture') return FURNITURE_CATEGORIES;
+    return [...FOOD_CATEGORIES, ...FURNITURE_CATEGORIES];
+  }, [selectedType]);
 
   const availableItems = useMemo(() => {
     const text = searchItems.toLowerCase();
