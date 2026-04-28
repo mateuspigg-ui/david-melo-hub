@@ -36,7 +36,109 @@ type PendingReservationItem = {
   supplier?: string;
   quantity: number;
   unit: string;
+  model?: string;
   notes?: string;
+};
+
+const MODEL_OPTIONS_BY_ITEM: Record<string, string[]> = {
+};
+
+const normalizeModelKey = (value: string) =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const CATEGORY_BY_ITEM_NAME: Record<string, string> = {
+  // cozinha
+  fogao: 'cozinha',
+  frigideira: 'cozinha',
+  gas: 'cozinha',
+  gordura: 'cozinha',
+  'balde de gurdura vazio': 'cozinha',
+  'caixa termica pequena': 'cozinha',
+  'caixa termica grande': 'cozinha',
+  palete: 'cozinha',
+  'tacho e escumadeira': 'cozinha',
+  'bandeja para salgado': 'cozinha',
+
+  // mobiliario
+  'mesa de bolo': 'mobiliario',
+  brinde: 'mobiliario',
+  'frios 1': 'mobiliario',
+  'mesas de apoio aos frios': 'mobiliario',
+  doce: 'mobiliario',
+  jantar: 'mobiliario',
+  'apoio ao jantar': 'mobiliario',
+  aparadores: 'mobiliario',
+  'bem casados': 'mobiliario',
+  sandalia: 'mobiliario',
+  lembranca: 'mobiliario',
+  'mesa de convidados': 'mobiliario',
+  'mesa da familia': 'mobiliario',
+  'mesa de convi. pranchao redondo': 'mobiliario',
+  'cadeiras de convidados': 'mobiliario',
+  'cadeiras da familia': 'mobiliario',
+  'cadeiras cerimonia': 'mobiliario',
+  digestiva: 'mobiliario',
+  sushi: 'mobiliario',
+  padre: 'mobiliario',
+  'stand by retangular': 'mobiliario',
+  'stand by redonda': 'mobiliario',
+  'stand by redonda nova': 'mobiliario',
+  'banquetas medalhao': 'mobiliario',
+  'banquetas capri': 'mobiliario',
+  banquetas: 'mobiliario',
+  familia: 'mobiliario',
+  presente: 'mobiliario',
+  'pranchao retangular': 'mobiliario',
+  receptivo: 'mobiliario',
+
+  // tapetes
+  'perca 5 x 3': 'tapetes',
+  'perca 4 x 3': 'tapetes',
+  felpudo: 'tapetes',
+  'listra laranja 5 x 3': 'tapetes',
+  'sisal cru': 'tapetes',
+  cupim: 'tapetes',
+  'tapete igreja': 'tapetes',
+  'tapete listra 3x2': 'tapetes',
+  'passarela vermelho': 'tapetes',
+  'passarela bege': 'tapetes',
+  'passarela perca': 'tapetes',
+  carpetes: 'tapetes',
+
+  // tecidos
+  'toalha mesa de convidados': 'tecidos',
+  'sobrepor mesa de convidados': 'tecidos',
+  guardanapos: 'tecidos',
+  'sacolao garçons': 'tecidos',
+  'pano para bandeja garçom': 'tecidos',
+  'fundo de mesa': 'tecidos',
+
+  // velas / casticais / lustres
+  'vela copo de wisky redondo': 'velas_carticais_lustres',
+  'vela copo de wisky quadrado': 'velas_carticais_lustres',
+  'lustre cristal pp p m g gg': 'velas_carticais_lustres',
+  'lustre cristal m (novo) g(novo)': 'velas_carticais_lustres',
+  'lustre cristal': 'velas_carticais_lustres',
+  'cupula de lustre': 'velas_carticais_lustres',
+  'cupula de cartiçal': 'velas_carticais_lustres',
+  lampada: 'velas_carticais_lustres',
+  abajour: 'velas_carticais_lustres',
+  adereços: 'velas_carticais_lustres',
+
+  // espelhos
+  'espelho md moldura dourada': 'espelhos',
+  'espelho md moldura prata': 'espelhos',
+  'tampo de espelho m. convidado': 'espelhos',
+  'tampo de espelho m. buffet': 'espelhos',
+};
+
+const resolveCategory = (item: { name: string; category: string }) => {
+  const mapped = CATEGORY_BY_ITEM_NAME[normalizeModelKey(item.name)];
+  return mapped || item.category;
 };
 
 const SelecaoFestaPage = () => {
@@ -51,7 +153,7 @@ const SelecaoFestaPage = () => {
   const [itemSource, setItemSource] = useState<'inventory' | 'rental'>('inventory');
   const [editOpen, setEditOpen] = useState(false);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
-  const [itemForm, setItemForm] = useState({ itemId: '', quantity: 1, notes: '' });
+  const [itemForm, setItemForm] = useState({ itemId: '', model: '', quantity: 1, notes: '' });
   const [rentalForm, setRentalForm] = useState({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
   const [pendingItems, setPendingItems] = useState<PendingReservationItem[]>([]);
   const [editItemForm, setEditItemForm] = useState({ id: '', quantity: 1, notes: '' });
@@ -72,6 +174,11 @@ const SelecaoFestaPage = () => {
   });
 
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedReservationId) || null, [reservations, selectedReservationId]);
+  const selectedInventoryItem = useMemo(() => items.find((item) => item.id === itemForm.itemId) || null, [items, itemForm.itemId]);
+  const modelOptions = useMemo(() => {
+    if (!selectedInventoryItem) return [] as string[];
+    return MODEL_OPTIONS_BY_ITEM[normalizeModelKey(selectedInventoryItem.name)] || [];
+  }, [selectedInventoryItem]);
 
   const availableCategories = useMemo(() => {
     if (selectedType === 'food') return FOOD_CATEGORIES;
@@ -84,9 +191,9 @@ const SelecaoFestaPage = () => {
     return items
       .filter((item) => item.available_quantity > 0)
       .filter((item) => (selectedType === 'all' ? true : item.type === selectedType))
-      .filter((item) => (selectedCategory === 'all' ? true : item.category === selectedCategory))
+      .filter((item) => (selectedCategory === 'all' ? true : resolveCategory(item) === selectedCategory))
       .filter((item) => (item.status === 'maintenance' || item.status === 'damaged' || item.status === 'expired' ? false : true))
-      .filter((item) => item.name.toLowerCase().includes(text) || item.category.toLowerCase().includes(text));
+      .filter((item) => item.name.toLowerCase().includes(text) || categoryLabel(resolveCategory(item)).toLowerCase().includes(text));
   }, [items, selectedType, selectedCategory, searchItems]);
 
   const filteredReservationItems = useMemo(() => {
@@ -259,7 +366,7 @@ const SelecaoFestaPage = () => {
 
   const openAddDialog = () => {
     setItemSource('inventory');
-    setItemForm({ itemId: '', quantity: 1, notes: '' });
+    setItemForm({ itemId: '', model: '', quantity: 1, notes: '' });
     setRentalForm({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
     setPendingItems([]);
     setAddOpen(true);
@@ -315,6 +422,8 @@ const SelecaoFestaPage = () => {
       return;
     }
 
+    const normalizedModel = itemForm.model.trim();
+
     setPendingItems((prev) => [
       ...prev,
       {
@@ -322,13 +431,14 @@ const SelecaoFestaPage = () => {
         source: 'inventory',
         inventory_item_id: inventoryItem.id,
         itemName: inventoryItem.name,
+        model: normalizedModel || undefined,
         quantity: requested,
         unit: inventoryItem.unit || 'unidade',
-        notes: itemForm.notes || '',
+        notes: normalizedModel ? `${itemForm.notes ? `${itemForm.notes} • ` : ''}Modelo: ${normalizedModel}` : (itemForm.notes || ''),
       },
     ]);
 
-    setItemForm({ itemId: '', quantity: 1, notes: '' });
+    setItemForm({ itemId: '', model: '', quantity: 1, notes: '' });
   };
 
   const removeDraftItem = (localId: string) => {
@@ -572,21 +682,31 @@ const SelecaoFestaPage = () => {
                       key={item.id}
                       type="button"
                       onClick={() => {
-                        setItemForm((p) => ({ ...p, itemId: item.id }));
+                        setItemForm((p) => ({ ...p, itemId: item.id, model: '' }));
                         setSearchItems(item.name);
                       }}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-gold/5 transition text-sm"
                     >
                       <span className="font-semibold">{item.name}</span>
-                      <span className="text-xs text-muted-foreground"> • {categoryLabel(item.category)} • disp. {Number(item.available_quantity)} {item.unit || ''}</span>
+                      <span className="text-xs text-muted-foreground"> • {categoryLabel(resolveCategory(item))} • disp. {Number(item.available_quantity)} {item.unit || ''}</span>
                     </button>
                   ))}
                   {availableItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item encontrado.</p>}
                 </div>
               )}
-              <Select value={itemForm.itemId} onValueChange={(v) => setItemForm((p) => ({ ...p, itemId: v }))}>
+              <Select value={itemForm.itemId} onValueChange={(v) => setItemForm((p) => ({ ...p, itemId: v, model: '' }))}>
                 <SelectTrigger><SelectValue placeholder="Ou selecione na lista completa" /></SelectTrigger>
-                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • {categoryLabel(item.category)} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
+                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • {categoryLabel(resolveCategory(item))} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <Label>Modelo</Label>
+              <Select value={itemForm.model || '__none__'} onValueChange={(v) => setItemForm((p) => ({ ...p, model: v === '__none__' ? '' : v }))}>
+                <SelectTrigger><SelectValue placeholder={selectedInventoryItem ? 'Selecione o modelo' : 'Selecione um item primeiro'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem modelo</SelectItem>
+                  {modelOptions.map((model) => <SelectItem key={model} value={model}>{model}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={(e) => setItemForm((p) => ({ ...p, quantity: Number(e.target.value || 1) }))} /></div>
@@ -604,7 +724,7 @@ const SelecaoFestaPage = () => {
                   <div>
                     <p className="font-semibold">{row.itemName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {row.source === 'rental' ? `Aluguel • ${row.supplier}` : 'Estoque interno'} • {row.quantity} {row.unit}
+                      {row.source === 'rental' ? `Aluguel • ${row.supplier}` : 'Estoque interno'}{row.model ? ` • modelo: ${row.model}` : ''} • {row.quantity} {row.unit}
                     </p>
                   </div>
                   <Button size="icon" variant="ghost" onClick={() => removeDraftItem(row.localId)}><Trash2 size={14} className="text-rose-600" /></Button>
