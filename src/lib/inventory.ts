@@ -15,21 +15,13 @@ export type ReservationStatus = 'draft' | 'reserved' | 'confirmed' | 'returned' 
 
 export const FOOD_CATEGORIES = [
   'pecas_mesa_frios_cozinha',
-  'pecas_talheres_servico',
   'cozinha',
-  'material_digestivo',
-  'alimentacao_digestiva',
+  'tecidos',
+  'espelhos',
+  'mobiliario',
 ];
 
-export const FURNITURE_CATEGORIES = [
-  'mobiliario',
-  'velas_carticais_lustres',
-  'espelhos',
-  'puffs_estofados',
-  'tapetes',
-  'ferragens',
-  'tecidos',
-];
+export const FURNITURE_CATEGORIES = ['mobiliario', 'cozinha', 'tecidos', 'espelhos', 'pecas_mesa_frios_cozinha'];
 
 export const UNITS = ['kg', 'g', 'litro', 'ml', 'unidade', 'caixa', 'pacote', 'garrafa', 'lata', 'bandeja', 'fardo'];
 
@@ -170,17 +162,10 @@ export const statusLabel = (status: string) => {
 
 const CATEGORY_LABELS: Record<string, string> = {
   pecas_mesa_frios_cozinha: 'peças para mesa de frios e cozinha',
-  pecas_talheres_servico: 'peças e talheres de serviço',
   cozinha: 'cozinha',
-  material_digestivo: 'material digestivo',
-  alimentacao_digestiva: 'alimentação digestiva',
-  mobiliario: 'mobiliário',
-  velas_carticais_lustres: 'velas - cartiçais - lustres',
-  espelhos: 'espelhos',
-  puffs_estofados: 'puffs e estofados',
-  tapetes: 'tapetes',
-  ferragens: 'ferragens',
   tecidos: 'tecidos',
+  espelhos: 'espelhos',
+  mobiliario: 'mobiliário',
 };
 
 export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
