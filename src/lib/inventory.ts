@@ -14,11 +14,11 @@ export type InventoryStatus =
 export type ReservationStatus = 'draft' | 'reserved' | 'confirmed' | 'returned' | 'partially_returned' | 'canceled';
 
 export const FOOD_CATEGORIES = [
-  'pecas_mesa_frios_cozinha',
-  'cozinha',
-  'tecidos',
-  'espelhos',
-  'mobiliario',
+  'congelados',
+  'frutos_do_mar',
+  'condimentos',
+  'graos_cereais',
+  'bebidas',
 ];
 
 export const FURNITURE_CATEGORIES = ['mobiliario', 'cozinha', 'tecidos', 'espelhos', 'pecas_mesa_frios_cozinha'];
@@ -161,6 +161,11 @@ export const statusLabel = (status: string) => {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
+  congelados: 'congelados',
+  frutos_do_mar: 'frutos do mar',
+  condimentos: 'condimentos',
+  graos_cereais: 'grãos e cereais',
+  bebidas: 'bebidas',
   pecas_mesa_frios_cozinha: 'peças para mesa de frios e cozinha',
   cozinha: 'cozinha',
   tecidos: 'tecidos',
@@ -696,6 +701,64 @@ export const clearInventoryDemoData = async () => {
 };
 
 export const seedPartyTestCatalog = async () => {
+  const foodBlueprint: Array<{ category: string; items: Array<{ name: string; unit: string; quantity: number; min: number; cost: number }>; photo: string }> = [
+    {
+      category: 'congelados',
+      photo: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
+      items: [
+        { name: 'TESTE | filé de frango congelado', unit: 'kg', quantity: 120, min: 20, cost: 22 },
+        { name: 'TESTE | medalhão suíno congelado', unit: 'kg', quantity: 85, min: 15, cost: 31 },
+        { name: 'TESTE | batata pré-frita congelada', unit: 'fardo', quantity: 40, min: 10, cost: 78 },
+        { name: 'TESTE | polpa de fruta congelada', unit: 'caixa', quantity: 28, min: 6, cost: 64 },
+        { name: 'TESTE | salgado coquetel congelado', unit: 'caixa', quantity: 35, min: 8, cost: 96 },
+      ],
+    },
+    {
+      category: 'frutos_do_mar',
+      photo: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=1200&q=80',
+      items: [
+        { name: 'TESTE | camarão limpo médio', unit: 'kg', quantity: 65, min: 12, cost: 98 },
+        { name: 'TESTE | lula em anéis', unit: 'kg', quantity: 42, min: 8, cost: 74 },
+        { name: 'TESTE | polvo pré-cozido', unit: 'kg', quantity: 24, min: 5, cost: 112 },
+        { name: 'TESTE | mexilhão sem casca', unit: 'kg', quantity: 30, min: 6, cost: 69 },
+        { name: 'TESTE | peixe branco em postas', unit: 'kg', quantity: 58, min: 10, cost: 52 },
+      ],
+    },
+    {
+      category: 'condimentos',
+      photo: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=1200&q=80',
+      items: [
+        { name: 'TESTE | sal refinado premium', unit: 'fardo', quantity: 22, min: 4, cost: 38 },
+        { name: 'TESTE | azeite extra virgem', unit: 'caixa', quantity: 18, min: 4, cost: 168 },
+        { name: 'TESTE | pimenta-do-reino moída', unit: 'caixa', quantity: 16, min: 3, cost: 92 },
+        { name: 'TESTE | orégano seco', unit: 'caixa', quantity: 12, min: 2, cost: 54 },
+        { name: 'TESTE | alho desidratado', unit: 'caixa', quantity: 14, min: 3, cost: 61 },
+      ],
+    },
+    {
+      category: 'graos_cereais',
+      photo: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=1200&q=80',
+      items: [
+        { name: 'TESTE | arroz branco tipo 1', unit: 'fardo', quantity: 26, min: 5, cost: 148 },
+        { name: 'TESTE | feijão carioca selecionado', unit: 'fardo', quantity: 20, min: 4, cost: 132 },
+        { name: 'TESTE | lentilha premium', unit: 'caixa', quantity: 15, min: 3, cost: 89 },
+        { name: 'TESTE | grão-de-bico', unit: 'caixa', quantity: 13, min: 3, cost: 84 },
+        { name: 'TESTE | quinoa em grãos', unit: 'caixa', quantity: 10, min: 2, cost: 119 },
+      ],
+    },
+    {
+      category: 'bebidas',
+      photo: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=1200&q=80',
+      items: [
+        { name: 'TESTE | água sem gás 500ml', unit: 'fardo', quantity: 55, min: 12, cost: 32 },
+        { name: 'TESTE | refrigerante cola 2l', unit: 'fardo', quantity: 30, min: 8, cost: 74 },
+        { name: 'TESTE | suco integral uva 1l', unit: 'caixa', quantity: 24, min: 6, cost: 88 },
+        { name: 'TESTE | energético lata 269ml', unit: 'caixa', quantity: 18, min: 4, cost: 146 },
+        { name: 'TESTE | água tônica lata', unit: 'caixa', quantity: 20, min: 5, cost: 102 },
+      ],
+    },
+  ];
+
   const categoryBlueprint: Array<{ category: string; bases: string[]; photos: string[] }> = [
     {
       category: 'mobiliario',
@@ -748,6 +811,79 @@ export const seedPartyTestCatalog = async () => {
 
   let created = 0;
   let updated = 0;
+
+  for (const foodCategory of foodBlueprint) {
+    for (const foodItem of foodCategory.items) {
+      const { data: existingFood, error: findFoodError } = await sb
+        .from('inventory_items')
+        .select('id')
+        .eq('name', foodItem.name)
+        .eq('type', 'food')
+        .maybeSingle();
+      if (findFoodError) throw findFoodError;
+
+      let foodId = existingFood?.id as string | undefined;
+      if (!foodId) {
+        const { data: insertedFood, error: insertFoodError } = await sb
+          .from('inventory_items')
+          .insert({
+            name: foodItem.name,
+            type: 'food',
+            category: foodCategory.category,
+            unit: foodItem.unit,
+            total_quantity: foodItem.quantity,
+            minimum_stock: foodItem.min,
+            cost_per_unit: foodItem.cost,
+            storage_location: `câmara teste ${foodCategory.category}`,
+            notes: `catálogo de teste • alimentação • categoria: ${foodCategory.category}`,
+          } as any)
+          .select('id')
+          .single();
+        if (insertFoodError) throw insertFoodError;
+        foodId = insertedFood.id;
+        created += 1;
+      } else {
+        const { error: updateFoodError } = await sb
+          .from('inventory_items')
+          .update({
+            category: foodCategory.category,
+            unit: foodItem.unit,
+            total_quantity: foodItem.quantity,
+            minimum_stock: foodItem.min,
+            cost_per_unit: foodItem.cost,
+            storage_location: `câmara teste ${foodCategory.category}`,
+            notes: `catálogo de teste • alimentação • categoria: ${foodCategory.category}`,
+          } as any)
+          .eq('id', foodId);
+        if (updateFoodError) throw updateFoodError;
+        updated += 1;
+      }
+
+      const { data: existingFoodPhotos, error: findFoodPhotoError } = await sb
+        .from('inventory_item_photos')
+        .select('id, photo_url')
+        .eq('inventory_item_id', foodId)
+        .order('created_at', { ascending: true });
+      if (findFoodPhotoError) throw findFoodPhotoError;
+
+      if (!existingFoodPhotos?.length) {
+        const { error: photoFoodError } = await sb
+          .from('inventory_item_photos')
+          .insert({ inventory_item_id: foodId, photo_url: foodCategory.photo } as any);
+        if (photoFoodError) throw photoFoodError;
+      } else {
+        const firstPhoto = existingFoodPhotos[0];
+        if (firstPhoto.photo_url !== foodCategory.photo) {
+          const { error: updateFoodPhotoError } = await sb
+            .from('inventory_item_photos')
+            .update({ photo_url: foodCategory.photo } as any)
+            .eq('id', firstPhoto.id);
+          if (updateFoodPhotoError) throw updateFoodPhotoError;
+        }
+      }
+    }
+  }
+
   for (const blueprint of categoryBlueprint) {
     for (const base of blueprint.bases) {
       for (let i = 0; i < models.length; i++) {
