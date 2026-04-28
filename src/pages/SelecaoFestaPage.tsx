@@ -203,7 +203,7 @@ const SelecaoFestaPage = () => {
   const availableCategories = useMemo(() => {
     if (selectedType === 'food') return FOOD_CATEGORIES;
     if (selectedType === 'furniture') return FURNITURE_CATEGORIES;
-    return [...FOOD_CATEGORIES, ...FURNITURE_CATEGORIES];
+    return Array.from(new Set([...FOOD_CATEGORIES, ...FURNITURE_CATEGORIES]));
   }, [selectedType]);
 
   const availableItems = useMemo(() => {
