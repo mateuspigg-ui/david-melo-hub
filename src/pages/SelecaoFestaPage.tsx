@@ -54,6 +54,11 @@ const extractModelFromItemName = (name: string) => {
   return parts.slice(1).join(' - ').trim();
 };
 
+const extractBaseFromItemName = (name: string) => {
+  const parts = String(name || '').split(' - ');
+  return parts[0]?.trim() || String(name || '').trim();
+};
+
 const CATEGORY_BY_ITEM_NAME: Record<string, string> = {
   // cozinha
   fogao: 'cozinha',
@@ -198,6 +203,15 @@ const SelecaoFestaPage = () => {
 
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedReservationId) || null, [reservations, selectedReservationId]);
   const selectedInventoryItem = useMemo(() => items.find((item) => item.id === itemForm.itemId) || null, [items, itemForm.itemId]);
+  const modelOptions = useMemo(() => {
+    if (!selectedInventoryItem) return [] as string[];
+    const selectedBase = extractBaseFromItemName(selectedInventoryItem.name);
+    const models = items
+      .filter((item) => extractBaseFromItemName(item.name) === selectedBase)
+      .map((item) => extractModelFromItemName(item.name))
+      .filter(Boolean);
+    return Array.from(new Set(models));
+  }, [items, selectedInventoryItem]);
 
   const availableCategories = useMemo(() => {
     if (selectedType === 'food') return FOOD_CATEGORIES;
@@ -456,7 +470,12 @@ const SelecaoFestaPage = () => {
       return;
     }
 
-    const normalizedModel = (itemForm.model || extractModelFromItemName(inventoryItem.name)).trim();
+    const normalizedModel = itemForm.model.trim();
+
+    if (modelOptions.length > 0 && !normalizedModel) {
+      toast({ title: 'Selecione o modelo', variant: 'destructive' });
+      return;
+    }
 
     setPendingItems((prev) => [
       ...prev,
@@ -721,29 +740,54 @@ const SelecaoFestaPage = () => {
                       key={item.id}
                       type="button"
                       onClick={() => {
-                        setItemForm((p) => ({ ...p, itemId: item.id, model: extractModelFromItemName(item.name) }));
+                        setItemForm((p) => ({ ...p, itemId: item.id, model: '' }));
                         setSearchItems(item.name);
                       }}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-gold/5 transition text-sm"
                     >
                       <span className="font-semibold">{item.name}</span>
-                      <span className="text-xs text-muted-foreground"> • {categoryLabel(resolveCategory(item))} • disp. {Number(item.available_quantity)} {item.unit || ''}</span>
+                      <span className="text-xs text-muted-foreground"> • {item.unit || 'unidade'}</span>
                     </button>
                   ))}
                   {availableItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item encontrado.</p>}
                 </div>
               )}
               <Select value={itemForm.itemId} onValueChange={(v) => {
-                const selectedItem = availableItems.find((item) => item.id === v);
-                setItemForm((p) => ({ ...p, itemId: v, model: selectedItem ? extractModelFromItemName(selectedItem.name) : '' }));
+                setItemForm((p) => ({ ...p, itemId: v, model: '' }));
               }}>
                 <SelectTrigger><SelectValue placeholder="Ou selecione na lista completa" /></SelectTrigger>
-                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name} • {categoryLabel(resolveCategory(item))} • disp. {Number(item.available_quantity)}</SelectItem>)}</SelectContent>
+                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2 space-y-2">
               <Label>Modelo</Label>
-              <Input value={itemForm.model || (selectedInventoryItem ? extractModelFromItemName(selectedInventoryItem.name) : '')} readOnly placeholder="O modelo vem do item selecionado" />
+              <Select
+                value={itemForm.model || '__none__'}
+                onValueChange={(v) => {
+                  const nextModel = v === '__none__' ? '' : v;
+                  if (!selectedInventoryItem || !nextModel) {
+                    setItemForm((p) => ({ ...p, model: nextModel }));
+                    return;
+                  }
+
+                  const selectedBase = extractBaseFromItemName(selectedInventoryItem.name);
+                  const matchingItem = items.find(
+                    (item) => extractBaseFromItemName(item.name) === selectedBase && extractModelFromItemName(item.name) === nextModel
+                  );
+
+                  setItemForm((p) => ({
+                    ...p,
+                    model: nextModel,
+                    itemId: matchingItem?.id || p.itemId,
+                  }));
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder={selectedInventoryItem ? 'Escolha o modelo' : 'Selecione um item primeiro'} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sem modelo</SelectItem>
+                  {modelOptions.map((model) => <SelectItem key={model} value={model}>{model}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={(e) => setItemForm((p) => ({ ...p, quantity: Number(e.target.value || 1) }))} /></div>
             <div className="md:col-span-3 space-y-2"><Label>Observações</Label><Textarea value={itemForm.notes} onChange={(e) => setItemForm((p) => ({ ...p, notes: e.target.value }))} /></div>
@@ -760,7 +804,7 @@ const SelecaoFestaPage = () => {
                   <div>
                     <p className="font-semibold">{row.itemName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {row.source === 'rental' ? `Aluguel • ${row.supplier}` : 'Estoque interno'}{row.model ? ` • modelo: ${row.model}` : ''} • {row.quantity} {row.unit}
+                      {row.source === 'rental' ? `Aluguel • ${row.supplier}` : 'Estoque interno'}{row.model ? ` • modelo: ${row.model}` : ''}
                     </p>
                   </div>
                   <Button size="icon" variant="ghost" onClick={() => removeDraftItem(row.localId)}><Trash2 size={14} className="text-rose-600" /></Button>
