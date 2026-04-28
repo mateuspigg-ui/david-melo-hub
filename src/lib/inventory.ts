@@ -709,3 +709,82 @@ export const clearInventoryDemoData = async () => {
     removed_client: Boolean(demoClient?.id),
   };
 };
+
+export const seedPartyTestCatalog = async () => {
+  const categoryBlueprint: Array<{ category: string; bases: string[]; photo: string }> = [
+    {
+      category: 'mobiliario',
+      bases: ['mesa para bolo', 'aparador decorativo', 'mesa de convidados', 'cadeira cerimônia', 'stand by'],
+      photo: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      category: 'cozinha',
+      bases: ['fogão industrial', 'frigideira chef', 'caixa térmica', 'tacho e escumadeira', 'bandeja para salgado'],
+      photo: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      category: 'tecidos',
+      bases: ['toalha mesa convidados', 'sobrepor mesa convidados', 'guardanapos', 'pano bandeja garçom', 'fundo de mesa'],
+      photo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      category: 'espelhos',
+      bases: ['espelho moldura dourada', 'espelho moldura prata', 'tampo espelho mesa convidado', 'tampo espelho mesa buffet', 'espelho decorativo'],
+      photo: 'https://images.unsplash.com/photo-1616628182509-6f66f12879a1?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      category: 'pecas_mesa_frios_cozinha',
+      bases: ['travessa frios', 'petisqueira premium', 'suporte gastronômico', 'bandeja inox serviço', 'conjunto mesa frios'],
+      photo: 'https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=900&q=80',
+    },
+  ];
+
+  const models = ['redonda de madeira', 'retangular provençal', 'espelhada premium'];
+
+  const { data: existingItems } = await sb.from('inventory_items').select('id, type');
+  const existingIds = (existingItems || []).map((row: any) => row.id);
+  if (existingIds.length > 0) {
+    await sb.from('event_inventory_items').delete().in('inventory_item_id', existingIds);
+    await sb.from('inventory_item_photos').delete().in('inventory_item_id', existingIds);
+    await sb.from('stock_movements').delete().in('inventory_item_id', existingIds);
+    const { error: deleteItemsError } = await sb.from('inventory_items').delete().in('id', existingIds);
+    if (deleteItemsError) throw deleteItemsError;
+  }
+
+  let created = 0;
+  for (const blueprint of categoryBlueprint) {
+    for (const base of blueprint.bases) {
+      for (let i = 0; i < models.length; i++) {
+        const model = models[i];
+        const itemName = `${base} - ${model}`;
+        const total = 8 + i * 4;
+        const { data: inserted, error: insertError } = await sb
+          .from('inventory_items')
+          .insert({
+            name: itemName,
+            type: 'furniture',
+            category: blueprint.category,
+            unit: 'unidade',
+            total_quantity: total,
+            minimum_stock: 2,
+            available_quantity: total,
+            reserved_quantity: 0,
+            damaged_quantity: 0,
+            maintenance_quantity: 0,
+            replacement_value: 350 + i * 120,
+            storage_location: `galpão ${blueprint.category}`,
+            notes: `catálogo de teste • categoria: ${blueprint.category}`,
+          } as any)
+          .select('id')
+          .single();
+        if (insertError) throw insertError;
+
+        const { error: photoError } = await sb.from('inventory_item_photos').insert({ inventory_item_id: inserted.id, photo_url: blueprint.photo } as any);
+        if (photoError) throw photoError;
+        created += 1;
+      }
+    }
+  }
+
+  return { items_created: created, categories: categoryBlueprint.length };
+};

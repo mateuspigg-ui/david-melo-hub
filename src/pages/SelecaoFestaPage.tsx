@@ -20,6 +20,7 @@ import {
   fetchReservations,
   removeReservationItem,
   RESERVATION_STATUSES,
+  seedPartyTestCatalog,
   statusLabel,
   updateReservationItem,
   updateReservationStatus,
@@ -373,6 +374,21 @@ const SelecaoFestaPage = () => {
     },
   });
 
+  const seedCatalogMutation = useMutation({
+    mutationFn: seedPartyTestCatalog,
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
+      ]);
+      toast({ title: 'Catálogo de teste criado', description: `${result.items_created} modelos cadastrados em ${result.categories} categorias.` });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao criar catálogo de teste', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
   const openPrint = (reservation: EventInventoryReservation) => {
     openReservationPdfPrint({
       reservation,
@@ -474,7 +490,12 @@ const SelecaoFestaPage = () => {
           </div>
           <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Reserva de estoque por evento</p>
         </div>
-        <Button onClick={() => setNewReservationOpen(true)} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]"><Plus size={16} className="mr-2" />Nova reserva</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => seedCatalogMutation.mutate()} disabled={seedCatalogMutation.isPending} className="h-12 rounded-2xl font-bold uppercase text-[11px] tracking-[0.14em]">
+            {seedCatalogMutation.isPending ? 'Criando base...' : 'Criar base de teste'}
+          </Button>
+          <Button onClick={() => setNewReservationOpen(true)} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]"><Plus size={16} className="mr-2" />Nova reserva</Button>
+        </div>
       </div>
 
       <div className="px-2 grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-6">
