@@ -21,7 +21,7 @@ export default function KanbanColumn({ stage, leads, onCardClick, onCompleteTask
     <div
       ref={setNodeRef}
       className={cn(
-        "min-w-[340px] max-w-[380px] flex-1 rounded-[28px] border-2 transition-all duration-300 snap-start flex flex-col h-full min-h-[600px]",
+        "min-w-[340px] max-w-[380px] flex-1 rounded-[28px] border-2 transition-all duration-300 snap-start flex flex-col h-full min-h-[520px]",
         isOver 
           ? 'border-gold/40 bg-gold/[0.04] shadow-2xl shadow-gold/10 scale-[1.01]' 
           : 'border-transparent bg-white/40 backdrop-blur-sm'

@@ -63,6 +63,11 @@ const ClientesPage = () => {
     return /could not find the ['"]address['"] column/i.test(message) || /address.*schema cache/i.test(message);
   };
 
+  const isMissingCpfCnpjColumnError = (error: any) => {
+    const message = String(error?.message || '');
+    return /could not find the ['"]cpf_cnpj['"] column/i.test(message) || /cpf_cnpj.*schema cache/i.test(message);
+  };
+
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -109,7 +114,6 @@ const ClientesPage = () => {
   const upsert = useMutation({
     mutationFn: async () => {
       const cpfCnpj = form.cpf_cnpj.trim();
-      if (!cpfCnpj) throw new Error('Preencha o CPF/CNPJ do cliente.');
 
       const basePayload: any = {
         first_name: form.first_name,
@@ -117,24 +121,34 @@ const ClientesPage = () => {
         phone: form.phone || null,
         email: form.email || null,
         instagram: form.instagram || null,
-        cpf_cnpj: cpfCnpj,
       };
 
+      const payloadWithCpf = cpfCnpj ? { ...basePayload, cpf_cnpj: cpfCnpj } : basePayload;
+
       const address = form.address.trim();
-      const payloadWithAddress = address ? { ...basePayload, address } : basePayload;
+      const payloadWithAddress = address ? { ...payloadWithCpf, address } : payloadWithCpf;
+
+      const stripUnsupportedColumns = (payload: any, error: any) => {
+        const nextPayload = { ...payload };
+        if (isMissingAddressColumnError(error)) delete nextPayload.address;
+        if (isMissingCpfCnpjColumnError(error)) delete nextPayload.cpf_cnpj;
+        return nextPayload;
+      };
 
       if (editingClient) {
         const { error } = await (supabase as any).from('clients').update(payloadWithAddress).eq('id', editingClient.id);
-        if (error && isMissingAddressColumnError(error)) {
-          const retry = await (supabase as any).from('clients').update(basePayload).eq('id', editingClient.id);
+        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error))) {
+          const retryPayload = stripUnsupportedColumns(payloadWithAddress, error);
+          const retry = await (supabase as any).from('clients').update(retryPayload).eq('id', editingClient.id);
           if (retry.error) throw retry.error;
           return;
         }
         if (error) throw error;
       } else {
         const { data, error } = await (supabase as any).from('clients').insert(payloadWithAddress).select('id').single();
-        if (error && isMissingAddressColumnError(error)) {
-          const retry = await (supabase as any).from('clients').insert(basePayload).select('id').single();
+        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error))) {
+          const retryPayload = stripUnsupportedColumns(payloadWithAddress, error);
+          const retry = await (supabase as any).from('clients').insert(retryPayload).select('id').single();
           if (retry.error) throw retry.error;
 
           if (selectedClosedLeadId && retry.data?.id) {
@@ -550,9 +564,8 @@ const ClientesPage = () => {
                   <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">Você pode salvar sem preencher este campo.</p>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CPF/CNPJ *</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CPF/CNPJ (Opcional)</Label>
                   <Input
-                    required
                     value={form.cpf_cnpj}
                     onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
@@ -562,7 +575,6 @@ const ClientesPage = () => {
                 <div className="sm:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço (Opcional)</Label>
                   <Input
-                    required
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"

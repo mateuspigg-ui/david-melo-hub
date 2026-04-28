@@ -276,7 +276,7 @@ export default function CRMPage() {
   const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
 
   return (
-    <div className="space-y-10 animate-fade-in max-w-[1900px] mx-auto pb-10">
+    <div className="space-y-8 animate-fade-in max-w-[1900px] mx-auto pb-4">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -323,8 +323,8 @@ export default function CRMPage() {
 
       {isLoading ? (
         <div className="px-2">
-          <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-6">
-            <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
+            <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-4">
+              <div className="flex gap-5 overflow-x-auto pb-2 scrollbar-hide">
               {STAGES.map(s => (
                 <div key={s.id} className="min-w-[340px] flex-1 bg-white/40 rounded-[28px] p-6 border border-border/20 animate-pulse h-[600px] shadow-sm" />
               ))}
@@ -334,9 +334,9 @@ export default function CRMPage() {
       ) : (
         <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="px-2">
-            <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-6 relative overflow-hidden group">
+            <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-4 relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-br from-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-              <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-hide relative z-10">
+              <div className="flex gap-5 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide relative z-10">
                 {STAGES.map(stage => (
                   <KanbanColumn
                     key={stage.id}
