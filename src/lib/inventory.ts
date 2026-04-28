@@ -169,18 +169,18 @@ export const statusLabel = (status: string) => {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  pecas_mesa_frios_cozinha: 'PEÇAS PARA MESA DE FRIOS E COZINHA',
-  pecas_talheres_servico: 'PEÇAS E TALHERES DE SERVIÇO',
-  cozinha: 'COZINHA',
-  material_digestivo: 'MATERIAL DIGESTIVO',
-  alimentacao_digestiva: 'ALIMENTAÇÃO DIGESTIVA',
-  mobiliario: 'MOBILIÁRIO',
-  velas_carticais_lustres: 'VELAS - CARTIÇAIS - LUSTRES',
-  espelhos: 'ESPELHOS',
-  puffs_estofados: 'PUFFS E ESTOFADOS',
-  tapetes: 'TAPETES',
-  ferragens: 'FERRAGENS',
-  tecidos: 'TECIDOS',
+  pecas_mesa_frios_cozinha: 'peças para mesa de frios e cozinha',
+  pecas_talheres_servico: 'peças e talheres de serviço',
+  cozinha: 'cozinha',
+  material_digestivo: 'material digestivo',
+  alimentacao_digestiva: 'alimentação digestiva',
+  mobiliario: 'mobiliário',
+  velas_carticais_lustres: 'velas - cartiçais - lustres',
+  espelhos: 'espelhos',
+  puffs_estofados: 'puffs e estofados',
+  tapetes: 'tapetes',
+  ferragens: 'ferragens',
+  tecidos: 'tecidos',
 };
 
 export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
