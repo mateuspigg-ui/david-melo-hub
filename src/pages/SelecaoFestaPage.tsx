@@ -192,7 +192,7 @@ const SelecaoFestaPage = () => {
   const [guestCount, setGuestCount] = useState<number | null>(null);
 
   const { data: reservations = [] } = useQuery({ queryKey: ['event_inventory_reservations'], queryFn: fetchReservations });
-  const { data: items = [] } = useQuery({ queryKey: ['inventory_items_for_reservation'], queryFn: () => fetchInventoryItems() });
+  const { data: items = [], refetch: refetchItems } = useQuery({ queryKey: ['inventory_items_for_reservation'], queryFn: () => fetchInventoryItems() });
   const { data: events = [] } = useQuery({ queryKey: ['events_for_inventory'], queryFn: fetchEventsForInventory });
   const { data: suppliers = [] } = useQuery({
     queryKey: ['suppliers_for_rental_selection'],
@@ -204,6 +204,7 @@ const SelecaoFestaPage = () => {
   });
 
   const selectedReservation = useMemo(() => reservations.find((r) => r.id === selectedReservationId) || null, [reservations, selectedReservationId]);
+  const testCatalogCount = useMemo(() => items.filter((item) => item.name.startsWith('TESTE | ')).length, [items]);
   const selectedInventoryItem = useMemo(() => items.find((item) => item.id === itemForm.itemId) || null, [items, itemForm.itemId]);
   const modelOptions = useMemo(() => {
     if (!selectedInventoryItem) return [] as string[];
@@ -397,8 +398,9 @@ const SelecaoFestaPage = () => {
         queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
+        refetchItems(),
       ]);
-      toast({ title: 'Catálogo de teste criado', description: `${result.items_created} modelos cadastrados em ${result.categories} categorias.` });
+      toast({ title: 'Catálogo de teste criado', description: `${result.items_created} novos modelos e ${result.items_updated || 0} atualizados em ${result.categories} categorias.` });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao criar catálogo de teste', description: error?.message || 'Tente novamente.', variant: 'destructive' });
@@ -517,6 +519,9 @@ const SelecaoFestaPage = () => {
           </Button>
           <Button onClick={() => setNewReservationOpen(true)} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]"><Plus size={16} className="mr-2" />Nova reserva</Button>
         </div>
+      </div>
+      <div className="px-2">
+        <p className="text-xs text-muted-foreground">Itens de teste carregados no estoque: <span className="font-bold text-foreground">{testCatalogCount}</span></p>
       </div>
 
       <div className="px-2 grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-6">
@@ -748,8 +753,8 @@ const SelecaoFestaPage = () => {
                       }}
                       className="w-full text-left px-3 py-2 rounded-lg hover:bg-gold/5 transition text-sm"
                     >
-                      <span className="font-semibold">{item.name}</span>
-                      <span className="text-xs text-muted-foreground"> • {item.unit || 'unidade'}</span>
+                      <span className="font-semibold">{extractBaseFromItemName(item.name)}</span>
+                      <span className="text-xs text-muted-foreground">Modelo: {extractModelFromItemName(item.name) || 'sem modelo'}</span>
                     </button>
                   ))}
                   {availableItems.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">Nenhum item encontrado.</p>}
@@ -759,7 +764,13 @@ const SelecaoFestaPage = () => {
                 setItemForm((p) => ({ ...p, itemId: v, model: '' }));
               }}>
                 <SelectTrigger><SelectValue placeholder="Ou selecione na lista completa" /></SelectTrigger>
-                <SelectContent>{availableItems.slice(0, 150).map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {availableItems.slice(0, 150).map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {extractBaseFromItemName(item.name)} • modelo: {extractModelFromItemName(item.name) || 'sem modelo'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2 space-y-2">
