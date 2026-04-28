@@ -39,11 +39,8 @@ const EventosPage = () => {
           : Promise.resolve({ data: [], error: null } as any),
       ]);
 
-      if (clientsResult.error) throw clientsResult.error;
-      if (leadsResult.error) throw leadsResult.error;
-
-      const clientById = new Map((clientsResult.data || []).map((client: any) => [client.id, client]));
-      const leadById = new Map((leadsResult.data || []).map((lead: any) => [lead.id, lead]));
+      const clientById = new Map(((clientsResult.error ? [] : clientsResult.data) || []).map((client: any) => [client.id, client]));
+      const leadById = new Map(((leadsResult.error ? [] : leadsResult.data) || []).map((lead: any) => [lead.id, lead]));
 
       return eventsList.map((evt: any) => ({
         ...evt,

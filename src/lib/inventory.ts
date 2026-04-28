@@ -14,34 +14,21 @@ export type InventoryStatus =
 export type ReservationStatus = 'draft' | 'reserved' | 'confirmed' | 'returned' | 'partially_returned' | 'canceled';
 
 export const FOOD_CATEGORIES = [
-  'meat',
-  'seafood',
-  'pasta',
-  'dessert',
-  'beverage',
-  'garnish',
-  'snack',
-  'condiment',
-  'disposable',
-  'other',
+  'pecas_mesa_frios_cozinha',
+  'pecas_talheres_servico',
+  'cozinha',
+  'material_digestivo',
+  'alimentacao_digestiva',
 ];
 
 export const FURNITURE_CATEGORIES = [
-  'table',
-  'chair',
-  'sofa',
-  'lounge',
-  'buffet_table',
-  'decorative_object',
-  'vase',
-  'panel',
-  'structure',
-  'lighting',
-  'linen',
-  'rug',
-  'tray',
-  'support_item',
-  'other',
+  'mobiliario',
+  'velas_carticais_lustres',
+  'espelhos',
+  'puffs_estofados',
+  'tapetes',
+  'ferragens',
+  'tecidos',
 ];
 
 export const UNITS = ['kg', 'g', 'litro', 'ml', 'unidade', 'caixa', 'pacote', 'garrafa', 'lata', 'bandeja', 'fardo'];
@@ -181,7 +168,22 @@ export const statusLabel = (status: string) => {
   return map[status] || status;
 };
 
-export const categoryLabel = (category: string) => category.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+const CATEGORY_LABELS: Record<string, string> = {
+  pecas_mesa_frios_cozinha: 'PEÇAS PARA MESA DE FRIOS E COZINHA',
+  pecas_talheres_servico: 'PEÇAS E TALHERES DE SERVIÇO',
+  cozinha: 'COZINHA',
+  material_digestivo: 'MATERIAL DIGESTIVO',
+  alimentacao_digestiva: 'ALIMENTAÇÃO DIGESTIVA',
+  mobiliario: 'MOBILIÁRIO',
+  velas_carticais_lustres: 'VELAS - CARTIÇAIS - LUSTRES',
+  espelhos: 'ESPELHOS',
+  puffs_estofados: 'PUFFS E ESTOFADOS',
+  tapetes: 'TAPETES',
+  ferragens: 'FERRAGENS',
+  tecidos: 'TECIDOS',
+};
+
+export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
 export const calculateExpirationAlert = (expirationDate: string | null) => {
   if (!expirationDate) return null;
