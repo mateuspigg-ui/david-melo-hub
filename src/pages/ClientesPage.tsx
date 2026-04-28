@@ -58,6 +58,11 @@ const ClientesPage = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  const isMissingAddressColumnError = (error: any) => {
+    const message = String(error?.message || '');
+    return /could not find the ['"]address['"] column/i.test(message) || /address.*schema cache/i.test(message);
+  };
+
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -104,25 +109,43 @@ const ClientesPage = () => {
   const upsert = useMutation({
     mutationFn: async () => {
       const cpfCnpj = form.cpf_cnpj.trim();
-      const address = form.address.trim();
       if (!cpfCnpj) throw new Error('Preencha o CPF/CNPJ do cliente.');
-      if (!address) throw new Error('Preencha o endereço do cliente.');
 
-      const payload: any = {
+      const basePayload: any = {
         first_name: form.first_name,
         last_name: form.last_name,
         phone: form.phone || null,
         email: form.email || null,
         instagram: form.instagram || null,
         cpf_cnpj: cpfCnpj,
-        address: address,
       };
 
+      const address = form.address.trim();
+      const payloadWithAddress = address ? { ...basePayload, address } : basePayload;
+
       if (editingClient) {
-        const { error } = await (supabase as any).from('clients').update(payload).eq('id', editingClient.id);
+        const { error } = await (supabase as any).from('clients').update(payloadWithAddress).eq('id', editingClient.id);
+        if (error && isMissingAddressColumnError(error)) {
+          const retry = await (supabase as any).from('clients').update(basePayload).eq('id', editingClient.id);
+          if (retry.error) throw retry.error;
+          return;
+        }
         if (error) throw error;
       } else {
-        const { data, error } = await (supabase as any).from('clients').insert(payload).select('id').single();
+        const { data, error } = await (supabase as any).from('clients').insert(payloadWithAddress).select('id').single();
+        if (error && isMissingAddressColumnError(error)) {
+          const retry = await (supabase as any).from('clients').insert(basePayload).select('id').single();
+          if (retry.error) throw retry.error;
+
+          if (selectedClosedLeadId && retry.data?.id) {
+            const { error: linkError } = await supabase
+              .from('leads')
+              .update({ client_id: retry.data.id })
+              .eq('id', selectedClosedLeadId);
+            if (linkError) throw linkError;
+          }
+          return;
+        }
         if (error) throw error;
 
         if (selectedClosedLeadId && data?.id) {
@@ -537,7 +560,7 @@ const ClientesPage = () => {
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço *</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço (Opcional)</Label>
                   <Input
                     required
                     value={form.address}
