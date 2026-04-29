@@ -12,6 +12,7 @@ import { Plus, Search, DollarSign, Calendar, ChevronDown, ChevronUp, Trash2, Pen
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
+import { cn } from "@/lib/utils";
 
 type Payment = {
   id: string;
