@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
-  UserCog, FileText, Building2, ShoppingBag, CreditCard,
+  UserCog, FileText, Building2, ShoppingBag,
   Landmark, Receipt, ArrowDownUp, ChevronDown, Lock,
   MessageSquare, Boxes
 } from 'lucide-react';
@@ -55,7 +55,6 @@ const sections: NavSection[] = [
     items: [
       { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard, module: 'financeiro' },
       { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark, module: 'financeiro' },
-      { label: 'Pagamentos', path: '/pagamentos', icon: CreditCard, module: 'financeiro' },
       { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp, module: 'financeiro' },
       { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt, module: 'financeiro' },
       { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp, module: 'financeiro' },

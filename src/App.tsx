@@ -12,7 +12,6 @@ import {
   AgendaPage
 } from "@/pages/Modules";
 import EventosPage from "@/pages/EventosPage";
-import PagamentosPage from "@/pages/PagamentosPage";
 import ContasPagarPage from "@/pages/ContasPagarPage";
 import RecebimentosPage from "@/pages/RecebimentosPage";
 import ConciliacaoPage from "@/pages/ConciliacaoPage";
@@ -91,7 +90,7 @@ const App = () => (
               <Route path="/eventos" element={<ModuleRoute module="eventos" element={<EventosPage />} />} />
               <Route path="/mensagens" element={<ModuleRoute module="crm" element={<MensagensPage />} />} />
               <Route path="/agenda" element={<ModuleRoute module="agenda" element={<AgendaPage />} />} />
-              <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<PagamentosPage />} />} />
+              <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
               <Route path="/conciliacao" element={<ModuleRoute module="financeiro" element={<ConciliacaoPage />} />} />
               <Route path="/financeiro-dashboard" element={<ModuleRoute module="financeiro" element={<FinancialDashboard />} />} />
               <Route path="/contas-bancarias" element={<ModuleRoute module="financeiro" element={<BankAccountsPage />} />} />
