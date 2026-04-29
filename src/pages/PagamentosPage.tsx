@@ -38,12 +38,6 @@ type Installment = {
   status: string;
   paid_at: string | null;
   bank_account_id?: string | null;
-  bank_accounts?: {
-    bank_name: string;
-    agency: string;
-    account_number: string;
-    account_digit: string | null;
-  } | null;
 };
 
 type InstallmentPlanItem = {
@@ -188,6 +182,21 @@ export default function PagamentosPage() {
     },
   });
 
+  const bankAccountById = useMemo(() => {
+    const map = new Map<string, any>();
+    for (const acc of bankAccounts as any[]) {
+      if (acc?.id) map.set(acc.id, acc);
+    }
+    return map;
+  }, [bankAccounts]);
+
+  const formatBankAccountLabel = (accountId?: string | null, divider = " • ") => {
+    if (!accountId) return "";
+    const account = bankAccountById.get(accountId);
+    if (!account?.bank_name) return "";
+    return `${account.bank_name}${divider}Ag ${account.agency}${divider}Cc ${account.account_number}${account.account_digit ? `-${account.account_digit}` : ""}`;
+  };
+
   const eventsByClient = useMemo(() => {
     if (!form.client_id) return events;
     return events.filter((evt: any) => evt.client_id === form.client_id);
@@ -229,7 +238,7 @@ export default function PagamentosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payment_installments")
-        .select("*, bank_accounts(bank_name, agency, account_number, account_digit)")
+        .select("*")
         .eq("payment_id", expandedId!)
         .order("installment_number");
       if (error) throw error;
@@ -559,7 +568,7 @@ export default function PagamentosPage() {
         filtered.map(async (payment) => {
           const { data, error } = await supabase
             .from("payment_installments")
-            .select("installment_number, due_date, amount, status, paid_at, bank_accounts(bank_name, agency, account_number, account_digit)")
+            .select("installment_number, due_date, amount, status, paid_at, bank_account_id")
             .eq("payment_id", payment.id)
             .order("installment_number");
 
@@ -567,9 +576,7 @@ export default function PagamentosPage() {
 
           const installments = (data || []) as any[];
           return installments.map((inst) => {
-            const accountLabel = inst.bank_accounts?.bank_name
-              ? `${inst.bank_accounts.bank_name} | Ag ${inst.bank_accounts.agency} | Cc ${inst.bank_accounts.account_number}${inst.bank_accounts.account_digit ? `-${inst.bank_accounts.account_digit}` : ""}`
-              : "";
+            const accountLabel = formatBankAccountLabel(inst.bank_account_id, " | ");
             const clientName = payment.clients ? `${payment.clients.first_name} ${payment.clients.last_name}` : "Cliente não identificado";
 
             return [
@@ -846,9 +853,9 @@ export default function PagamentosPage() {
                               >
                                 {paid ? 'Pago' : 'Baixar'}
                               </Button>
-                              {paid && inst.bank_accounts?.bank_name && (
+                              {paid && !!inst.bank_account_id && bankAccountById.has(inst.bank_account_id) && (
                                 <p className="text-[9px] font-black uppercase tracking-wider text-emerald-700/80">
-                                  {inst.bank_accounts.bank_name} • Ag {inst.bank_accounts.agency} • Cc {inst.bank_accounts.account_number}{inst.bank_accounts.account_digit ? `-${inst.bank_accounts.account_digit}` : ""}
+                                  {formatBankAccountLabel(inst.bank_account_id)}
                                 </p>
                               )}
                             </div>
