@@ -13,15 +13,13 @@ import {
   addReservationItem,
   categoryLabel,
   createReservation,
-  FOOD_CATEGORIES,
   fetchEventsForInventory,
   fetchInventoryItems,
-  FURNITURE_CATEGORIES,
   fetchReservations,
-  removeReservationItem,
+  FURNITURE_CATEGORIES,
+  FOOD_CATEGORIES,
   RESERVATION_STATUSES,
-  clearAllInventoryTestData,
-  seedPartyTestCatalog,
+  removeReservationItem,
   statusLabel,
   updateReservationItem,
   updateReservationStatus,
@@ -395,40 +393,6 @@ const SelecaoFestaPage = () => {
     },
   });
 
-  const seedCatalogMutation = useMutation({
-    mutationFn: seedPartyTestCatalog,
-    onSuccess: async (result) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
-        queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
-        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
-        refetchItems(),
-      ]);
-      toast({ title: 'Catálogo de teste criado', description: `${result.items_created} novos modelos e ${result.items_updated || 0} atualizados em ${result.categories} categorias.` });
-    },
-    onError: (error: any) => {
-      toast({ title: 'Erro ao criar catálogo de teste', description: error?.message || 'Tente novamente.', variant: 'destructive' });
-    },
-  });
-
-  const clearCatalogMutation = useMutation({
-    mutationFn: clearAllInventoryTestData,
-    onSuccess: async (result) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
-        queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
-        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
-        refetchItems(),
-      ]);
-      toast({
-        title: 'Base de teste removida',
-        description: `${result.removed_items} itens de teste excluídos.${result.removed_event ? ' Evento demo removido.' : ''}${result.removed_client ? ' Cliente demo removido.' : ''}`,
-      });
-    },
-    onError: (error: any) => {
-      toast({ title: 'Erro ao limpar base de teste', description: error?.message || 'Tente novamente.', variant: 'destructive' });
-    },
-  });
 
   const openPrint = (reservation: EventInventoryReservation) => {
     openReservationPdfPrint({
@@ -537,17 +501,8 @@ const SelecaoFestaPage = () => {
           <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Reserva de estoque por evento</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => seedCatalogMutation.mutate()} disabled={seedCatalogMutation.isPending} className="h-12 rounded-2xl font-bold uppercase text-[11px] tracking-[0.14em]">
-            {seedCatalogMutation.isPending ? 'Criando base...' : 'Criar base de teste'}
-          </Button>
-          <Button variant="outline" onClick={() => clearCatalogMutation.mutate()} disabled={clearCatalogMutation.isPending} className="h-12 rounded-2xl font-bold uppercase text-[11px] tracking-[0.14em] text-rose-600 border-rose-200 hover:bg-rose-50">
-            {clearCatalogMutation.isPending ? 'Limpando base...' : 'Limpar base de teste'}
-          </Button>
           <Button onClick={() => setNewReservationOpen(true)} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]"><Plus size={16} className="mr-2" />Nova reserva</Button>
         </div>
-      </div>
-      <div className="px-2">
-        <p className="text-xs text-muted-foreground">Itens de teste carregados no estoque: <span className="font-bold text-foreground">{testCatalogCount}</span></p>
       </div>
 
       <div className="px-2 grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-6">
