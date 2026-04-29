@@ -108,13 +108,16 @@ export default function ContratosPage() {
   const { data: events = [] } = useQuery({
     queryKey: ['events-contracts'],
     queryFn: async () => {
-      const { data } = await supabase.from('events').select('id, title').order('title');
+      const { data } = await supabase.from('events').select('id, title, client_id').order('title');
       return data || [];
     }
   });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!form.client_id) {
+        throw new Error('Selecione o cliente para vincular este contrato.');
+      }
       const payload = { ...form, signed_at: form.signed_status === 'signed' ? new Date().toISOString() : null };
       if (editingContract) {
         const { error } = await supabase.from('contracts').update(payload).eq('id', editingContract.id);
@@ -283,8 +286,11 @@ export default function ContratosPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Vincular Cliente</Label>
-                  <Select value={form.client_id} onValueChange={v => setForm({...form, client_id: v})}>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Vincular Cliente *</Label>
+                  <Select
+                    value={form.client_id}
+                    onValueChange={v => setForm({ ...form, client_id: v, event_id: '' })}
+                  >
                     <SelectTrigger className="h-12 bg-secondary/20 border-border/10 rounded-xl font-bold text-xs uppercase">
                       <SelectValue placeholder="Selecionar Cliente" />
                     </SelectTrigger>
@@ -312,12 +318,24 @@ export default function ContratosPage() {
 
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Projeto / Evento Relacionado</Label>
-                <Select value={form.event_id} onValueChange={v => setForm({...form, event_id: v})}>
+                <Select
+                  value={form.event_id}
+                  onValueChange={v => {
+                    const selectedEvent = events.find((ev: any) => ev.id === v);
+                    setForm({
+                      ...form,
+                      event_id: v,
+                      client_id: selectedEvent?.client_id || form.client_id,
+                    });
+                  }}
+                >
                   <SelectTrigger className="h-12 bg-secondary/20 border-border/10 rounded-xl font-bold text-xs uppercase">
-                    <SelectValue placeholder="Selecionar Evento" />
+                    <SelectValue placeholder={form.client_id ? 'Selecionar Evento do Cliente' : 'Selecionar Evento'} />
                   </SelectTrigger>
                   <SelectContent className="bg-white shadow-2xl border-border/10">
-                    {events.map((ev: any) => (
+                    {events
+                      .filter((ev: any) => !form.client_id || ev.client_id === form.client_id)
+                      .map((ev: any) => (
                       <SelectItem key={ev.id} value={ev.id} className="font-bold text-[10px] uppercase">{ev.title}</SelectItem>
                     ))}
                   </SelectContent>
