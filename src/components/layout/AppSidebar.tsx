@@ -66,6 +66,7 @@ const sections: NavSection[] = [
       { label: 'Dashboard do Estoque', path: '/almoxarifado', icon: Boxes, module: 'almoxarifado' },
       { label: 'Alimentação', path: '/almoxarifado/alimentacao', icon: Boxes, module: 'almoxarifado' },
       { label: 'Mobiliário e Decoração', path: '/almoxarifado/mobiliario-decoracao', icon: Boxes, module: 'almoxarifado' },
+      { label: 'Floral', path: '/almoxarifado/floral', icon: Boxes, module: 'almoxarifado' },
       { label: 'Seleção por Festa', path: '/almoxarifado/selecao-festa', icon: Boxes, module: 'almoxarifado' },
       { label: 'Movimentações', path: '/almoxarifado/movimentacoes', icon: Boxes, module: 'almoxarifado' },
       { label: 'Relatórios', path: '/almoxarifado/relatorios', icon: Boxes, module: 'almoxarifado' },

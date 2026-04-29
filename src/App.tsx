@@ -27,6 +27,7 @@ import MensagensPage from "@/pages/MensagensPage";
 import AlmoxarifadoDashboardPage from "@/pages/AlmoxarifadoDashboardPage";
 import AlimentacaoPage from "@/pages/AlimentacaoPage";
 import MobiliarioDecoracaoPage from "@/pages/MobiliarioDecoracaoPage";
+import FloralPage from "@/pages/FloralPage";
 import SelecaoFestaPage from "@/pages/SelecaoFestaPage";
 import MovimentacoesEstoquePage from "@/pages/MovimentacoesEstoquePage";
 import RelatoriosEstoquePage from "@/pages/RelatoriosEstoquePage";
@@ -100,6 +101,7 @@ const App = () => (
               <Route path="/almoxarifado" element={<ModuleRoute module="almoxarifado" element={<AlmoxarifadoDashboardPage />} />} />
               <Route path="/almoxarifado/alimentacao" element={<ModuleRoute module="almoxarifado" element={<AlimentacaoPage />} />} />
               <Route path="/almoxarifado/mobiliario-decoracao" element={<ModuleRoute module="almoxarifado" element={<MobiliarioDecoracaoPage />} />} />
+              <Route path="/almoxarifado/floral" element={<ModuleRoute module="almoxarifado" element={<FloralPage />} />} />
               <Route path="/almoxarifado/selecao-festa" element={<ModuleRoute module="almoxarifado" element={<SelecaoFestaPage />} />} />
               <Route path="/almoxarifado/movimentacoes" element={<ModuleRoute module="almoxarifado" element={<MovimentacoesEstoquePage />} />} />
               <Route path="/almoxarifado/relatorios" element={<ModuleRoute module="almoxarifado" element={<RelatoriosEstoquePage />} />} />
