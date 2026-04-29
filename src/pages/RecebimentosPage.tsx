@@ -66,6 +66,7 @@ export default function RecebimentosPage() {
   const [pendingInstallment, setPendingInstallment] = useState<Installment | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
+  const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
 
   const [contractForm, setContractForm] = useState({
     total_event_value: "",
@@ -373,14 +374,19 @@ export default function RecebimentosPage() {
         .update({ entry_paid_at: currentPaidAt ? null : new Date().toISOString() } as any)
         .eq("id", paymentId);
       if (error) {
-        if (isMissingEntryPaidAtColumnError(error)) return;
+        if (isMissingEntryPaidAtColumnError(error)) {
+          setSupportsEntryPaidAt(false);
+          throw new Error("A coluna entry_paid_at ainda não existe no banco. Aplique a migration para validar a entrada.");
+        }
         throw error;
       }
+      setSupportsEntryPaidAt(true);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      toast({ title: "Entrada atualizada com sucesso" });
     },
     onError: (e: any) => toast({ title: "Erro ao atualizar entrada", description: e?.message || "Tente novamente.", variant: "destructive" }),
   });
@@ -583,9 +589,16 @@ export default function RecebimentosPage() {
                                     <Button
                                       size="sm"
                                       variant="outline"
+                                      disabled={!supportsEntryPaidAt}
+                                      className={cn(
+                                        "h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm",
+                                        payment.entry_paid_at
+                                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                          : "bg-white text-emerald-700 hover:bg-emerald-50"
+                                      )}
                                       onClick={() => toggleEntryMutation.mutate({ paymentId: payment.id, currentPaidAt: payment.entry_paid_at })}
                                     >
-                                      {payment.entry_paid_at ? "Liquidado" : "Validar"}
+                                      {!supportsEntryPaidAt ? "Indisponível" : payment.entry_paid_at ? "Baixado" : "Validar"}
                                     </Button>
                                   </div>
                                 </div>
@@ -605,6 +618,12 @@ export default function RecebimentosPage() {
                                       <Button
                                         size="sm"
                                         variant="outline"
+                                        className={cn(
+                                          "h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm",
+                                          paid
+                                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                            : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white"
+                                        )}
                                         onClick={() => {
                                           if (paid) {
                                             toggleInstallmentMutation.mutate({ installment: inst });
@@ -615,7 +634,7 @@ export default function RecebimentosPage() {
                                           setAccountPickerOpen(true);
                                         }}
                                       >
-                                        {paid ? "Desfazer" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}
+                                        {paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}
                                       </Button>
                                     </div>
                                   </div>
