@@ -158,15 +158,15 @@ export default function ContratosPage() {
   };
 
   return (
-    <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
+    <div className="p-2 pb-10 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
+      <div className="relative overflow-hidden flex flex-col md:flex-row md:items-end md:justify-between gap-8 bg-[radial-gradient(circle_at_top_right,_rgba(197,160,89,0.20),_transparent_55%),linear-gradient(120deg,#ffffff_0%,#fff9ee_55%,#fff4dd_100%)] border border-gold/25 rounded-[28px] p-7 premium-shadow">
         <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Gestão de Contratos</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Jurídico & Compliance David Melo Hub</p>
+          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Contratos</h1>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground mt-2">Jurídico e Compliance David Melo Hub</p>
         </div>
         <Button 
           onClick={() => { setEditingContract(null); setForm({ title: '', client_id: '', event_id: '', signed_status: 'draft', file_url: '' }); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em]"
+          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.2em]"
         >
           <Plus size={20} className="mr-3" /> Novo Contrato
         </Button>
@@ -178,7 +178,7 @@ export default function ContratosPage() {
           placeholder="Buscar contratos por título..." 
           value={search} 
           onChange={(e) => setSearch(e.target.value)} 
-          className="pl-11 bg-white border-border/40 h-12 rounded-xl premium-shadow" 
+          className="pl-11 bg-white border-border/30 h-12 rounded-xl premium-shadow" 
         />
       </div>
 
