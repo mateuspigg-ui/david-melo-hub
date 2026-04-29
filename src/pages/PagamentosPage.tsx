@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, DollarSign, Calendar, ChevronDown, ChevronUp, Trash2, Pencil } from "lucide-react";
+import { Plus, Search, DollarSign, Calendar, ChevronDown, ChevronUp, Trash2, Pencil, FileSpreadsheet } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
@@ -37,6 +37,13 @@ type Installment = {
   amount: number;
   status: string;
   paid_at: string | null;
+  bank_account_id?: string | null;
+  bank_accounts?: {
+    bank_name: string;
+    agency: string;
+    account_number: string;
+    account_digit: string | null;
+  } | null;
 };
 
 type InstallmentPlanItem = {
@@ -63,6 +70,10 @@ export default function PagamentosPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+  const [pendingInstallmentToPay, setPendingInstallmentToPay] = useState<Installment | null>(null);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
+  const [isExportingCsv, setIsExportingCsv] = useState(false);
 
   // form state
   const [form, setForm] = useState({
@@ -81,6 +92,13 @@ export default function PagamentosPage() {
     return /column .*entry_paid_at.* does not exist/i.test(message)
       || /entry_paid_at.*schema cache/i.test(message)
       || /could not find.*entry_paid_at.*payments/i.test(message);
+  };
+
+  const isMissingInstallmentBankAccountColumnError = (error: any) => {
+    const message = String(error?.message || '');
+    return /column .*bank_account_id.* does not exist/i.test(message)
+      || /bank_account_id.*schema cache/i.test(message)
+      || /could not find.*bank_account_id.*payment_installments/i.test(message);
   };
 
   const buildDefaultInstallments = (count: number, remaining: number, baseDate?: string) => {
@@ -158,6 +176,18 @@ export default function PagamentosPage() {
     },
   });
 
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ["bank_accounts_select"],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("bank_accounts")
+        .select("id, bank_name, agency, account_number, account_digit, status")
+        .eq("status", "active")
+        .order("bank_name", { ascending: true });
+      return data || [];
+    },
+  });
+
   const eventsByClient = useMemo(() => {
     if (!form.client_id) return events;
     return events.filter((evt: any) => evt.client_id === form.client_id);
@@ -199,7 +229,7 @@ export default function PagamentosPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payment_installments")
-        .select("*")
+        .select("*, bank_accounts(bank_name, agency, account_number, account_digit)")
         .eq("payment_id", expandedId!)
         .order("installment_number");
       if (error) throw error;
@@ -334,14 +364,14 @@ export default function PagamentosPage() {
   });
 
   const togglePaidMutation = useMutation({
-    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+    mutationFn: async ({ id, currentStatus, bankAccountId }: { id: string; currentStatus: string; bankAccountId?: string | null }) => {
       if (isInstallmentPaid(currentStatus)) {
         let lastError: any = null;
 
         for (const fallbackStatus of PENDING_STATUS_VALUES) {
           const { error } = await supabase
             .from("payment_installments")
-            .update({ status: fallbackStatus, paid_at: null } as any)
+            .update({ status: fallbackStatus, paid_at: null, bank_account_id: null } as any)
             .eq("id", id);
           if (!error) return;
           lastError = error;
@@ -357,10 +387,21 @@ export default function PagamentosPage() {
       for (const fallbackStatus of PAID_STATUS_VALUES) {
         const { error } = await supabase
           .from("payment_installments")
-          .update({ status: fallbackStatus, paid_at: paidAt } as any)
+          .update({ status: fallbackStatus, paid_at: paidAt, bank_account_id: bankAccountId || null } as any)
           .eq("id", id);
         if (!error) return;
         lastError = error;
+      }
+
+      if (lastError && isMissingInstallmentBankAccountColumnError(lastError)) {
+        for (const fallbackStatus of PAID_STATUS_VALUES) {
+          const { error } = await supabase
+            .from("payment_installments")
+            .update({ status: fallbackStatus, paid_at: paidAt } as any)
+            .eq("id", id);
+          if (!error) return;
+          lastError = error;
+        }
       }
 
       if (lastError) throw lastError;
@@ -375,13 +416,34 @@ export default function PagamentosPage() {
       });
     },
     onError: (e: any) => {
+      const description = isMissingInstallmentBankAccountColumnError(e)
+        ? 'A coluna bank_account_id ainda não existe no banco. A baixa foi bloqueada até aplicar a migration.'
+        : e?.message || 'Não foi possível atualizar o status da parcela.';
       toast({
         title: 'Erro ao efetivar baixa',
-        description: e?.message || 'Não foi possível atualizar o status da parcela.',
+        description,
         variant: 'destructive',
       });
     },
   });
+
+  const openInstallmentAccountPicker = (inst: Installment) => {
+    setPendingInstallmentToPay(inst);
+    setSelectedBankAccountId("");
+    setAccountPickerOpen(true);
+  };
+
+  const confirmInstallmentPayment = () => {
+    if (!pendingInstallmentToPay) return;
+    togglePaidMutation.mutate({
+      id: pendingInstallmentToPay.id,
+      currentStatus: pendingInstallmentToPay.status,
+      bankAccountId: selectedBankAccountId || null,
+    });
+    setAccountPickerOpen(false);
+    setPendingInstallmentToPay(null);
+    setSelectedBankAccountId("");
+  };
 
   const toggleEntryPaidMutation = useMutation({
     mutationFn: async ({ id, currentPaidAt }: { id: string; currentPaidAt: string | null }) => {
@@ -480,6 +542,88 @@ export default function PagamentosPage() {
     return `${clientName} ${eventTitle}`.toLowerCase().includes(search.toLowerCase());
   });
 
+  const buildCsvCell = (value: string | number | null | undefined) => {
+    const text = value == null ? "" : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+
+  const handleExportPaymentsCsv = async () => {
+    if (!filtered.length) {
+      toast({ title: "Nenhum pagamento para exportar" });
+      return;
+    }
+
+    setIsExportingCsv(true);
+    try {
+      const rows = await Promise.all(
+        filtered.map(async (payment) => {
+          const { data, error } = await supabase
+            .from("payment_installments")
+            .select("installment_number, due_date, amount, status, paid_at, bank_accounts(bank_name, agency, account_number, account_digit)")
+            .eq("payment_id", payment.id)
+            .order("installment_number");
+
+          if (error) throw error;
+
+          const installments = (data || []) as any[];
+          return installments.map((inst) => {
+            const accountLabel = inst.bank_accounts?.bank_name
+              ? `${inst.bank_accounts.bank_name} | Ag ${inst.bank_accounts.agency} | Cc ${inst.bank_accounts.account_number}${inst.bank_accounts.account_digit ? `-${inst.bank_accounts.account_digit}` : ""}`
+              : "";
+            const clientName = payment.clients ? `${payment.clients.first_name} ${payment.clients.last_name}` : "Cliente não identificado";
+
+            return [
+              clientName,
+              payment.events?.title || "Evento sem título",
+              payment.id,
+              inst.installment_number,
+              inst.due_date,
+              Number(inst.amount || 0).toFixed(2),
+              inst.status || "",
+              inst.paid_at || "",
+              accountLabel,
+            ];
+          });
+        })
+      );
+
+      const flattenedRows = rows.flat();
+      const header = [
+        "cliente",
+        "evento",
+        "contrato_id",
+        "parcela_numero",
+        "vencimento",
+        "valor",
+        "status",
+        "pago_em",
+        "conta_recebimento",
+      ];
+
+      const csvBody = [header, ...flattenedRows]
+        .map((line) => line.map((cell) => buildCsvCell(cell as any)).join(";"))
+        .join("\n");
+
+      const bom = "\uFEFF";
+      const blob = new Blob([bom + csvBody], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeDate = new Date().toISOString().split("T")[0];
+      link.href = url;
+      link.setAttribute("download", `pagamentos-${safeDate}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Relatório CSV exportado com sucesso" });
+    } catch (e: any) {
+      toast({ title: "Erro ao exportar CSV", description: e?.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsExportingCsv(false);
+    }
+  };
+
   return (
     <div className="space-y-10 animate-fade-in max-w-[1700px] mx-auto pb-10">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
@@ -490,12 +634,22 @@ export default function PagamentosPage() {
           </div>
           <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Fluxo de Recebíveis e Contratos</p>
         </div>
-        <Button 
-          onClick={() => { resetForm(); setDialogOpen(true); }} 
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-8 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Plus className="w-5 h-5 mr-2" /> Novo Contrato
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleExportPaymentsCsv}
+            disabled={isExportingCsv || isLoading || filtered.length === 0}
+            className="h-14 px-6 rounded-2xl uppercase text-[11px] tracking-[0.16em] font-black"
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" /> {isExportingCsv ? "Exportando..." : "Exportar CSV"}
+          </Button>
+          <Button 
+            onClick={() => { resetForm(); setDialogOpen(true); }} 
+            className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-8 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="w-5 h-5 mr-2" /> Novo Contrato
+          </Button>
+        </div>
       </div>
 
       <div className="px-2">
@@ -682,10 +836,21 @@ export default function PagamentosPage() {
                                     ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
                                     : 'bg-secondary text-foreground/70 hover:bg-gold hover:text-white'
                                 )}
-                                onClick={() => togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status })}
+                                onClick={() => {
+                                  if (paid) {
+                                    togglePaidMutation.mutate({ id: inst.id, currentStatus: inst.status });
+                                    return;
+                                  }
+                                  openInstallmentAccountPicker(inst);
+                                }}
                               >
                                 {paid ? 'Pago' : 'Baixar'}
                               </Button>
+                              {paid && inst.bank_accounts?.bank_name && (
+                                <p className="text-[9px] font-black uppercase tracking-wider text-emerald-700/80">
+                                  {inst.bank_accounts.bank_name} • Ag {inst.bank_accounts.agency} • Cc {inst.bank_accounts.account_number}{inst.bank_accounts.account_digit ? `-${inst.bank_accounts.account_digit}` : ""}
+                                </p>
+                              )}
                             </div>
                           </div>
                         );
@@ -832,6 +997,45 @@ export default function PagamentosPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={accountPickerOpen} onOpenChange={(open) => {
+        setAccountPickerOpen(open);
+        if (!open) {
+          setPendingInstallmentToPay(null);
+          setSelectedBankAccountId("");
+        }
+      }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-display">Conta de recebimento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Selecione a conta bancária</Label>
+            <Select value={selectedBankAccountId} onValueChange={setSelectedBankAccountId}>
+              <SelectTrigger className="bg-secondary/30 border-border/40 h-11 rounded-lg">
+                <SelectValue placeholder={bankAccounts.length ? "Escolher conta" : "Nenhuma conta ativa cadastrada"} />
+              </SelectTrigger>
+              <SelectContent className="bg-white shadow-2xl border-border/40">
+                {bankAccounts.map((acc: any) => (
+                  <SelectItem key={acc.id} value={acc.id} className="font-bold text-xs uppercase">
+                    {acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAccountPickerOpen(false)} className="font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
+            <Button
+              onClick={confirmInstallmentPayment}
+              disabled={togglePaidMutation.isPending || (bankAccounts.length > 0 && !selectedBankAccountId)}
+              className="bg-gold hover:bg-gold-light text-white font-bold uppercase text-[11px] tracking-widest"
+            >
+              Confirmar Baixa
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
