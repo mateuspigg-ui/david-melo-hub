@@ -227,13 +227,34 @@ export default function RecebimentosPage() {
   ]);
 
   const updateInstallment = (index: number, field: "due_date" | "amount", value: string) => {
-    setInstallmentPlan((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-        if (field === "amount") return { ...item, amount: maskCurrencyInput(value) };
-        return { ...item, due_date: value };
-      })
-    );
+    setInstallmentPlan((prev) => {
+      if (field === "due_date") {
+        return prev.map((item, i) => (i === index ? { ...item, due_date: value } : item));
+      }
+
+      const next = prev.map((item, i) => (i === index ? { ...item, amount: maskCurrencyInput(value) } : item));
+      const totalValue = parseCurrencyInput(contractForm.total_event_value);
+      const entryAmount = contractForm.has_entry_payment ? parseCurrencyInput(contractForm.entry_amount) : 0;
+      const remainingTotal = totalValue - (contractForm.has_entry_payment ? entryAmount : 0);
+
+      if (!Number.isFinite(remainingTotal) || remainingTotal <= 0) return next;
+      if (index >= next.length - 1) return next;
+
+      const usedUntilIndex = next
+        .slice(0, index + 1)
+        .reduce((sum, item) => sum + parseCurrencyInput(item.amount), 0);
+
+      const remainingCount = next.length - (index + 1);
+      const remainingValue = remainingTotal - usedUntilIndex;
+      const evenValue = remainingCount > 0 ? Math.round((remainingValue / remainingCount) * 100) / 100 : 0;
+
+      if (!Number.isFinite(evenValue)) return next;
+
+      return next.map((item, i) => {
+        if (i <= index) return item;
+        return { ...item, amount: formatCurrencyInput(evenValue) };
+      });
+    });
   };
 
   const createContractMutation = useMutation({
