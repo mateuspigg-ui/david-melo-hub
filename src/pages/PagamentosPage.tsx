@@ -68,6 +68,7 @@ export default function PagamentosPage() {
   const [pendingInstallmentToPay, setPendingInstallmentToPay] = useState<Installment | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
   const [isExportingCsv, setIsExportingCsv] = useState(false);
+  const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
 
   // form state
   const [form, setForm] = useState({
@@ -473,16 +474,18 @@ export default function PagamentosPage() {
         .eq('id', id);
       if (error) {
         if (isMissingEntryPaidAtColumnError(error)) {
-          throw new Error('A coluna entry_paid_at ainda não existe no banco. Aplique as migrations do Supabase para habilitar baixa da entrada.');
+          setSupportsEntryPaidAt(false);
+          return;
         }
         throw error;
       }
+      setSupportsEntryPaidAt(true);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
-      toast({ title: 'Entrada atualizada com sucesso' });
+      toast({ title: supportsEntryPaidAt ? 'Entrada atualizada com sucesso' : 'Baixa da entrada indisponível neste banco de dados' });
     },
     onError: (e: any) => toast({ title: 'Erro ao atualizar entrada', description: e?.message || 'Tente novamente.', variant: 'destructive' }),
   });
@@ -808,9 +811,10 @@ export default function PagamentosPage() {
                                   ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
                                   : 'bg-white text-emerald-600 hover:bg-emerald-50'
                               )}
+                              disabled={!supportsEntryPaidAt}
                               onClick={() => toggleEntryPaidMutation.mutate({ id: p.id, currentPaidAt: p.entry_paid_at })}
                             >
-                              {p.entry_paid_at ? 'Liquidado' : 'Validar'}
+                              {!supportsEntryPaidAt ? 'Indisponível' : p.entry_paid_at ? 'Liquidado' : 'Validar'}
                             </Button>
                           </div>
                         </div>
