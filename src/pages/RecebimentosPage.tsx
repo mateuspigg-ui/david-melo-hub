@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { format, isPast, isToday } from "date-fns";
-import { ArrowDownCircle, Calendar, Check, ChevronDown, Plus, Search, UserPlus } from "lucide-react";
+import { ArrowDownCircle, Calendar, Check, ChevronDown, Plus, Search } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,12 @@ type Installment = {
   bank_account_id?: string | null;
 };
 
+type InstallmentPlanItem = {
+  installment_number: number;
+  due_date: string;
+  amount: string;
+};
+
 const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
 const isInstallmentPaid = (status: string | null | undefined, paidAt?: string | null) =>
   PAID_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PAID_STATUS_VALUES)[number]) || !!paidAt;
@@ -55,10 +61,10 @@ export default function RecebimentosPage() {
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
 
   const [contractOpen, setContractOpen] = useState(false);
-  const [clientOpen, setClientOpen] = useState(false);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
   const [pendingInstallment, setPendingInstallment] = useState<Installment | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
+  const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
 
   const [contractForm, setContractForm] = useState({
     total_event_value: "",
@@ -69,8 +75,6 @@ export default function RecebimentosPage() {
     client_id: "",
     event_id: "",
   });
-
-  const [clientForm, setClientForm] = useState({ first_name: "", last_name: "", phone: "", email: "" });
 
   const isMissingEntryPaidAtColumnError = (error: any) => /entry_paid_at.*does not exist|schema cache|could not find.*entry_paid_at/i.test(String(error?.message || ""));
   const isMissingInstallmentBankAccountColumnError = (error: any) => /bank_account_id.*does not exist|schema cache|could not find.*bank_account_id/i.test(String(error?.message || ""));
@@ -177,28 +181,59 @@ export default function RecebimentosPage() {
     return { pending, received };
   }, [filteredPayments, installments]);
 
-  const createClientMutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        first_name: clientForm.first_name.trim(),
-        last_name: clientForm.last_name.trim() || "",
-        phone: clientForm.phone.trim() || null,
-        email: clientForm.email.trim() || null,
+  const buildDefaultInstallments = (count: number, remaining: number, baseDate?: string) => {
+    const anchor = baseDate ? new Date(`${baseDate}T12:00:00`) : new Date();
+    const safeAnchor = Number.isNaN(anchor.getTime()) ? new Date() : anchor;
+    const perInstallment = count > 0 ? remaining / count : 0;
+    return Array.from({ length: count }, (_, i) => {
+      const due = new Date(safeAnchor);
+      due.setMonth(due.getMonth() + i + 1);
+      return {
+        installment_number: i + 1,
+        due_date: due.toISOString().split("T")[0],
+        amount: formatCurrencyInput(Math.round(perInstallment * 100) / 100),
       };
-      if (!payload.first_name) throw new Error("Informe o nome do cliente.");
-      const { data, error } = await supabase.from("clients").insert(payload as any).select("id, first_name, last_name").single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (created) => {
-      qc.invalidateQueries({ queryKey: ["clients-select"] });
-      setClientOpen(false);
-      setClientForm({ first_name: "", last_name: "", phone: "", email: "" });
-      setContractForm((prev) => ({ ...prev, client_id: created.id }));
-      toast({ title: "Cliente cadastrado com sucesso" });
-    },
-    onError: (e: any) => toast({ title: "Erro ao cadastrar cliente", description: e?.message || "Tente novamente.", variant: "destructive" }),
-  });
+    });
+  };
+
+  useEffect(() => {
+    if (!contractOpen) return;
+
+    const totalValue = parseCurrencyInput(contractForm.total_event_value);
+    const count = Number(contractForm.installment_count || "1");
+    const hasEntry = contractForm.has_entry_payment;
+    const entryAmount = hasEntry ? parseCurrencyInput(contractForm.entry_amount) : 0;
+
+    if (!Number.isFinite(totalValue) || totalValue <= 0 || !Number.isInteger(count) || count < 1) {
+      setInstallmentPlan([]);
+      return;
+    }
+
+    const remaining = totalValue - (hasEntry ? entryAmount : 0);
+    if (!Number.isFinite(remaining) || remaining < 0) {
+      setInstallmentPlan([]);
+      return;
+    }
+
+    setInstallmentPlan(buildDefaultInstallments(count, remaining, hasEntry ? contractForm.entry_date : undefined));
+  }, [
+    contractOpen,
+    contractForm.total_event_value,
+    contractForm.installment_count,
+    contractForm.has_entry_payment,
+    contractForm.entry_amount,
+    contractForm.entry_date,
+  ]);
+
+  const updateInstallment = (index: number, field: "due_date" | "amount", value: string) => {
+    setInstallmentPlan((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        if (field === "amount") return { ...item, amount: maskCurrencyInput(value) };
+        return { ...item, due_date: value };
+      })
+    );
+  };
 
   const createContractMutation = useMutation({
     mutationFn: async () => {
@@ -230,21 +265,30 @@ export default function RecebimentosPage() {
       if (paymentError) throw paymentError;
 
       const remaining = totalValue - (hasEntry ? entryAmount : 0);
-      const amount = Math.round((remaining / count) * 100) / 100;
-      const baseDate = hasEntry && contractForm.entry_date ? new Date(`${contractForm.entry_date}T12:00:00`) : new Date();
+      const sourcePlan = installmentPlan.length === count
+        ? installmentPlan
+        : buildDefaultInstallments(count, remaining, hasEntry ? contractForm.entry_date : undefined);
 
-      const installmentsData = Array.from({ length: count }, (_, i) => {
-        const due = new Date(baseDate);
-        due.setMonth(due.getMonth() + i + 1);
-        return {
-          payment_id: paymentId,
-          installment_number: i + 1,
-          due_date: due.toISOString().split("T")[0],
-          amount,
-          status: "pending",
-          paid_at: null,
-        };
-      });
+      const installmentsData = sourcePlan.map((item) => ({
+        payment_id: paymentId,
+        installment_number: item.installment_number,
+        due_date: item.due_date,
+        amount: parseCurrencyInput(item.amount),
+        status: "pending",
+        paid_at: null,
+      }));
+
+      const hasInvalidInstallments = installmentsData.some(
+        (item) => !item.due_date || !Number.isFinite(item.amount) || item.amount <= 0
+      );
+      if (hasInvalidInstallments) {
+        throw new Error("Preencha data e valor válidos para todas as parcelas.");
+      }
+
+      const installmentsSum = installmentsData.reduce((acc, curr) => acc + curr.amount, 0);
+      if (Math.abs(installmentsSum - remaining) > 0.01) {
+        throw new Error(`A soma das parcelas (${currencyFmt(installmentsSum)}) deve ser igual ao saldo a parcelar (${currencyFmt(remaining)}).`);
+      }
 
       const { error: instError } = await supabase.from("payment_installments").insert(installmentsData as any);
       if (instError) {
@@ -259,6 +303,7 @@ export default function RecebimentosPage() {
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setContractOpen(false);
       setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "" });
+      setInstallmentPlan([]);
       toast({ title: "Contrato criado com sucesso" });
     },
     onError: (e: any) => toast({ title: "Erro ao criar contrato", description: e?.message || "Tente novamente.", variant: "destructive" }),
@@ -355,9 +400,6 @@ export default function RecebimentosPage() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Central única para clientes, contratos e baixas de parcelas</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={() => setClientOpen(true)} className="h-12 px-5 rounded-xl uppercase text-[11px] tracking-widest font-bold">
-            <UserPlus className="w-4 h-4 mr-2" /> Cadastrar Cliente
-          </Button>
           <Button onClick={() => setContractOpen(true)} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
             <Plus className="w-4 h-4 mr-2" /> Novo Contrato
           </Button>
@@ -493,22 +535,6 @@ export default function RecebimentosPage() {
         </div>
       )}
 
-      <Dialog open={clientOpen} onOpenChange={setClientOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader><DialogTitle>Novo cliente</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1"><Label>Nome</Label><Input value={clientForm.first_name} onChange={(e) => setClientForm({ ...clientForm, first_name: e.target.value })} /></div>
-            <div className="space-y-1"><Label>Sobrenome</Label><Input value={clientForm.last_name} onChange={(e) => setClientForm({ ...clientForm, last_name: e.target.value })} /></div>
-            <div className="space-y-1"><Label>Telefone</Label><Input value={clientForm.phone} onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })} /></div>
-            <div className="space-y-1"><Label>Email</Label><Input value={clientForm.email} onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })} /></div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setClientOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createClientMutation.mutate()} disabled={createClientMutation.isPending}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={contractOpen} onOpenChange={setContractOpen}>
         <DialogContent className="max-w-2xl rounded-2xl">
           <DialogHeader><DialogTitle>Novo contrato</DialogTitle></DialogHeader>
@@ -558,6 +584,36 @@ export default function RecebimentosPage() {
                 <div className="space-y-1">
                   <Label>Data entrada</Label>
                   <Input type="date" value={contractForm.entry_date} onChange={(e) => setContractForm({ ...contractForm, entry_date: e.target.value })} />
+                </div>
+              </div>
+            )}
+
+            {installmentPlan.length > 0 && (
+              <div className="space-y-3 p-4 bg-secondary/10 rounded-xl border border-border/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Parcelas (edite data e valor)</Label>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{installmentPlan.length} parcela{installmentPlan.length > 1 ? "s" : ""}</span>
+                </div>
+                <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                  {installmentPlan.map((item, index) => (
+                    <div key={item.installment_number} className="grid grid-cols-1 md:grid-cols-[120px_1fr_180px] gap-2 items-center bg-white border border-border/20 rounded-lg p-3">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Parcela {String(item.installment_number).padStart(2, "0")}</span>
+                      <Input
+                        type="date"
+                        value={item.due_date}
+                        onChange={(e) => updateInstallment(index, "due_date", e.target.value)}
+                        className="h-10 text-sm bg-secondary/20"
+                      />
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        value={item.amount}
+                        onChange={(e) => updateInstallment(index, "amount", e.target.value)}
+                        className="h-10 text-base font-bold bg-secondary/20"
+                        placeholder="0,00"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
