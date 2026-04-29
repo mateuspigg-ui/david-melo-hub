@@ -20,7 +20,7 @@ import {
   fetchReservations,
   removeReservationItem,
   RESERVATION_STATUSES,
-  clearPartyTestCatalog,
+  clearAllInventoryTestData,
   seedPartyTestCatalog,
   statusLabel,
   updateReservationItem,
@@ -367,7 +367,10 @@ const SelecaoFestaPage = () => {
       const { error: reservationsError } = await supabase.from('event_inventory_reservations').delete().eq('event_id', eventId);
       if (reservationsError) throw reservationsError;
 
-      await supabase.from('contracts').delete().eq('event_id', eventId);
+      await Promise.all([
+        supabase.from('contracts').update({ event_id: null } as any).eq('event_id', eventId),
+        supabase.from('payments').update({ event_id: null } as any).eq('event_id', eventId),
+      ]);
 
       const { error: eventError } = await supabase.from('events').delete().eq('id', eventId);
       if (eventError) throw eventError;
@@ -409,7 +412,7 @@ const SelecaoFestaPage = () => {
   });
 
   const clearCatalogMutation = useMutation({
-    mutationFn: clearPartyTestCatalog,
+    mutationFn: clearAllInventoryTestData,
     onSuccess: async (result) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
@@ -417,7 +420,10 @@ const SelecaoFestaPage = () => {
         queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
         refetchItems(),
       ]);
-      toast({ title: 'Base de teste removida', description: `${result.removed_items} itens de teste excluídos.` });
+      toast({
+        title: 'Base de teste removida',
+        description: `${result.removed_items} itens de teste excluídos.${result.removed_event ? ' Evento demo removido.' : ''}${result.removed_client ? ' Cliente demo removido.' : ''}`,
+      });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao limpar base de teste', description: error?.message || 'Tente novamente.', variant: 'destructive' });

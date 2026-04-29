@@ -949,8 +949,9 @@ export const seedPartyTestCatalog = async () => {
 export const clearPartyTestCatalog = async () => {
   const { data: testItems, error: findError } = await sb
     .from('inventory_items')
-    .select('id')
-    .ilike('name', 'TESTE | %');
+    .select('id, name, notes')
+    .or("name.ilike.%TESTE%,notes.ilike.%catálogo de teste%,notes.ilike.%catalogo de teste%,storage_location.ilike.%teste%")
+    .order('created_at', { ascending: false });
   if (findError) throw findError;
 
   const ids = (testItems || []).map((item: any) => item.id);
@@ -983,4 +984,17 @@ export const clearPartyTestCatalog = async () => {
   if (deleteItemsError) throw deleteItemsError;
 
   return { removed_items: ids.length };
+};
+
+export const clearAllInventoryTestData = async () => {
+  const [catalogResult, demoResult] = await Promise.all([
+    clearPartyTestCatalog(),
+    clearInventoryDemoData(),
+  ]);
+
+  return {
+    removed_items: Number(catalogResult?.removed_items || 0) + Number(demoResult?.removed_items || 0),
+    removed_event: Boolean((demoResult as any)?.removed_event),
+    removed_client: Boolean((demoResult as any)?.removed_client),
+  };
 };
