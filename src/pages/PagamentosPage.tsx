@@ -386,6 +386,17 @@ export default function PagamentosPage() {
           lastError = error;
         }
 
+        if (lastError && isMissingInstallmentBankAccountColumnError(lastError)) {
+          for (const fallbackStatus of PENDING_STATUS_VALUES) {
+            const { error } = await supabase
+              .from("payment_installments")
+              .update({ status: fallbackStatus, paid_at: null } as any)
+              .eq("id", id);
+            if (!error) return;
+            lastError = error;
+          }
+        }
+
         if (lastError) throw lastError;
         return;
       }
