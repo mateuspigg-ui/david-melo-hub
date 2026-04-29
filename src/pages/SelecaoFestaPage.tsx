@@ -356,19 +356,32 @@ const SelecaoFestaPage = () => {
 
   const deleteEventMutation = useMutation({
     mutationFn: async ({ reservationId, eventId }: { reservationId: string; eventId: string }) => {
-      const { data: reservationRows } = await supabase.from('event_inventory_reservations').select('id').eq('event_id', eventId);
+      const { data: reservationRows, error: reservationRowsError } = await supabase
+        .from('event_inventory_reservations')
+        .select('id')
+        .eq('event_id', eventId);
+      if (reservationRowsError) throw reservationRowsError;
+
       const reservationIds = (reservationRows || []).map((row: any) => row.id);
       if (reservationIds.length > 0) {
-        await supabase.from('event_inventory_items').delete().in('reservation_id', reservationIds);
+        const { error: itemsDeleteError } = await supabase
+          .from('event_inventory_items')
+          .delete()
+          .in('reservation_id', reservationIds);
+        if (itemsDeleteError) throw itemsDeleteError;
       }
 
       const { error: reservationsError } = await supabase.from('event_inventory_reservations').delete().eq('event_id', eventId);
       if (reservationsError) throw reservationsError;
 
-      await Promise.all([
+      const [contractsResult, paymentsResult, movementsResult] = await Promise.all([
         supabase.from('contracts').update({ event_id: null } as any).eq('event_id', eventId),
         supabase.from('payments').update({ event_id: null } as any).eq('event_id', eventId),
+        supabase.from('stock_movements').delete().eq('event_id', eventId),
       ]);
+      if (contractsResult.error) throw contractsResult.error;
+      if (paymentsResult.error) throw paymentsResult.error;
+      if (movementsResult.error) throw movementsResult.error;
 
       const { error: eventError } = await supabase.from('events').delete().eq('id', eventId);
       if (eventError) throw eventError;
