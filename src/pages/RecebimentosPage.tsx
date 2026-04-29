@@ -27,6 +27,7 @@ type Payment = {
   entry_amount: number | null;
   entry_date: string | null;
   entry_paid_at: string | null;
+  entry_bank_account_id?: string | null;
   client_id: string | null;
   event_id: string | null;
   clients?: { first_name: string; last_name: string } | null;
@@ -68,6 +69,9 @@ export default function RecebimentosPage() {
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
   const [pendingInstallment, setPendingInstallment] = useState<Installment | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
+  const [entryAccountPickerOpen, setEntryAccountPickerOpen] = useState(false);
+  const [pendingEntryPayment, setPendingEntryPayment] = useState<Payment | null>(null);
+  const [selectedEntryBankAccountId, setSelectedEntryBankAccountId] = useState("");
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
   const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
 
@@ -82,6 +86,7 @@ export default function RecebimentosPage() {
   });
 
   const isMissingEntryPaidAtColumnError = (error: any) => /entry_paid_at.*does not exist|schema cache|could not find.*entry_paid_at/i.test(String(error?.message || ""));
+  const isMissingEntryBankAccountColumnError = (error: any) => /entry_bank_account_id.*does not exist|schema cache|could not find.*entry_bank_account_id/i.test(String(error?.message || ""));
   const isMissingInstallmentBankAccountColumnError = (error: any) => /bank_account_id.*does not exist|schema cache|could not find.*bank_account_id/i.test(String(error?.message || ""));
 
   const { data: payments = [], isLoading } = useQuery({
@@ -443,11 +448,24 @@ export default function RecebimentosPage() {
   });
 
   const toggleEntryMutation = useMutation({
-    mutationFn: async ({ paymentId, currentPaidAt }: { paymentId: string; currentPaidAt: string | null }) => {
-      const { error } = await supabase
+    mutationFn: async ({ paymentId, currentPaidAt, bankAccountId }: { paymentId: string; currentPaidAt: string | null; bankAccountId?: string | null }) => {
+      const payload = currentPaidAt
+        ? { entry_paid_at: null, entry_bank_account_id: null }
+        : { entry_paid_at: new Date().toISOString(), entry_bank_account_id: bankAccountId || null };
+
+      let { error } = await supabase
         .from("payments")
-        .update({ entry_paid_at: currentPaidAt ? null : new Date().toISOString() } as any)
+        .update(payload as any)
         .eq("id", paymentId);
+
+      if (error && isMissingEntryBankAccountColumnError(error)) {
+        const retry = await supabase
+          .from("payments")
+          .update({ entry_paid_at: currentPaidAt ? null : new Date().toISOString() } as any)
+          .eq("id", paymentId);
+        error = retry.error;
+      }
+
       if (error) {
         if (isMissingEntryPaidAtColumnError(error)) {
           setSupportsEntryPaidAt(false);
@@ -532,6 +550,12 @@ export default function RecebimentosPage() {
     if (!contractForm.client_id) return events;
     return events.filter((evt: any) => evt.client_id === contractForm.client_id);
   }, [events, contractForm.client_id]);
+
+  const openEntryAccountPicker = (payment: Payment) => {
+    setPendingEntryPayment(payment);
+    setSelectedEntryBankAccountId(payment.entry_bank_account_id || "");
+    setEntryAccountPickerOpen(true);
+  };
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2">
@@ -688,7 +712,13 @@ export default function RecebimentosPage() {
                                           ? "bg-emerald-600 text-white hover:bg-emerald-700"
                                           : "bg-white text-emerald-700 hover:bg-emerald-50"
                                       )}
-                                      onClick={() => toggleEntryMutation.mutate({ paymentId: payment.id, currentPaidAt: payment.entry_paid_at })}
+                                      onClick={() => {
+                                        if (payment.entry_paid_at) {
+                                          toggleEntryMutation.mutate({ paymentId: payment.id, currentPaidAt: payment.entry_paid_at });
+                                          return;
+                                        }
+                                        openEntryAccountPicker(payment);
+                                      }}
                                     >
                                       {!supportsEntryPaidAt ? "Indisponível" : payment.entry_paid_at ? "Baixado" : "Validar"}
                                     </Button>
@@ -859,6 +889,48 @@ export default function RecebimentosPage() {
                 setAccountPickerOpen(false);
                 setPendingInstallment(null);
                 setSelectedBankAccountId("");
+              }}
+            >
+              Confirmar baixa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={entryAccountPickerOpen} onOpenChange={(open) => {
+        setEntryAccountPickerOpen(open);
+        if (!open) {
+          setPendingEntryPayment(null);
+          setSelectedEntryBankAccountId("");
+        }
+      }}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader><DialogTitle>Conta de recebimento da entrada</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>Conta bancária</Label>
+            <Select value={selectedEntryBankAccountId} onValueChange={setSelectedEntryBankAccountId}>
+              <SelectTrigger><SelectValue placeholder="Escolher conta" /></SelectTrigger>
+              <SelectContent>
+                {bankAccounts.map((acc: any) => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEntryAccountPickerOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!pendingEntryPayment || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}
+              onClick={() => {
+                if (!pendingEntryPayment) return;
+                toggleEntryMutation.mutate({
+                  paymentId: pendingEntryPayment.id,
+                  currentPaidAt: pendingEntryPayment.entry_paid_at,
+                  bankAccountId: selectedEntryBankAccountId || null,
+                });
+                setEntryAccountPickerOpen(false);
+                setPendingEntryPayment(null);
+                setSelectedEntryBankAccountId("");
               }}
             >
               Confirmar baixa
