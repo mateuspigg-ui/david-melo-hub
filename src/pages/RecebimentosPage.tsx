@@ -558,16 +558,16 @@ export default function RecebimentosPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 bg-gradient-to-r from-white to-[#FFF8EA] border border-gold/20 rounded-3xl p-6 premium-shadow">
+    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2 pb-10">
+      <div className="relative overflow-hidden flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 bg-[radial-gradient(circle_at_top_right,_rgba(197,160,89,0.20),_transparent_55%),linear-gradient(120deg,#ffffff_0%,#fff9ee_55%,#fff4dd_100%)] border border-gold/25 rounded-[28px] p-7 premium-shadow">
         <div>
-          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3">
+          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3 leading-none">
             <ArrowDownCircle className="h-8 w-8 text-gold" /> Recebimentos
           </h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Central única para clientes, contratos e baixas de parcelas</p>
+          <p className="text-xs text-muted-foreground mt-2 font-bold uppercase tracking-[0.14em]">Central única para clientes, contratos e baixas de parcelas</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex bg-white border border-border/30 rounded-xl p-1">
+          <div className="inline-flex bg-white/90 border border-border/30 rounded-xl p-1 shadow-sm">
             <Button type="button" size="sm" variant={viewMode === "bloco" ? "default" : "ghost"} onClick={() => setViewMode("bloco")} className={cn("h-9 px-3", viewMode === "bloco" && "bg-gold text-white hover:bg-gold") }>
               <LayoutGrid className="w-4 h-4 mr-2" /> Blocos
             </Button>
@@ -582,13 +582,15 @@ export default function RecebimentosPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40">
+        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/30 relative overflow-hidden">
+          <div className="absolute left-0 top-0 h-full w-1.5 bg-gold/50" />
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">A Receber</p>
-          <p className="text-3xl font-display mt-1">{currencyFmt(totals.pending)}</p>
+          <p className="text-3xl font-display mt-1 tracking-tight">{currencyFmt(totals.pending)}</p>
         </div>
-        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40">
+        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/30 relative overflow-hidden">
+          <div className="absolute left-0 top-0 h-full w-1.5 bg-emerald-500/50" />
           <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Recebido</p>
-          <p className="text-3xl font-display mt-1">{currencyFmt(totals.received)}</p>
+          <p className="text-3xl font-display mt-1 tracking-tight">{currencyFmt(totals.received)}</p>
         </div>
       </div>
 
@@ -598,7 +600,7 @@ export default function RecebimentosPage() {
           placeholder="Buscar cliente ou evento..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-11 h-12 rounded-xl bg-secondary/30 border-border/40"
+          className="pl-11 h-12 rounded-xl bg-white border-border/30 premium-shadow"
         />
       </div>
 
@@ -609,18 +611,25 @@ export default function RecebimentosPage() {
           <p className="font-bold text-lg">Nenhum cliente encontrado</p>
         </div>
       ) : (
-        <div className={cn("space-y-4", viewMode === "lista" && "bg-white border border-border/30 rounded-2xl p-3") }>
+        <div className={cn("space-y-4", viewMode === "lista" && "bg-white border border-border/30 rounded-2xl p-3 premium-shadow") }>
           {groupedByClient.map((group) => {
             const clientExpanded = expandedClientId === group.clientId;
+            const clientInstallments = group.payments.flatMap((p) => installmentsByPayment.get(p.id) || []);
+            const clientPending = clientInstallments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
+            const clientReceived = clientInstallments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
             return (
               <div key={group.clientId} className={cn("bg-white rounded-2xl border border-border/40 overflow-hidden", viewMode === "bloco" ? "premium-shadow" : "shadow-none border-border/20") }>
                 <button
                   className={cn("w-full flex items-center justify-between text-left", viewMode === "bloco" ? "p-6" : "p-4")}
                   onClick={() => setExpandedClientId(clientExpanded ? null : group.clientId)}
                 >
-                  <div>
+                  <div className="space-y-2">
                     <h3 className="text-xl font-display uppercase">{group.clientName}</h3>
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{group.payments.length} contrato{group.payments.length > 1 ? "s" : ""}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{group.payments.length} contrato{group.payments.length > 1 ? "s" : ""}</span>
+                      <span className="text-[10px] uppercase tracking-widest text-gold font-bold">A receber {currencyFmt(clientPending)}</span>
+                      <span className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Recebido {currencyFmt(clientReceived)}</span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {group.clientId && !group.clientId.startsWith("sem-cliente-") && (
