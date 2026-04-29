@@ -75,6 +75,65 @@ export default function RecebimentosPage() {
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
   const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
 
+  const syncEventPaymentStatus = async (eventId?: string | null) => {
+    if (!eventId) return;
+
+    const { data: eventPayments, error: paymentsError } = await supabase
+      .from("payments")
+      .select("id, has_entry_payment, entry_amount, entry_paid_at")
+      .eq("event_id", eventId);
+    if (paymentsError) throw paymentsError;
+
+    const paymentsList = (eventPayments || []) as any[];
+    if (!paymentsList.length) {
+      await supabase.from("events").update({ payment_status: "pending" } as any).eq("id", eventId);
+      return;
+    }
+
+    const paymentIds = paymentsList.map((p) => p.id);
+    const { data: allInstallments, error: installmentsError } = await supabase
+      .from("payment_installments")
+      .select("payment_id, amount, status, paid_at")
+      .in("payment_id", paymentIds);
+    if (installmentsError) throw installmentsError;
+
+    const installmentsByPayment = new Map<string, any[]>();
+    for (const inst of allInstallments || []) {
+      const key = (inst as any).payment_id;
+      const list = installmentsByPayment.get(key) || [];
+      list.push(inst);
+      installmentsByPayment.set(key, list);
+    }
+
+    let totalDue = 0;
+    let totalPaid = 0;
+
+    for (const payment of paymentsList) {
+      if (payment.has_entry_payment && Number(payment.entry_amount || 0) > 0) {
+        totalDue += Number(payment.entry_amount || 0);
+        if (payment.entry_paid_at) totalPaid += Number(payment.entry_amount || 0);
+      }
+
+      const paymentInstallments = installmentsByPayment.get(payment.id) || [];
+      for (const inst of paymentInstallments) {
+        totalDue += Number((inst as any).amount || 0);
+        if (isInstallmentPaid((inst as any).status, (inst as any).paid_at)) {
+          totalPaid += Number((inst as any).amount || 0);
+        }
+      }
+    }
+
+    let nextStatus = "pending";
+    if (totalPaid > 0 && totalPaid + 0.01 < totalDue) nextStatus = "partial";
+    if (totalDue > 0 && totalPaid + 0.01 >= totalDue) nextStatus = "paid";
+
+    const { error: updateEventError } = await supabase
+      .from("events")
+      .update({ payment_status: nextStatus } as any)
+      .eq("id", eventId);
+    if (updateEventError) throw updateEventError;
+  };
+
   const [contractForm, setContractForm] = useState({
     total_event_value: "",
     installment_count: "1",
@@ -372,11 +431,12 @@ export default function RecebimentosPage() {
         throw instError;
       }
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["payment_installments_all"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      await syncEventPaymentStatus(contractForm.event_id || editingPayment?.event_id || null);
       setContractOpen(false);
       setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "" });
       setInstallmentPlan([]);
@@ -419,11 +479,13 @@ export default function RecebimentosPage() {
       const { error } = await supabase.from("payments").delete().eq("id", paymentId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async (_, paymentId) => {
+      const payment = payments.find((p) => p.id === paymentId) || null;
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["payment_installments_all"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      await syncEventPaymentStatus(payment?.event_id || null);
       toast({ title: "Recebimento excluído com sucesso" });
     },
     onError: (e: any) => toast({ title: "Erro ao excluir recebimento", description: e?.message || "Tente novamente.", variant: "destructive" }),
@@ -475,10 +537,12 @@ export default function RecebimentosPage() {
       }
       setSupportsEntryPaidAt(true);
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
+      const payment = payments.find((p) => p.id === variables.paymentId) || null;
       qc.invalidateQueries({ queryKey: ["payments"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      await syncEventPaymentStatus(payment?.event_id || null);
       toast({ title: "Entrada atualizada com sucesso" });
     },
     onError: (e: any) => {
@@ -538,10 +602,12 @@ export default function RecebimentosPage() {
       }
       if (lastError) throw lastError;
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
+      const payment = payments.find((p) => p.id === variables.installment.payment_id) || null;
       qc.invalidateQueries({ queryKey: ["payment_installments_all"] });
       qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      await syncEventPaymentStatus(payment?.event_id || null);
     },
     onError: (e: any) => toast({ title: "Erro ao atualizar parcela", description: e?.message || "Tente novamente.", variant: "destructive" }),
   });
