@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
+const INTERNAL_ACTIVITY_TYPES = ['Reunião', 'Degustação', 'Atendimento ao Cliente', 'Formatação de Festas'];
+
 export default function ContratosPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -108,8 +110,8 @@ export default function ContratosPage() {
   const { data: events = [] } = useQuery({
     queryKey: ['events-contracts'],
     queryFn: async () => {
-      const { data } = await supabase.from('events').select('id, title, client_id').order('title');
-      return data || [];
+      const { data } = await supabase.from('events').select('id, title, client_id, event_type').order('title');
+      return (data || []).filter((ev: any) => !INTERNAL_ACTIVITY_TYPES.includes(String(ev.event_type || '')));
     }
   });
 

@@ -18,6 +18,7 @@ const currencyFmt = (v: number) =>
 
 const PAID_STATUS_VALUES = ["paid", "pago"] as const;
 const PENDING_STATUS_VALUES = ["pending", "pendente"] as const;
+const INTERNAL_ACTIVITY_TYPES = ["Reunião", "Degustação", "Atendimento ao Cliente", "Formatação de Festas"];
 
 type Payment = {
   id: string;
@@ -185,9 +186,9 @@ export default function RecebimentosPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("events")
-        .select("id, title, client_id, budget_value, event_date")
+        .select("id, title, client_id, budget_value, event_date, event_type")
         .order("event_date", { ascending: false });
-      return data || [];
+      return (data || []).filter((evt: any) => !INTERNAL_ACTIVITY_TYPES.includes(String(evt.event_type || "")));
     },
   });
 

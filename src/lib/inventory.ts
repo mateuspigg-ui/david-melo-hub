@@ -134,6 +134,7 @@ export interface StockMovement {
 }
 
 const sb = supabase as any;
+const INTERNAL_ACTIVITY_TYPES = ['Reunião', 'Degustação', 'Atendimento ao Cliente', 'Formatação de Festas'];
 
 export const statusLabel = (status: string) => {
   const map: Record<string, string> = {
@@ -350,7 +351,9 @@ export const fetchEventsForInventory = async () => {
     }
   });
 
-  return (data || []).map((event: any) => ({
+  return (data || [])
+    .filter((event: any) => !INTERNAL_ACTIVITY_TYPES.includes(String(event.event_type || '')))
+    .map((event: any) => ({
     ...event,
     contract: contractMap.get(event.id) || null,
   }));
