@@ -942,3 +942,42 @@ export const seedPartyTestCatalog = async () => {
 
   return { items_created: created, items_updated: updated, categories: categoryBlueprint.length };
 };
+
+export const clearPartyTestCatalog = async () => {
+  const { data: testItems, error: findError } = await sb
+    .from('inventory_items')
+    .select('id')
+    .ilike('name', 'TESTE | %');
+  if (findError) throw findError;
+
+  const ids = (testItems || []).map((item: any) => item.id);
+  if (!ids.length) {
+    return { removed_items: 0 };
+  }
+
+  const { error: photosError } = await sb
+    .from('inventory_item_photos')
+    .delete()
+    .in('inventory_item_id', ids);
+  if (photosError) throw photosError;
+
+  const { error: reservationItemsError } = await sb
+    .from('event_inventory_items')
+    .delete()
+    .in('inventory_item_id', ids);
+  if (reservationItemsError) throw reservationItemsError;
+
+  const { error: movementsError } = await sb
+    .from('stock_movements')
+    .delete()
+    .in('inventory_item_id', ids);
+  if (movementsError) throw movementsError;
+
+  const { error: deleteItemsError } = await sb
+    .from('inventory_items')
+    .delete()
+    .in('id', ids);
+  if (deleteItemsError) throw deleteItemsError;
+
+  return { removed_items: ids.length };
+};

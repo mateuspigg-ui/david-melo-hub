@@ -20,6 +20,7 @@ import {
   fetchReservations,
   removeReservationItem,
   RESERVATION_STATUSES,
+  clearPartyTestCatalog,
   seedPartyTestCatalog,
   statusLabel,
   updateReservationItem,
@@ -407,6 +408,22 @@ const SelecaoFestaPage = () => {
     },
   });
 
+  const clearCatalogMutation = useMutation({
+    mutationFn: clearPartyTestCatalog,
+    onSuccess: async (result) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_furniture_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory_items_dashboard'] }),
+        refetchItems(),
+      ]);
+      toast({ title: 'Base de teste removida', description: `${result.removed_items} itens de teste excluídos.` });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao limpar base de teste', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
   const openPrint = (reservation: EventInventoryReservation) => {
     openReservationPdfPrint({
       reservation,
@@ -516,6 +533,9 @@ const SelecaoFestaPage = () => {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => seedCatalogMutation.mutate()} disabled={seedCatalogMutation.isPending} className="h-12 rounded-2xl font-bold uppercase text-[11px] tracking-[0.14em]">
             {seedCatalogMutation.isPending ? 'Criando base...' : 'Criar base de teste'}
+          </Button>
+          <Button variant="outline" onClick={() => clearCatalogMutation.mutate()} disabled={clearCatalogMutation.isPending} className="h-12 rounded-2xl font-bold uppercase text-[11px] tracking-[0.14em] text-rose-600 border-rose-200 hover:bg-rose-50">
+            {clearCatalogMutation.isPending ? 'Limpando base...' : 'Limpar base de teste'}
           </Button>
           <Button onClick={() => setNewReservationOpen(true)} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]"><Plus size={16} className="mr-2" />Nova reserva</Button>
         </div>
