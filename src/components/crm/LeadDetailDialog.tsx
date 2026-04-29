@@ -606,7 +606,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                           type="button"
                           disabled={deleteFileMutation.isPending}
                           onClick={() => {
-                            if (!window.confirm(`Remover o arquivo \"${file.file_name}\"?`)) return;
+                            if (!window.confirm(`Remover o arquivo "${file.file_name}"?`)) return;
                             deleteFileMutation.mutate(file);
                           }}
                           className="w-7 h-7 rounded-lg border border-destructive/30 text-destructive flex items-center justify-center hover:bg-destructive/10 disabled:opacity-50"
@@ -638,7 +638,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                           type="button"
                           disabled={deleteFileMutation.isPending}
                           onClick={() => {
-                            if (!window.confirm(`Remover o arquivo \"${file.file_name}\"?`)) return;
+                            if (!window.confirm(`Remover o arquivo "${file.file_name}"?`)) return;
                             deleteFileMutation.mutate(file);
                           }}
                           className="w-7 h-7 rounded-lg border border-destructive/30 text-destructive flex items-center justify-center hover:bg-destructive/10 disabled:opacity-50"

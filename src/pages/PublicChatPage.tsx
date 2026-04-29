@@ -238,7 +238,7 @@ export default function PublicChatPage() {
     setUploading(true);
     try {
       for (const file of files) {
-        const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const safeName = file.name.replace(/[^\w.-]+/g, '_');
         const storageBucket = mode === 'modern' ? 'lead-chat-attachments' : 'lead-attachments';
         const path = `${resolvedToken}/${Date.now()}_${safeName}`;
         const { error: upErr } = await publicSupabase.storage

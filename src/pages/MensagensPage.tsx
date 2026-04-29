@@ -219,7 +219,7 @@ export default function MensagensPage() {
     setUploading(true);
     try {
       for (const file of files) {
-        const safeName = file.name.replace(/[^\w.\-]+/g, '_');
+        const safeName = file.name.replace(/[^\w.-]+/g, '_');
         const path = `${selectedChat.token}/${Date.now()}_${safeName}`;
         const { error: upErr } = await supabase.storage
           .from('lead-chat-attachments')

@@ -701,10 +701,9 @@ export const clearInventoryDemoData = async () => {
 };
 
 export const seedPartyTestCatalog = async () => {
-  const foodBlueprint: Array<{ category: string; items: Array<{ name: string; unit: string; quantity: number; min: number; cost: number }>; photo: string }> = [
+  const foodBlueprint: Array<{ category: string; items: Array<{ name: string; unit: string; quantity: number; min: number; cost: number }> }> = [
     {
       category: 'congelados',
-      photo: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1200&q=80',
       items: [
         { name: 'TESTE | filé de frango congelado', unit: 'kg', quantity: 120, min: 20, cost: 22 },
         { name: 'TESTE | medalhão suíno congelado', unit: 'kg', quantity: 85, min: 15, cost: 31 },
@@ -715,7 +714,6 @@ export const seedPartyTestCatalog = async () => {
     },
     {
       category: 'frutos_do_mar',
-      photo: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=1200&q=80',
       items: [
         { name: 'TESTE | camarão limpo médio', unit: 'kg', quantity: 65, min: 12, cost: 98 },
         { name: 'TESTE | lula em anéis', unit: 'kg', quantity: 42, min: 8, cost: 74 },
@@ -726,7 +724,6 @@ export const seedPartyTestCatalog = async () => {
     },
     {
       category: 'condimentos',
-      photo: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=1200&q=80',
       items: [
         { name: 'TESTE | sal refinado premium', unit: 'fardo', quantity: 22, min: 4, cost: 38 },
         { name: 'TESTE | azeite extra virgem', unit: 'caixa', quantity: 18, min: 4, cost: 168 },
@@ -737,7 +734,6 @@ export const seedPartyTestCatalog = async () => {
     },
     {
       category: 'graos_cereais',
-      photo: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=1200&q=80',
       items: [
         { name: 'TESTE | arroz branco tipo 1', unit: 'fardo', quantity: 26, min: 5, cost: 148 },
         { name: 'TESTE | feijão carioca selecionado', unit: 'fardo', quantity: 20, min: 4, cost: 132 },
@@ -748,7 +744,6 @@ export const seedPartyTestCatalog = async () => {
     },
     {
       category: 'bebidas',
-      photo: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=1200&q=80',
       items: [
         { name: 'TESTE | água sem gás 500ml', unit: 'fardo', quantity: 55, min: 12, cost: 32 },
         { name: 'TESTE | refrigerante cola 2l', unit: 'fardo', quantity: 30, min: 8, cost: 74 },
@@ -859,28 +854,11 @@ export const seedPartyTestCatalog = async () => {
         updated += 1;
       }
 
-      const { data: existingFoodPhotos, error: findFoodPhotoError } = await sb
+      const { error: deleteFoodPhotosError } = await sb
         .from('inventory_item_photos')
-        .select('id, photo_url')
-        .eq('inventory_item_id', foodId)
-        .order('created_at', { ascending: true });
-      if (findFoodPhotoError) throw findFoodPhotoError;
-
-      if (!existingFoodPhotos?.length) {
-        const { error: photoFoodError } = await sb
-          .from('inventory_item_photos')
-          .insert({ inventory_item_id: foodId, photo_url: foodCategory.photo } as any);
-        if (photoFoodError) throw photoFoodError;
-      } else {
-        const firstPhoto = existingFoodPhotos[0];
-        if (firstPhoto.photo_url !== foodCategory.photo) {
-          const { error: updateFoodPhotoError } = await sb
-            .from('inventory_item_photos')
-            .update({ photo_url: foodCategory.photo } as any)
-            .eq('id', firstPhoto.id);
-          if (updateFoodPhotoError) throw updateFoodPhotoError;
-        }
-      }
+        .delete()
+        .eq('inventory_item_id', foodId);
+      if (deleteFoodPhotosError) throw deleteFoodPhotosError;
     }
   }
 
