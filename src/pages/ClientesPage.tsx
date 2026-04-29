@@ -263,8 +263,8 @@ const ClientesPage = () => {
     const q = search.toLowerCase();
     return clients
       .filter((c) => (
-        c.first_name.toLowerCase().includes(q) ||
-        c.last_name.toLowerCase().includes(q) ||
+        String(c.first_name || '').toLowerCase().includes(q) ||
+        String(c.last_name || '').toLowerCase().includes(q) ||
         (c.email?.toLowerCase().includes(q) ?? false) ||
         (c.phone?.includes(q) ?? false) ||
         (c.cpf_cnpj?.toLowerCase().includes(q) ?? false) ||
@@ -276,6 +276,9 @@ const ClientesPage = () => {
         return nameA.localeCompare(nameB, 'pt-BR', { sensitivity: 'base' });
       });
   }, [clients, search]);
+
+  const getClientName = (c: Client) => `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Sem nome';
+  const getClientInitials = (c: Client) => `${(c.first_name || '?')[0] || '?'}${c.last_name?.[0] || ''}`.toUpperCase();
 
   return (
     <div className="space-y-12 animate-fade-in max-w-[1700px] mx-auto pb-12">
@@ -355,7 +358,7 @@ const ClientesPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-2">
           {filtered.map((c) => {
             const entryDate = firstLeadEntryByClient[c.id] || c.created_at;
-            const initials = `${c.first_name[0]}${c.last_name?.[0] || ''}`.toUpperCase();
+            const initials = getClientInitials(c);
             
             return (
               <div
@@ -381,7 +384,7 @@ const ClientesPage = () => {
 
                   <div className="space-y-1 mb-8">
                     <h4 className="text-xl font-display text-foreground tracking-tight leading-tight uppercase group-hover:text-gold transition-colors">
-                      {c.first_name} {c.last_name}
+                      {getClientName(c)}
                     </h4>
                     <p className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-[0.2em]">
                       Desde {format(new Date(entryDate), "MMM yyyy", { locale: ptBR })}
@@ -440,10 +443,10 @@ const ClientesPage = () => {
                       <td className="py-6 px-8">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-xl bg-gold/5 flex items-center justify-center text-gold font-black text-xs border border-gold/10 group-hover:bg-gold group-hover:text-white transition-all duration-500">
-                            {c.first_name[0]}
+                            {getClientInitials(c)[0]}
                           </div>
                           <div>
-                            <p className="font-bold text-foreground text-base tracking-tight uppercase group-hover:text-gold transition-colors">{c.first_name} {c.last_name}</p>
+                            <p className="font-bold text-foreground text-base tracking-tight uppercase group-hover:text-gold transition-colors">{getClientName(c)}</p>
                             {c.instagram && <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-0.5 opacity-60">{c.instagram}</p>}
                           </div>
                         </div>
