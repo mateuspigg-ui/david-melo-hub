@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { format, isPast, isToday } from "date-fns";
-import { ArrowDownCircle, Calendar, Check, ChevronDown, Plus, Search } from "lucide-react";
+import { ArrowDownCircle, Calendar, Check, ChevronDown, LayoutGrid, List, Plus, Search, Trash2 } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +57,7 @@ const isInstallmentPaid = (status: string | null | undefined, paidAt?: string | 
 export default function RecebimentosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<"bloco" | "lista">("bloco");
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
 
@@ -309,6 +310,41 @@ export default function RecebimentosPage() {
     onError: (e: any) => toast({ title: "Erro ao criar contrato", description: e?.message || "Tente novamente.", variant: "destructive" }),
   });
 
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { error: instError } = await supabase.from("payment_installments").delete().eq("payment_id", paymentId);
+      if (instError) throw instError;
+      const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["payment_installments_all"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      toast({ title: "Recebimento excluído com sucesso" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao excluir recebimento", description: e?.message || "Tente novamente.", variant: "destructive" }),
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      const { error: eventsError } = await supabase.from("events").update({ client_id: null } as any).eq("client_id", clientId);
+      if (eventsError) throw eventsError;
+      const { error: paymentsError } = await supabase.from("payments").update({ client_id: null } as any).eq("client_id", clientId);
+      if (paymentsError) throw paymentsError;
+      const { error } = await supabase.from("clients").delete().eq("id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients-select"] });
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["events-select"] });
+      toast({ title: "Cliente excluído com sucesso" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao excluir cliente", description: e?.message || "Verifique vínculos existentes.", variant: "destructive" }),
+  });
+
   const toggleEntryMutation = useMutation({
     mutationFn: async ({ paymentId, currentPaidAt }: { paymentId: string; currentPaidAt: string | null }) => {
       const { error } = await supabase
@@ -392,7 +428,7 @@ export default function RecebimentosPage() {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 bg-gradient-to-r from-white to-[#FFF8EA] border border-gold/20 rounded-3xl p-6 premium-shadow">
         <div>
           <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3">
             <ArrowDownCircle className="h-8 w-8 text-gold" /> Recebimentos
@@ -400,6 +436,14 @@ export default function RecebimentosPage() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Central única para clientes, contratos e baixas de parcelas</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex bg-white border border-border/30 rounded-xl p-1">
+            <Button type="button" size="sm" variant={viewMode === "bloco" ? "default" : "ghost"} onClick={() => setViewMode("bloco")} className={cn("h-9 px-3", viewMode === "bloco" && "bg-gold text-white hover:bg-gold") }>
+              <LayoutGrid className="w-4 h-4 mr-2" /> Blocos
+            </Button>
+            <Button type="button" size="sm" variant={viewMode === "lista" ? "default" : "ghost"} onClick={() => setViewMode("lista")} className={cn("h-9 px-3", viewMode === "lista" && "bg-gold text-white hover:bg-gold") }>
+              <List className="w-4 h-4 mr-2" /> Lista
+            </Button>
+          </div>
           <Button onClick={() => setContractOpen(true)} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
             <Plus className="w-4 h-4 mr-2" /> Novo Contrato
           </Button>
@@ -434,20 +478,38 @@ export default function RecebimentosPage() {
           <p className="font-bold text-lg">Nenhum cliente encontrado</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className={cn("space-y-4", viewMode === "lista" && "bg-white border border-border/30 rounded-2xl p-3") }>
           {groupedByClient.map((group) => {
             const clientExpanded = expandedClientId === group.clientId;
             return (
-              <div key={group.clientId} className="bg-white rounded-2xl border border-border/40 premium-shadow overflow-hidden">
+              <div key={group.clientId} className={cn("bg-white rounded-2xl border border-border/40 overflow-hidden", viewMode === "bloco" ? "premium-shadow" : "shadow-none border-border/20") }>
                 <button
-                  className="w-full flex items-center justify-between p-6 text-left"
+                  className={cn("w-full flex items-center justify-between text-left", viewMode === "bloco" ? "p-6" : "p-4")}
                   onClick={() => setExpandedClientId(clientExpanded ? null : group.clientId)}
                 >
                   <div>
                     <h3 className="text-xl font-display uppercase">{group.clientName}</h3>
                     <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{group.payments.length} contrato{group.payments.length > 1 ? "s" : ""}</p>
                   </div>
-                  <ChevronDown className={cn("w-5 h-5 transition-transform", clientExpanded && "rotate-180")} />
+                  <div className="flex items-center gap-2">
+                    {group.clientId && !group.clientId.startsWith("sem-cliente-") && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Excluir cliente ${group.clientName}?`)) {
+                            deleteClientMutation.mutate(group.clientId);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <ChevronDown className={cn("w-5 h-5 transition-transform", clientExpanded && "rotate-180")} />
+                  </div>
                 </button>
 
                 {clientExpanded && (
@@ -465,7 +527,23 @@ export default function RecebimentosPage() {
                               <p className="text-sm font-bold uppercase">{payment.events?.title || "Evento sem título"}</p>
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Total {currencyFmt(payment.total_event_value)}</p>
                             </div>
-                            <ChevronDown className={cn("w-4 h-4 transition-transform", paymentExpanded && "rotate-180")} />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`Excluir recebimento de ${payment.events?.title || "evento"}?`)) {
+                                    deletePaymentMutation.mutate(payment.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                              <ChevronDown className={cn("w-4 h-4 transition-transform", paymentExpanded && "rotate-180")} />
+                            </div>
                           </button>
 
                           {paymentExpanded && (
