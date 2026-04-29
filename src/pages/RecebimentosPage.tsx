@@ -625,12 +625,13 @@ export default function RecebimentosPage() {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2 pb-10">
-      <div className="relative overflow-hidden flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 bg-[radial-gradient(circle_at_top_right,_rgba(197,160,89,0.20),_transparent_55%),linear-gradient(120deg,#ffffff_0%,#fff9ee_55%,#fff4dd_100%)] border border-gold/25 rounded-[28px] p-7 premium-shadow">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3 leading-none">
-            <ArrowDownCircle className="h-8 w-8 text-gold" /> Recebimentos
-          </h1>
-          <p className="text-xs text-muted-foreground mt-2 font-bold uppercase tracking-[0.14em]">Central única para clientes, contratos e baixas de parcelas</p>
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gold rounded-full" />
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Recebimentos</h1>
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Fluxo de Recebíveis e Contratos</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex bg-white/90 border border-border/30 rounded-xl p-1 shadow-sm">

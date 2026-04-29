@@ -188,13 +188,13 @@ export default function ContasPagarPage() {
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2 pb-10">
-      <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 bg-[radial-gradient(circle_at_top_right,_rgba(197,160,89,0.20),_transparent_55%),linear-gradient(120deg,#ffffff_0%,#fff9ee_55%,#fff4dd_100%)] border border-gold/25 rounded-[28px] p-6 premium-shadow">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3 leading-none">
-            <Receipt className="h-8 w-8 text-gold" />
-            Contas a Pagar
-          </h1>
-          <p className="text-xs text-muted-foreground mt-2 font-bold uppercase tracking-[0.14em]">Controle estratégico de despesas e obrigações</p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 px-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gold rounded-full" />
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Contas a Pagar</h1>
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Controle de Despesas</p>
         </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">
           <Plus className="w-4 h-4 mr-2" /> Programar Despesa

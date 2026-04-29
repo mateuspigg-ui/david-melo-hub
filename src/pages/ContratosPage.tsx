@@ -159,10 +159,13 @@ export default function ContratosPage() {
 
   return (
     <div className="p-2 pb-10 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
-      <div className="relative overflow-hidden flex flex-col md:flex-row md:items-end md:justify-between gap-8 bg-[radial-gradient(circle_at_top_right,_rgba(197,160,89,0.20),_transparent_55%),linear-gradient(120deg,#ffffff_0%,#fff9ee_55%,#fff4dd_100%)] border border-gold/25 rounded-[28px] p-7 premium-shadow">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Contratos</h1>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-muted-foreground mt-2">Jurídico e Compliance David Melo Hub</p>
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 px-2">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gold rounded-full" />
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Contratos</h1>
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Jurídico e Compliance</p>
         </div>
         <Button 
           onClick={() => { setEditingContract(null); setForm({ title: '', client_id: '', event_id: '', signed_status: 'draft', file_url: '' }); setDialogOpen(true); }}
