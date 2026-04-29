@@ -136,6 +136,24 @@ export default function RecebimentosPage() {
     },
   });
 
+  useEffect(() => {
+    let active = true;
+    const checkEntryColumn = async () => {
+      const { error } = await (supabase as any)
+        .from("payments")
+        .select("id, entry_paid_at")
+        .limit(1);
+      if (!active) return;
+      if (error && isMissingEntryPaidAtColumnError(error)) {
+        setSupportsEntryPaidAt(false);
+      }
+    };
+    void checkEntryColumn();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const installmentsByPayment = useMemo(() => {
     const map = new Map<string, Installment[]>();
     for (const inst of installments) {
@@ -388,7 +406,12 @@ export default function RecebimentosPage() {
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       toast({ title: "Entrada atualizada com sucesso" });
     },
-    onError: (e: any) => toast({ title: "Erro ao atualizar entrada", description: e?.message || "Tente novamente.", variant: "destructive" }),
+    onError: (e: any) => {
+      const description = isMissingEntryPaidAtColumnError(e)
+        ? "Baixa da entrada indisponível neste banco até aplicar a migration da coluna entry_paid_at."
+        : e?.message || "Tente novamente.";
+      toast({ title: "Erro ao atualizar entrada", description, variant: "destructive" });
+    },
   });
 
   const toggleInstallmentMutation = useMutation({
