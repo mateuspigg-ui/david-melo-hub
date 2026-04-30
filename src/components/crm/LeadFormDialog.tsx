@@ -43,6 +43,18 @@ interface FormData {
   assigned_to: string;
 }
 
+const sanitizeStorageFileName = (name: string) => {
+  const normalized = String(name || 'arquivo')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+
+  const safe = normalized || 'arquivo';
+  return safe.slice(0, 120);
+};
+
 export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedCelebration, onNewLeadCreatedAlert, clients, teamMembers, stages, eventTypes }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -116,7 +128,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
             const uploadedBy = userData.data.user?.id || null;
 
             for (const file of leadFiles) {
-              const safeName = file.name.replace(/\s+/g, '-');
+              const safeName = sanitizeStorageFileName(file.name);
               const filePath = `${newLeadId}/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
 
               const { error: uploadError } = await (supabase as any).storage.from('lead-files').upload(filePath, file, {
