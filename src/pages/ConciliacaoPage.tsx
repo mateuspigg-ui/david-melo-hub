@@ -385,7 +385,7 @@ const ConciliacaoPage = () => {
               <div className="space-y-4">
                 {companies.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">CNPJ da Operação</Label>
+                    <Label className="text-sm font-medium">Empresa / CNPJ</Label>
                     <select
                       value={selectedCompany}
                       onChange={(e) => {
@@ -394,7 +394,7 @@ const ConciliacaoPage = () => {
                       }}
                       className="flex h-12 w-full rounded-md bg-secondary/50 border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none transition-all"
                     >
-                      <option value="all">Todos os CNPJs</option>
+                      <option value="all">Todas as empresas</option>
                       {companies.map((company: any) => (
                         <option key={company.id} value={company.id}>
                           {(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}
@@ -411,7 +411,7 @@ const ConciliacaoPage = () => {
                     onChange={(e) => setSelectedAccount(e.target.value)}
                     className="flex h-12 w-full rounded-md bg-secondary/50 border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none transition-all"
                   >
-                    <option value="">Selecione uma conta...</option>
+                    <option value="">Selecione uma conta bancária...</option>
                     {filteredAccounts.map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
                         {(acc.description && acc.description.trim()) || acc.bank_name}

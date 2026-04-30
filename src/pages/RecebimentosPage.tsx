@@ -800,11 +800,11 @@ export default function RecebimentosPage() {
 
         {companies.length > 0 && (
           <div className="space-y-1">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">CNPJ</Label>
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Empresa / CNPJ</Label>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos CNPJs</SelectItem>
+                <SelectItem value="all">Todas empresas</SelectItem>
                 {companies.map((company: any) => (
                   <SelectItem key={company.id} value={company.id}>{(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}</SelectItem>
                 ))}
@@ -1028,7 +1028,7 @@ export default function RecebimentosPage() {
               </div>
               {companies.length > 0 && (
                 <div className="space-y-1">
-                  <Label>CNPJ / Empresa</Label>
+                  <Label>Empresa / CNPJ</Label>
                   <Select value={contractForm.company_id || "none"} onValueChange={(v) => setContractForm({ ...contractForm, company_id: v === "none" ? "" : v })}>
                     <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                     <SelectContent>

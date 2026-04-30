@@ -167,13 +167,13 @@ const FinancialDashboard = () => {
       {companies.length > 0 && (
         <div className="px-2">
           <div className="bg-white rounded-2xl border border-border/30 p-4 max-w-xl">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Filtro por CNPJ</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Empresa / CNPJ</p>
             <select
               value={selectedCompany}
               onChange={(e) => setSelectedCompany(e.target.value)}
               className="h-11 w-full rounded-xl border border-border/40 px-3 text-sm"
             >
-              <option value="all">Consolidado (todos os CNPJs)</option>
+              <option value="all">Consolidado (todas as empresas)</option>
               {companies.map((company: any) => (
                 <option key={company.id} value={company.id}>
                   {(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}

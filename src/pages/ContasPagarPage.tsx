@@ -266,7 +266,7 @@ export default function ContasPagarPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border-border/40 shadow-2xl">
-              <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todos CNPJs</SelectItem>
+              <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todas empresas</SelectItem>
               {companies.map((company: any) => (
                 <SelectItem key={company.id} value={company.id} className="font-medium text-xs font-bold">
                   {(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}
@@ -405,10 +405,10 @@ export default function ContasPagarPage() {
 
             {companies.length > 0 && (
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CNPJ da Operação</Label>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa / CNPJ</Label>
                 <Select value={form.company_id || "none"} onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}>
                   <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
-                    <SelectValue placeholder="Selecionar CNPJ" />
+                    <SelectValue placeholder="Selecionar empresa" />
                   </SelectTrigger>
                   <SelectContent className="bg-white shadow-2xl border-border/40">
                     <SelectItem value="none" className="font-bold text-xs uppercase">Sem vínculo</SelectItem>
