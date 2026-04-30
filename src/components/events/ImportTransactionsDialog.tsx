@@ -28,6 +28,15 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
   });
 
   const getFileExtension = (filename: string) => filename.split('.').pop()?.toLowerCase() || '';
+  const sanitizeStorageFileName = (name: string) => {
+    const normalized = String(name || 'arquivo')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^[-.]+|[-.]+$/g, '');
+    return (normalized || 'arquivo').slice(0, 120);
+  };
   const isAccountingMode = mode === 'accounting';
   const allowsPdf = !isAccountingMode;
   const acceptedTypesText = allowsPdf ? 'PDF ou CSV' : 'CSV';
@@ -156,7 +165,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
         } = await supabase.auth.getUser();
 
         const fileExt = getFileExtension(file.name);
-        const fileBaseName = file.name.replace(/\.[^/.]+$/, '').replace(/\s+/g, '-').toLowerCase();
+        const fileBaseName = sanitizeStorageFileName(file.name.replace(/\.[^/.]+$/, '').toLowerCase());
         const filePath = `reconciliacao/${bankAccountId}/${Date.now()}-${fileBaseName}.${fileExt}`;
 
         const bucketCandidates = ['documents', 'documentos'];
