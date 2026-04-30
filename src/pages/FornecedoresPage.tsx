@@ -54,12 +54,27 @@ export default function FornecedoresPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('suppliers').delete().eq('id', id);
+
+      if (error && /foreign key|constraint|violates/i.test(String(error.message || ''))) {
+        const { error: unlinkPayablesError } = await supabase
+          .from('accounts_payable')
+          .update({ supplier_id: null } as any)
+          .eq('supplier_id', id);
+        if (unlinkPayablesError) throw unlinkPayablesError;
+
+        const retry = await supabase.from('suppliers').delete().eq('id', id);
+        if (retry.error) throw retry.error;
+        return;
+      }
+
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['suppliers'] });
+      qc.invalidateQueries({ queryKey: ['accounts_payable'] });
       toast({ title: 'Removido', description: 'Fornecedor excluído.', variant: 'destructive' });
-    }
+    },
+    onError: (e: any) => toast({ title: 'Erro ao excluir fornecedor', description: e?.message || 'Verifique vínculos existentes.', variant: 'destructive' })
   });
 
   const resetForm = () => setForm({ company_name: '', phone: '', pix_details: '', instagram: '' });
