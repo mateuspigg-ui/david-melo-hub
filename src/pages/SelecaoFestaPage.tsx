@@ -355,7 +355,23 @@ const SelecaoFestaPage = () => {
   });
 
   const deleteEventMutation = useMutation({
-    mutationFn: async ({ reservationId, eventId }: { reservationId: string; eventId: string }) => {
+    mutationFn: async ({ reservationId, eventId }: { reservationId: string; eventId?: string | null }) => {
+      if (!eventId) {
+        const { error: onlyItemsDeleteError } = await supabase
+          .from('event_inventory_items')
+          .delete()
+          .eq('reservation_id', reservationId);
+        if (onlyItemsDeleteError) throw onlyItemsDeleteError;
+
+        const { error: onlyReservationDeleteError } = await supabase
+          .from('event_inventory_reservations')
+          .delete()
+          .eq('id', reservationId);
+        if (onlyReservationDeleteError) throw onlyReservationDeleteError;
+
+        return { reservationId, eventId: null };
+      }
+
       const { data: reservationRows, error: reservationRowsError } = await supabase
         .from('event_inventory_reservations')
         .select('id')
@@ -522,7 +538,7 @@ const SelecaoFestaPage = () => {
         <div className="bg-white rounded-[30px] border border-border/30 premium-shadow p-4 space-y-3">
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground">Reservas de eventos</div>
           {reservations.map((reservation) => (
-            <button key={reservation.id} onClick={() => setSelectedReservationId(reservation.id)} className={`w-full text-left rounded-2xl border p-3 transition ${selectedReservationId === reservation.id ? 'border-gold bg-gold/5' : 'border-border/40 hover:border-gold/30'}`}>
+            <div key={reservation.id} onClick={() => setSelectedReservationId(reservation.id)} className={`w-full text-left rounded-2xl border p-3 transition cursor-pointer ${selectedReservationId === reservation.id ? 'border-gold bg-gold/5' : 'border-border/40 hover:border-gold/30'}`}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-sm">{reservation.events?.title || 'Evento sem título'}</p>
@@ -534,11 +550,14 @@ const SelecaoFestaPage = () => {
                   size="icon"
                   variant="ghost"
                   className="text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                  disabled={!reservation.event_id || deleteEventMutation.isPending}
+                  disabled={deleteEventMutation.isPending}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!reservation.event_id) return;
-                    const confirmed = window.confirm('Deseja realmente excluir este evento e todas as reservas vinculadas? Esta ação não pode ser desfeita.');
+                    const confirmed = window.confirm(
+                      reservation.event_id
+                        ? 'Deseja realmente excluir este evento e todas as reservas vinculadas? Esta ação não pode ser desfeita.'
+                        : 'Esta reserva está sem evento vinculado. Deseja excluir apenas a reserva e seus itens?'
+                    );
                     if (!confirmed) return;
                     deleteEventMutation.mutate({ reservationId: reservation.id, eventId: reservation.event_id });
                   }}
@@ -546,7 +565,7 @@ const SelecaoFestaPage = () => {
                   <Trash2 size={15} />
                 </Button>
               </div>
-            </button>
+            </div>
           ))}
           {reservations.length === 0 && <div className="text-sm text-muted-foreground border border-dashed rounded-xl p-6 text-center">Nenhuma reserva criada.</div>}
         </div>
