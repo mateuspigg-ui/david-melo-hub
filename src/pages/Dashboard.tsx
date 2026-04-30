@@ -1,5 +1,6 @@
 import { DollarSign, TrendingUp, Clock, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
@@ -18,6 +19,7 @@ const PIPELINE_COLORS: Record<string, string> = {
 
 const Dashboard = () => {
   const { isAdmin } = useAuth();
+  const [dueDateFilter, setDueDateFilter] = useState(format(new Date(), 'yyyy-MM-dd'));
   const currentMonthStart = startOfMonth(new Date());
   const yearStart = format(startOfYear(new Date()), 'yyyy-MM-dd');
   const yearEnd = format(endOfYear(new Date()), 'yyyy-MM-dd');
@@ -180,6 +182,44 @@ const Dashboard = () => {
 
       return data;
     }
+  });
+
+  const { data: dueReceivables = [], isLoading: isLoadingDueReceivables } = useQuery({
+    queryKey: ['dashboard_due_receivables', dueDateFilter],
+    queryFn: async () => {
+      const { data: dueInstallments, error: installmentsError } = await supabase
+        .from('payment_installments')
+        .select('id, due_date, amount, status, paid_at, payments(client_id, event_id, clients(first_name, last_name), events(title))')
+        .eq('due_date', dueDateFilter)
+        .in('status', ['pending', 'pendente']);
+      if (installmentsError) throw installmentsError;
+
+      const installmentRows = (dueInstallments || []).map((row: any) => ({
+        id: `inst-${row.id}`,
+        clientName: `${row?.payments?.clients?.first_name || ''} ${row?.payments?.clients?.last_name || ''}`.trim() || 'Cliente não identificado',
+        eventTitle: row?.payments?.events?.title || 'Evento sem título',
+        amount: Number(row.amount || 0),
+        kind: 'Parcela',
+      }));
+
+      const { data: dueEntries, error: entriesError } = await supabase
+        .from('payments')
+        .select('id, entry_date, entry_amount, has_entry_payment, entry_paid_at, clients(first_name, last_name), events(title)')
+        .eq('has_entry_payment', true)
+        .eq('entry_date', dueDateFilter)
+        .is('entry_paid_at', null);
+      if (entriesError) throw entriesError;
+
+      const entryRows = (dueEntries || []).map((row: any) => ({
+        id: `entry-${row.id}`,
+        clientName: `${row?.clients?.first_name || ''} ${row?.clients?.last_name || ''}`.trim() || 'Cliente não identificado',
+        eventTitle: row?.events?.title || 'Evento sem título',
+        amount: Number(row.entry_amount || 0),
+        kind: 'Entrada',
+      }));
+
+      return [...entryRows, ...installmentRows].sort((a, b) => b.amount - a.amount);
+    },
   });
 
   const formatCurrency = (val: number) => 
@@ -392,6 +432,53 @@ const Dashboard = () => {
       </div>
 
       {/* Main Stats Grid */}
+      <div className="px-2">
+        <div className="bg-white rounded-[30px] border border-border/40 premium-shadow overflow-hidden">
+          <div className="p-6 md:p-7 border-b border-border/20 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-display uppercase tracking-tight">Clientes com Vencimento na Data</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 mt-1">Cliente, evento e valor pendente do dia</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Data de vencimento</p>
+              <input
+                type="date"
+                value={dueDateFilter}
+                onChange={(e) => setDueDateFilter(e.target.value)}
+                className="h-11 rounded-xl border border-border/40 bg-white px-3 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="p-4 md:p-6">
+            {isLoadingDueReceivables ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => <div key={i} className="h-16 rounded-xl border border-border/30 bg-secondary/20 animate-pulse" />)}
+              </div>
+            ) : dueReceivables.length === 0 ? (
+              <div className="text-center py-10 border border-dashed border-border/50 rounded-2xl">
+                <p className="text-sm font-bold">Nenhum vencimento pendente nesta data.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {dueReceivables.map((row: any) => (
+                  <div key={row.id} className="rounded-2xl border border-border/30 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-secondary/10">
+                    <div>
+                      <p className="text-sm font-bold uppercase">{row.clientName}</p>
+                      <p className="text-xs text-muted-foreground">{row.eventTitle}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full bg-gold/10 text-gold font-black">{row.kind}</span>
+                      <p className="text-lg font-display">{isAdmin ? formatCurrency(row.amount) : 'R$ ••••••••'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 px-2">
         {/* Indicators Bento */}
         <div className="xl:col-span-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
