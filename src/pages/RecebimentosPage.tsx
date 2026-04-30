@@ -61,6 +61,10 @@ const isInstallmentPaid = (status: string | null | undefined, paidAt?: string | 
 export default function RecebimentosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "due_today" | "overdue" | "pending" | "paid">("all");
+  const [dateFilterMode, setDateFilterMode] = useState<"all" | "today" | "custom">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [viewMode, setViewMode] = useState<"bloco" | "lista">("bloco");
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
@@ -234,13 +238,49 @@ export default function RecebimentosPage() {
 
   const filteredPayments = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return payments;
+    const todayIso = format(new Date(), "yyyy-MM-dd");
     return payments.filter((p) => {
       const clientName = p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "";
       const eventName = p.events?.title || "";
-      return `${clientName} ${eventName}`.toLowerCase().includes(q);
+      const textMatch = !q || `${clientName} ${eventName}`.toLowerCase().includes(q);
+      if (!textMatch) return false;
+
+      const paymentInstallments = installmentsByPayment.get(p.id) || [];
+      const hasPendingEntry = Boolean(p.has_entry_payment && Number(p.entry_amount || 0) > 0 && !p.entry_paid_at);
+      const pendingInstallments = paymentInstallments.filter((inst) => !isInstallmentPaid(inst.status, inst.paid_at));
+      const hasPendingInstallments = pendingInstallments.length > 0;
+      const hasPending = hasPendingEntry || hasPendingInstallments;
+
+      const hasOverdue = pendingInstallments.some((inst) => {
+        const dueDate = new Date(`${inst.due_date}T23:59:59`);
+        return isPast(dueDate) && !isToday(new Date(`${inst.due_date}T12:00:00`));
+      });
+
+      const hasDueToday = pendingInstallments.some((inst) => isToday(new Date(`${inst.due_date}T12:00:00`)))
+        || Boolean(hasPendingEntry && p.entry_date && isToday(new Date(`${p.entry_date}T12:00:00`)));
+
+      if (statusFilter === "overdue" && !hasOverdue) return false;
+      if (statusFilter === "due_today" && !hasDueToday) return false;
+      if (statusFilter === "pending" && !hasPending) return false;
+      if (statusFilter === "paid" && hasPending) return false;
+
+      const datePool = [
+        ...(p.entry_date ? [p.entry_date] : []),
+        ...paymentInstallments.map((inst) => inst.due_date),
+      ].filter(Boolean);
+
+      if (dateFilterMode === "today") {
+        if (!datePool.some((date) => date === todayIso)) return false;
+      }
+
+      if (dateFilterMode === "custom") {
+        if (dateFrom && !datePool.some((date) => date >= dateFrom)) return false;
+        if (dateTo && !datePool.some((date) => date <= dateTo)) return false;
+      }
+
+      return true;
     });
-  }, [payments, search]);
+  }, [payments, search, installmentsByPayment, statusFilter, dateFilterMode, dateFrom, dateTo]);
 
   const groupedByClient = useMemo(() => {
     const map = new Map<string, { clientName: string; payments: Payment[] }>();
@@ -662,14 +702,52 @@ export default function RecebimentosPage() {
         </div>
       </div>
 
-      <div className="relative max-w-xl">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar cliente ou evento..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-11 h-12 rounded-xl bg-white border-border/30 premium-shadow"
-        />
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_220px_180px_180px] gap-3 items-end">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar cliente ou evento..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-11 h-12 rounded-xl bg-white border-border/30 premium-shadow"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Situação</Label>
+          <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+            <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="due_today">Vencem hoje</SelectItem>
+              <SelectItem value="overdue">Em atraso</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="paid">Pagos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Período</Label>
+          <Select value={dateFilterMode} onValueChange={(v: any) => setDateFilterMode(v)}>
+            <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas datas</SelectItem>
+              <SelectItem value="today">Data de hoje</SelectItem>
+              <SelectItem value="custom">Intervalo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</Label>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} disabled={dateFilterMode !== "custom"} className="h-12 rounded-xl bg-white border-border/30" />
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Até</Label>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} disabled={dateFilterMode !== "custom"} className="h-12 rounded-xl bg-white border-border/30" />
+        </div>
       </div>
 
       {isLoading ? (
