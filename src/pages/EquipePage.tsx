@@ -69,7 +69,7 @@ const EquipePage = () => {
           ...p,
           roles: (roles || []).filter(r => r.user_id === p.id).map(r => r.role),
         }))
-        .filter((p) => (p.roles || []).length > 0);
+        .filter((p) => (p.roles || []).includes('team_member'));
     },
   });
 
