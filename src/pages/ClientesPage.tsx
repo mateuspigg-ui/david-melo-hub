@@ -13,7 +13,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Plus, Search, Phone, Mail, Instagram, Pencil, Trash2, User, LayoutGrid, List, Hash, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -279,6 +279,12 @@ const ClientesPage = () => {
 
   const getClientName = (c: Client) => `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Sem nome';
   const getClientInitials = (c: Client) => `${(c.first_name || '?')[0] || '?'}${c.last_name?.[0] || ''}`.toUpperCase();
+  const formatEntryDate = (value?: string | null, pattern: string = 'dd/MM/yyyy') => {
+    if (!value) return 'Sem data';
+    const parsed = new Date(value);
+    if (!isValid(parsed)) return 'Sem data';
+    return format(parsed, pattern, { locale: ptBR });
+  };
 
   return (
     <div className="space-y-12 animate-fade-in max-w-[1700px] mx-auto pb-12">
@@ -386,9 +392,9 @@ const ClientesPage = () => {
                     <h4 className="text-xl font-display text-foreground tracking-tight leading-tight uppercase group-hover:text-gold transition-colors">
                       {getClientName(c)}
                     </h4>
-                    <p className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-[0.2em]">
-                      Desde {format(new Date(entryDate), "MMM yyyy", { locale: ptBR })}
-                    </p>
+                      <p className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-[0.2em]">
+                        Desde {formatEntryDate(entryDate, 'MMM yyyy')}
+                      </p>
                   </div>
 
                   <div className="space-y-4 flex-1">
@@ -465,7 +471,7 @@ const ClientesPage = () => {
                       </td>
                       <td className="py-6 px-8">
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                          {format(new Date(entryDate), "dd MMM yyyy", { locale: ptBR })}
+                          {formatEntryDate(entryDate, 'dd MMM yyyy')}
                         </span>
                       </td>
                       <td className="py-6 px-8">
