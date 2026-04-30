@@ -18,8 +18,14 @@ type Company = {
 
 const cleanDigits = (value: string) => value.replace(/\D/g, "").slice(0, 14);
 
-const maskCnpj = (value: string) => {
+const maskDocument = (value: string) => {
   const digits = cleanDigits(value);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+  }
   return digits
     .replace(/^(\d{2})(\d)/, "$1.$2")
     .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
@@ -33,7 +39,7 @@ const getFriendlyCompanyError = (error: any) => {
     return "Tabela de empresas não encontrada no banco. Verifique as migrations do Supabase.";
   }
   if (/duplicate key|already exists|unique/i.test(message)) {
-    return "Já existe uma empresa com esses dados. Revise o CNPJ e tente novamente.";
+    return "Já existe um cadastro com esse documento. Revise CPF/CNPJ e tente novamente.";
   }
   if (/row-level security|permission denied/i.test(message)) {
     return "Seu usuário não tem permissão para gerenciar empresas.";
@@ -86,6 +92,10 @@ export default function EmpresasPage() {
         throw new Error("Informe ao menos Razão Social ou Nome Fantasia.");
       }
 
+      if (payload.cnpj && payload.cnpj.length !== 11 && payload.cnpj.length !== 14) {
+        throw new Error("Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).");
+      }
+
       if (editingCompany) {
         const { error } = await (supabase as any).from("companies").update(payload).eq("id", editingCompany.id);
         if (error) throw error;
@@ -130,7 +140,7 @@ export default function EmpresasPage() {
             <div className="h-8 w-1 bg-gold rounded-full" />
             <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Empresas</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Cadastro de CNPJs</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Cadastro de CPF/CNPJ</p>
         </div>
         <Button
           onClick={() => {
@@ -169,7 +179,7 @@ export default function EmpresasPage() {
                 <tr className="bg-secondary/10 border-b border-border/20">
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Nome Fantasia</th>
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Razão Social</th>
-                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">CNPJ</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">CPF / CNPJ</th>
                   <th className="text-right py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Ações</th>
                 </tr>
               </thead>
@@ -178,7 +188,7 @@ export default function EmpresasPage() {
                   <tr key={company.id} className="hover:bg-secondary/5 transition-colors">
                     <td className="py-4 px-6 font-bold">{company.trade_name || "-"}</td>
                     <td className="py-4 px-6">{company.legal_name || "-"}</td>
-                    <td className="py-4 px-6">{maskCnpj(company.cnpj || "") || "-"}</td>
+                    <td className="py-4 px-6">{maskDocument(company.cnpj || "") || "-"}</td>
                     <td className="py-4 px-6">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -189,7 +199,7 @@ export default function EmpresasPage() {
                             setForm({
                               legal_name: company.legal_name || "",
                               trade_name: company.trade_name || "",
-                              cnpj: maskCnpj(company.cnpj || ""),
+                              cnpj: maskDocument(company.cnpj || ""),
                             });
                             setDialogOpen(true);
                           }}
@@ -245,11 +255,11 @@ export default function EmpresasPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CNPJ</Label>
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CPF / CNPJ</Label>
               <Input
                 value={form.cnpj}
-                onChange={(e) => setForm({ ...form, cnpj: maskCnpj(e.target.value) })}
-                placeholder="00.000.000/0000-00"
+                onChange={(e) => setForm({ ...form, cnpj: maskDocument(e.target.value) })}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg"
               />
             </div>
