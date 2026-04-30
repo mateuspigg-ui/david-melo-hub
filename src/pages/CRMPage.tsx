@@ -98,9 +98,16 @@ export default function CRMPage() {
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['profiles'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('profiles').select('id, full_name').order('full_name');
-      if (error) throw error;
-      return data;
+      const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
+        supabase.from('profiles').select('id, full_name').order('full_name'),
+        supabase.from('user_roles').select('user_id'),
+      ]);
+
+      if (profilesError) throw profilesError;
+      if (rolesError) throw rolesError;
+
+      const activeUserIds = new Set((roles || []).map((r: any) => r.user_id).filter(Boolean));
+      return (profiles || []).filter((p: any) => activeUserIds.has(p.id));
     },
   });
 
