@@ -77,6 +77,7 @@ const toSafeDateLabel = (value: string) => {
 
 const ConciliacaoPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importMode, setImportMode] = useState<'bank' | 'accounting'>('bank');
@@ -127,6 +128,27 @@ const ConciliacaoPage = () => {
     }
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies-select'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('companies')
+        .select('id, legal_name, trade_name, cnpj')
+        .order('trade_name', { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ''))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
+  const filteredAccounts = useMemo(() => {
+    const list = accounts || [];
+    if (selectedCompany === 'all') return list;
+    return list.filter((acc: any) => String(acc.company_id || '') === selectedCompany);
+  }, [accounts, selectedCompany]);
+
   const { data: bankTransactions, refetch: refetchBank } = useQuery({
     queryKey: ['reconciliation_bank_tx', selectedAccount],
     enabled: !!selectedAccount,
@@ -154,8 +176,14 @@ const ConciliacaoPage = () => {
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-  const effectiveBankTransactions = bankTransactions || [];
-  const effectiveAccountingEntries = accountingEntries || [];
+  const effectiveBankTransactions = useMemo(
+    () => bankTransactions || [],
+    [bankTransactions]
+  );
+  const effectiveAccountingEntries = useMemo(
+    () => accountingEntries || [],
+    [accountingEntries]
+  );
 
   const selectedAccountData = useMemo(
     () => (accounts || []).find((acc: any) => acc.id === selectedAccount),
@@ -355,6 +383,27 @@ const ConciliacaoPage = () => {
               </div>
 
               <div className="space-y-4">
+                {companies.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">CNPJ da Operação</Label>
+                    <select
+                      value={selectedCompany}
+                      onChange={(e) => {
+                        setSelectedCompany(e.target.value);
+                        setSelectedAccount('');
+                      }}
+                      className="flex h-12 w-full rounded-md bg-secondary/50 border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none transition-all"
+                    >
+                      <option value="all">Todos os CNPJs</option>
+                      {companies.map((company: any) => (
+                        <option key={company.id} value={company.id}>
+                          {(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Conta Bancária Ativa</Label>
                   <select 
@@ -363,7 +412,7 @@ const ConciliacaoPage = () => {
                     className="flex h-12 w-full rounded-md bg-secondary/50 border border-border/40 px-3 py-2 text-sm focus:border-gold text-foreground outline-none transition-all"
                   >
                     <option value="">Selecione uma conta...</option>
-                    {(accounts || []).map((acc: any) => (
+                    {filteredAccounts.map((acc: any) => (
                       <option key={acc.id} value={acc.id}>
                         {(acc.description && acc.description.trim()) || acc.bank_name}
                         {acc.account_number ? ` - ${acc.account_number}` : ''}
@@ -693,6 +742,7 @@ const ConciliacaoPage = () => {
         open={importDialogOpen} 
         onOpenChange={setImportDialogOpen} 
         bankAccountId={selectedAccount}
+        companyId={selectedCompany === 'all' ? null : selectedCompany}
         mode={importMode}
         onImported={(info) => {
           setImportedArtifacts((prev) => {

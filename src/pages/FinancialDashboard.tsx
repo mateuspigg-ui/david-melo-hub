@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -12,10 +13,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 const FinancialDashboard = () => {
+  const [selectedCompany, setSelectedCompany] = useState<string>('all');
+  const { data: companies = [] } = useQuery({
+    queryKey: ['companies-select'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('companies')
+        .select('id, legal_name, trade_name, cnpj')
+        .order('trade_name', { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ''))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
   // Fetch summary from the view created in SQL
   const { data: summary, isLoading } = useQuery({
-    queryKey: ['financial_summary'],
+    queryKey: ['financial_summary', selectedCompany],
     queryFn: async () => {
+      if (selectedCompany !== 'all') {
+        const { data: bankAccounts } = await (supabase as any)
+          .from('bank_accounts')
+          .select('id, bank_name')
+          .eq('company_id', selectedCompany);
+
+        const accountIds = (bankAccounts || []).map((acc: any) => acc.id);
+        if (!accountIds.length) return [];
+
+        const [{ data: bankTx }, { data: accounting }] = await Promise.all([
+          (supabase as any).from('bank_transactions').select('bank_account_id, amount').in('bank_account_id', accountIds),
+          (supabase as any).from('accounting_entries').select('bank_account_id, amount').in('bank_account_id', accountIds),
+        ]);
+
+        return (bankAccounts || []).map((acc: any) => ({
+          bank_name: acc.bank_name,
+          bank_balance: (bankTx || []).filter((row: any) => row.bank_account_id === acc.id).reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0),
+          accounting_balance: (accounting || []).filter((row: any) => row.bank_account_id === acc.id).reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0),
+        }));
+      }
+
       const { data, error } = await (supabase as any).from('vw_financial_summary').select('*');
       if (error) throw error;
       return data;
@@ -23,10 +61,18 @@ const FinancialDashboard = () => {
   });
 
   const { data: pendingStats } = useQuery({
-    queryKey: ['reconciliation_pending'],
+    queryKey: ['reconciliation_pending', selectedCompany],
     queryFn: async () => {
-      const { data: extData } = await (supabase as any).from('bank_transactions').select('amount').eq('status', 'pendente');
-      const { data: contData } = await (supabase as any).from('accounting_entries').select('amount').eq('status', 'pendente');
+      let extQuery: any = (supabase as any).from('bank_transactions').select('amount').eq('status', 'pendente');
+      let contQuery: any = (supabase as any).from('accounting_entries').select('amount').eq('status', 'pendente');
+
+      if (selectedCompany !== 'all') {
+        extQuery = extQuery.eq('company_id', selectedCompany);
+        contQuery = contQuery.eq('company_id', selectedCompany);
+      }
+
+      const { data: extData } = await extQuery;
+      const { data: contData } = await contQuery;
       
       const extTotal = extData?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
       const contTotal = contData?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
@@ -117,6 +163,26 @@ const FinancialDashboard = () => {
           <span className="text-[10px] font-black uppercase tracking-widest text-foreground/70">Sistemas Sincronizados</span>
         </div>
       </div>
+
+      {companies.length > 0 && (
+        <div className="px-2">
+          <div className="bg-white rounded-2xl border border-border/30 p-4 max-w-xl">
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Filtro por CNPJ</p>
+            <select
+              value={selectedCompany}
+              onChange={(e) => setSelectedCompany(e.target.value)}
+              className="h-11 w-full rounded-xl border border-border/40 px-3 text-sm"
+            >
+              <option value="all">Consolidado (todos os CNPJs)</option>
+              {companies.map((company: any) => (
+                <option key={company.id} value={company.id}>
+                  {(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* KPI Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-2">

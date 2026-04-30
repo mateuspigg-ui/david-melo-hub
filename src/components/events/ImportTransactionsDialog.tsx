@@ -11,11 +11,12 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bankAccountId: string;
+  companyId?: string | null;
   mode?: 'bank' | 'accounting';
   onImported: (info: { mode: 'bank' | 'accounting'; fileName: string; kind: 'pdf' | 'csv'; count: number }) => void;
 }
 
-export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mode = 'bank', onImported }: Props) => {
+export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, companyId = null, mode = 'bank', onImported }: Props) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -46,6 +47,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
     const message = String(error?.message || '');
     return /could not find the table ['"]public\.company_documents['"]/i.test(message);
   };
+  const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ''));
 
   const parseCsvFile = (selectedFile: File) =>
     new Promise<any[]>((resolve, reject) => {
@@ -226,6 +228,7 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
       const records = rawData.map((row) => {
         const base = {
           bank_account_id: bankAccountId,
+          company_id: companyId || null,
           amount: parseAmount(row[columns.amount]),
           description: row[columns.description] || 'S/D',
           status: 'pendente',
@@ -248,7 +251,12 @@ export const ImportTransactionsDialog = ({ open, onOpenChange, bankAccountId, mo
       }
 
       const tableName = isAccountingMode ? 'accounting_entries' : 'bank_transactions';
-      const { error } = await (supabase as any).from(tableName).insert(records);
+      let { error } = await (supabase as any).from(tableName).insert(records);
+      if (error && isMissingCompanyIdColumnError(error)) {
+        const noCompanyRecords = records.map((record: any) => ({ ...record, company_id: undefined }));
+        const retry = await (supabase as any).from(tableName).insert(noCompanyRecords);
+        error = retry.error;
+      }
       if (error) throw error;
 
       toast({

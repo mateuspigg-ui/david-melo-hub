@@ -47,14 +47,17 @@ type AccountPayable = {
   supplier_id: string | null;
   created_at: string;
   suppliers?: { company_name: string } | null;
+  company_id?: string | null;
 };
 
 export default function ContasPagarPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [companyFilter, setCompanyFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ description: "", amount: "", due_date: "", supplier_id: "" });
+  const [form, setForm] = useState({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "" });
+  const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["accounts_payable"],
@@ -76,6 +79,21 @@ export default function ContasPagarPage() {
     },
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies-select"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("companies")
+        .select("id, legal_name, trade_name, cnpj")
+        .order("trade_name", { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const parsedAmount = parseCurrencyInput(form.amount);
@@ -88,11 +106,16 @@ export default function ContasPagarPage() {
         amount: parsedAmount,
         due_date: form.due_date,
         supplier_id: form.supplier_id || null,
+        company_id: form.company_id || null,
         payment_status: "nao_pago",
         paid_at: null,
       };
 
-      const { error } = await supabase.from("accounts_payable").insert(payload as any);
+      let { error } = await supabase.from("accounts_payable").insert(payload as any);
+      if (error && isMissingCompanyIdColumnError(error)) {
+        const retryNoCompany = await supabase.from("accounts_payable").insert({ ...payload, company_id: undefined } as any);
+        error = retryNoCompany.error;
+      }
       if (!error) return;
 
       const looksLikeStatusMismatch = /status|pending|pendente|pago|nao_pago|paid/i.test(String(error.message || ""));
@@ -113,7 +136,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", due_date: "", supplier_id: "" });
+      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "" });
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -180,7 +203,8 @@ export default function ContasPagarPage() {
     const matchStatus = statusFilter === "all"
       || (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
       || (statusFilter === "nao_pago" && isAccountPending(item.payment_status, item.paid_at));
-    return matchSearch && matchStatus;
+    const matchCompany = companyFilter === "all" || String((item as any).company_id || "") === companyFilter;
+    return matchSearch && matchStatus && matchCompany;
   });
 
   const totalPending = items.filter((i) => isAccountPending(i.payment_status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
@@ -236,6 +260,21 @@ export default function ContasPagarPage() {
             <SelectItem value="pago" className="font-medium text-xs font-bold uppercase text-emerald-500">Pagos</SelectItem>
           </SelectContent>
         </Select>
+        {companies.length > 0 && (
+          <Select value={companyFilter} onValueChange={setCompanyFilter}>
+            <SelectTrigger className="w-64 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-border/40 shadow-2xl">
+              <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todos CNPJs</SelectItem>
+              {companies.map((company: any) => (
+                <SelectItem key={company.id} value={company.id} className="font-medium text-xs font-bold">
+                  {(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {isLoading ? (
@@ -363,6 +402,25 @@ export default function ContasPagarPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {companies.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CNPJ da Operação</Label>
+                <Select value={form.company_id || "none"} onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}>
+                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
+                    <SelectValue placeholder="Selecionar CNPJ" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white shadow-2xl border-border/40">
+                    <SelectItem value="none" className="font-bold text-xs uppercase">Sem vínculo</SelectItem>
+                    {companies.map((company: any) => (
+                      <SelectItem key={company.id} value={company.id} className="font-bold text-xs">
+                        {(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>

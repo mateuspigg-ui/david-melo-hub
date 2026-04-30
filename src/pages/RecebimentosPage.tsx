@@ -31,6 +31,7 @@ type Payment = {
   entry_bank_account_id?: string | null;
   client_id: string | null;
   event_id: string | null;
+  company_id?: string | null;
   clients?: { first_name: string; last_name: string } | null;
   events?: { title: string } | null;
 };
@@ -65,6 +66,7 @@ export default function RecebimentosPage() {
   const [dateFilterMode, setDateFilterMode] = useState<"all" | "today" | "custom">("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"bloco" | "lista">("bloco");
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
@@ -147,11 +149,13 @@ export default function RecebimentosPage() {
     entry_date: "",
     client_id: "",
     event_id: "",
+    company_id: "",
   });
 
   const isMissingEntryPaidAtColumnError = (error: any) => /entry_paid_at.*does not exist|schema cache|could not find.*entry_paid_at/i.test(String(error?.message || ""));
   const isMissingEntryBankAccountColumnError = (error: any) => /entry_bank_account_id.*does not exist|schema cache|could not find.*entry_bank_account_id/i.test(String(error?.message || ""));
   const isMissingInstallmentBankAccountColumnError = (error: any) => /bank_account_id.*does not exist|schema cache|could not find.*bank_account_id/i.test(String(error?.message || ""));
+  const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
 
   const { data: payments = [], isLoading } = useQuery({
     queryKey: ["payments"],
@@ -208,6 +212,21 @@ export default function RecebimentosPage() {
     },
   });
 
+  const { data: companies = [] } = useQuery({
+    queryKey: ["companies-select"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("companies")
+        .select("id, legal_name, trade_name, cnpj")
+        .order("trade_name", { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
   useEffect(() => {
     let active = true;
     const checkEntryColumn = async () => {
@@ -244,6 +263,7 @@ export default function RecebimentosPage() {
       const eventName = p.events?.title || "";
       const textMatch = !q || `${clientName} ${eventName}`.toLowerCase().includes(q);
       if (!textMatch) return false;
+      if (companyFilter !== "all" && String((p as any).company_id || "") !== companyFilter) return false;
 
       const paymentInstallments = installmentsByPayment.get(p.id) || [];
       const hasPendingEntry = Boolean(p.has_entry_payment && Number(p.entry_amount || 0) > 0 && !p.entry_paid_at);
@@ -280,7 +300,7 @@ export default function RecebimentosPage() {
 
       return true;
     });
-  }, [payments, search, installmentsByPayment, statusFilter, dateFilterMode, dateFrom, dateTo]);
+  }, [payments, search, installmentsByPayment, statusFilter, dateFilterMode, dateFrom, dateTo, companyFilter]);
 
   const groupedByClient = useMemo(() => {
     const map = new Map<string, { clientName: string; payments: Payment[] }>();
@@ -414,9 +434,28 @@ export default function RecebimentosPage() {
             entry_date: hasEntry ? contractForm.entry_date : null,
             client_id: contractForm.client_id,
             event_id: contractForm.event_id || null,
+            company_id: contractForm.company_id || null,
           } as any)
           .eq("id", editingPayment.id);
-        if (paymentError) throw paymentError;
+        if (paymentError) {
+          if (isMissingCompanyIdColumnError(paymentError)) {
+            const retry = await supabase
+              .from("payments")
+              .update({
+                total_event_value: totalValue,
+                installment_count: count,
+                has_entry_payment: hasEntry,
+                entry_amount: hasEntry ? entryAmount : null,
+                entry_date: hasEntry ? contractForm.entry_date : null,
+                client_id: contractForm.client_id,
+                event_id: contractForm.event_id || null,
+              } as any)
+              .eq("id", editingPayment.id);
+            if (retry.error) throw retry.error;
+          } else {
+            throw paymentError;
+          }
+        }
       } else {
         const { error: paymentError } = await supabase
           .from("payments")
@@ -429,8 +468,27 @@ export default function RecebimentosPage() {
             entry_date: hasEntry ? contractForm.entry_date : null,
             client_id: contractForm.client_id,
             event_id: contractForm.event_id || null,
+            company_id: contractForm.company_id || null,
           } as any);
-        if (paymentError) throw paymentError;
+        if (paymentError) {
+          if (isMissingCompanyIdColumnError(paymentError)) {
+            const retry = await supabase
+              .from("payments")
+              .insert({
+                id: paymentId,
+                total_event_value: totalValue,
+                installment_count: count,
+                has_entry_payment: hasEntry,
+                entry_amount: hasEntry ? entryAmount : null,
+                entry_date: hasEntry ? contractForm.entry_date : null,
+                client_id: contractForm.client_id,
+                event_id: contractForm.event_id || null,
+              } as any);
+            if (retry.error) throw retry.error;
+          } else {
+            throw paymentError;
+          }
+        }
       }
 
       const remaining = totalValue - (hasEntry ? entryAmount : 0);
@@ -479,7 +537,7 @@ export default function RecebimentosPage() {
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       await syncEventPaymentStatus(contractForm.event_id || editingPayment?.event_id || null);
       setContractOpen(false);
-      setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "" });
+      setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "" });
       setInstallmentPlan([]);
       setEditingPayment(null);
       toast({ title: editingPayment ? "Pagamento atualizado com sucesso" : "Contrato criado com sucesso" });
@@ -498,6 +556,7 @@ export default function RecebimentosPage() {
       entry_date: payment.entry_date || "",
       client_id: payment.client_id || "",
       event_id: payment.event_id || "",
+      company_id: (payment as any).company_id || "",
     });
     setInstallmentPlan(
       paymentInstallments.length
@@ -683,7 +742,7 @@ export default function RecebimentosPage() {
               <List className="w-4 h-4 mr-2" /> Lista
             </Button>
           </div>
-          <Button onClick={() => { setEditingPayment(null); setContractOpen(true); }} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
+          <Button onClick={() => { setEditingPayment(null); setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "" }); setInstallmentPlan([]); setContractOpen(true); }} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
             <Plus className="w-4 h-4 mr-2" /> Novo Contrato
           </Button>
         </div>
@@ -702,7 +761,7 @@ export default function RecebimentosPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_220px_180px_180px] gap-3 items-end">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_220px_220px_180px_180px] gap-3 items-end">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -738,6 +797,21 @@ export default function RecebimentosPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {companies.length > 0 && (
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">CNPJ</Label>
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos CNPJs</SelectItem>
+                {companies.map((company: any) => (
+                  <SelectItem key={company.id} value={company.id}>{(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-1">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</Label>
@@ -952,6 +1026,20 @@ export default function RecebimentosPage() {
                   <SelectContent>{eventsByClient.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {companies.length > 0 && (
+                <div className="space-y-1">
+                  <Label>CNPJ / Empresa</Label>
+                  <Select value={contractForm.company_id || "none"} onValueChange={(v) => setContractForm({ ...contractForm, company_id: v === "none" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem vínculo</SelectItem>
+                      {companies.map((company: any) => (
+                        <SelectItem key={company.id} value={company.id}>{(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
