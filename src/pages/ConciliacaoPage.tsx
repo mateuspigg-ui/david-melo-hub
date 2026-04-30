@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ const steps = [
 ];
 
 type ImportedArtifact = {
-  mode: 'bank' | 'accounting' | 'trial_balance';
+  mode: 'bank' | 'accounting';
   kind: 'pdf' | 'csv';
   fileName: string;
   count: number;
@@ -81,7 +81,6 @@ const ConciliacaoPage = () => {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importMode, setImportMode] = useState<'bank' | 'accounting'>('bank');
   const [importedArtifacts, setImportedArtifacts] = useState<ImportedArtifact[]>([]);
-  const trialBalanceInputRef = useRef<HTMLInputElement | null>(null);
   const [balances, setBalances] = useState({
     tolerance: 1,
     statementInitial: 0,
@@ -280,27 +279,6 @@ const ConciliacaoPage = () => {
     });
   };
 
-  const handleTrialBalanceUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const isCsv = file.name.toLowerCase().endsWith('.csv');
-    if (!isCsv) {
-      toast({ title: 'Formato inválido', description: 'O balancete deve ser enviado em CSV.', variant: 'destructive' });
-      return;
-    }
-
-    upsertImportedArtifact({
-      mode: 'trial_balance',
-      kind: 'csv',
-      fileName: file.name,
-      count: 0,
-      importedAt: new Date().toISOString(),
-    });
-    toast({ title: 'Balancete anexado', description: 'Arquivo CSV registrado para a etapa de conciliação.' });
-    event.target.value = '';
-  };
-
   const handleNext = () => {
     if (currentStep === 1 && !selectedAccount) {
       toast({ title: 'Aviso', description: 'Selecione a conta bancária para continuar.', variant: 'destructive' });
@@ -320,15 +298,6 @@ const ConciliacaoPage = () => {
       toast({
         title: 'Razão contábil pendente',
         description: 'Envie a razão contábil em CSV para prosseguir.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (currentStep === 2 && !importedArtifacts.find((item) => item.mode === 'trial_balance')) {
-      toast({
-        title: 'Balancete pendente',
-        description: 'Envie o balancete contábil em CSV para continuar.',
         variant: 'destructive',
       });
       return;
@@ -427,15 +396,7 @@ const ConciliacaoPage = () => {
                 </div>
               </div>
 
-              <input
-                ref={trialBalanceInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                onChange={handleTrialBalanceUpload}
-                className="hidden"
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="border-border/30 bg-secondary/10">
                   <CardHeader>
                     <CardTitle className="text-sm uppercase tracking-wider">1) Extrato Bancário</CardTitle>
@@ -476,22 +437,6 @@ const ConciliacaoPage = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border/30 bg-secondary/10">
-                  <CardHeader>
-                    <CardTitle className="text-sm uppercase tracking-wider">3) Balancete Contábil</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-xs text-muted-foreground">Envie o balancete em CSV.</p>
-                    <Button
-                      variant="outline"
-                      className="w-full border-gold text-gold hover:bg-gold hover:text-white"
-                      disabled={!selectedAccount}
-                      onClick={() => trialBalanceInputRef.current?.click()}
-                    >
-                      Enviar Balancete
-                    </Button>
-                  </CardContent>
-                </Card>
               </div>
 
               {importedArtifacts.length > 0 && (
@@ -503,7 +448,7 @@ const ConciliacaoPage = () => {
                         <div>
                           <p className="text-xs font-bold text-foreground">{item.fileName}</p>
                           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                            {item.mode === 'bank' ? 'Extrato bancário' : item.mode === 'accounting' ? 'Razão contábil' : 'Balancete contábil'} • {item.kind.toUpperCase()}
+                            {item.mode === 'bank' ? 'Extrato bancário' : 'Razão contábil'} • {item.kind.toUpperCase()}
                           </p>
                         </div>
                         <Badge variant="outline" className="text-[10px] border-gold/30 text-gold bg-gold/5">
