@@ -100,7 +100,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
       if (lead) {
         const { error } = await supabase.from('leads').update(payload as any).eq('id', lead.id);
         if (error) throw error;
-        return lead.id;
+        return { leadId: lead.id, uploadFailed: false };
       } else {
         const insertPayload = {
           ...payload,
@@ -111,40 +111,49 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
         const newLeadId = createdLead.id as string;
 
         if (leadFiles.length > 0) {
-          const userData = await supabase.auth.getUser();
-          const uploadedBy = userData.data.user?.id || null;
+          try {
+            const userData = await supabase.auth.getUser();
+            const uploadedBy = userData.data.user?.id || null;
 
-          for (const file of leadFiles) {
-            const safeName = file.name.replace(/\s+/g, '-');
-            const filePath = `${newLeadId}/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
+            for (const file of leadFiles) {
+              const safeName = file.name.replace(/\s+/g, '-');
+              const filePath = `${newLeadId}/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
 
-            const { error: uploadError } = await (supabase as any).storage.from('lead-files').upload(filePath, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-            if (uploadError) throw uploadError;
+              const { error: uploadError } = await (supabase as any).storage.from('lead-files').upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+              if (uploadError) throw uploadError;
 
-            const { data: publicData } = (supabase as any).storage.from('lead-files').getPublicUrl(filePath);
-            const fileUrl = publicData?.publicUrl || null;
-            if (!fileUrl) throw new Error('Falha ao gerar URL do arquivo');
+              const { data: publicData } = (supabase as any).storage.from('lead-files').getPublicUrl(filePath);
+              const fileUrl = publicData?.publicUrl || null;
+              if (!fileUrl) throw new Error('Falha ao gerar URL do arquivo');
 
-            const { error: insertError } = await (supabase as any).from('lead_files').insert({
-              lead_id: newLeadId,
-              file_name: file.name,
-              file_url: fileUrl,
-              storage_path: filePath,
-              mime_type: file.type || null,
-              size_bytes: file.size || null,
-              uploaded_by: uploadedBy,
-            });
-            if (insertError) throw insertError;
+              const { error: insertError } = await (supabase as any).from('lead_files').insert({
+                lead_id: newLeadId,
+                file_name: file.name,
+                file_url: fileUrl,
+                storage_path: filePath,
+                mime_type: file.type || null,
+                size_bytes: file.size || null,
+                uploaded_by: uploadedBy,
+              });
+              if (insertError) throw insertError;
+            }
+          } catch (uploadErr: any) {
+            return {
+              leadId: newLeadId,
+              uploadFailed: true,
+              uploadMessage: uploadErr?.message || 'Falha ao anexar arquivos',
+            };
           }
         }
 
-        return newLeadId;
+        return { leadId: newLeadId, uploadFailed: false };
       }
     },
-    onSuccess: (savedLeadId, variables) => {
+    onSuccess: (result, variables) => {
+      const savedLeadId = result?.leadId;
       const savedStage = variables.stage || lead?.stage || 'novo_contato';
       const movedToClosedStage = savedStage === 'fechados' && (!lead || lead.stage !== 'fechados');
       const createdInNovoStage = !lead && savedStage === 'novo_contato';
@@ -161,6 +170,22 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
       if (createdInNovoStage) {
         publishLeadAlert('new', savedLeadId);
         onNewLeadCreatedAlert?.(savedLeadId);
+        if (result?.uploadFailed) {
+          toast({
+            title: 'Lead criado, mas anexos falharam',
+            description: result?.uploadMessage || 'Verifique bucket/políticas da tabela lead_files.',
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+
+      if (result?.uploadFailed) {
+        toast({
+          title: 'Lead salvo, mas anexos falharam',
+          description: result?.uploadMessage || 'Verifique bucket/políticas da tabela lead_files.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -168,11 +193,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
     },
     onError: (err: unknown) => {
       const msg = err && typeof err === 'object' && 'message' in err ? String((err as {message: string}).message) : '';
-      if (msg.includes('column') || msg.includes('schema')) {
-        toast({ title: 'Execute o SQL de migração no Supabase para adicionar os campos de contato.', variant: 'destructive' });
-      } else {
-        toast({ title: 'Erro ao salvar lead. Verifique os dados e tente novamente.', variant: 'destructive' });
-      }
+      toast({ title: 'Erro ao salvar lead', description: msg || 'Verifique os dados e tente novamente.', variant: 'destructive' });
     },
   });
 
