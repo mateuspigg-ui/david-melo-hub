@@ -54,6 +54,7 @@ const sections: NavSection[] = [
     label: 'Financeiro',
     items: [
       { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard, module: 'financeiro' },
+      { label: 'Empresas', path: '/empresas', icon: Building2, module: 'financeiro' },
       { label: 'Contas Bancárias', path: '/contas-bancarias', icon: Landmark, module: 'financeiro' },
       { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp, module: 'financeiro' },
       { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt, module: 'financeiro' },

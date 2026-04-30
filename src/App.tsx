@@ -20,6 +20,7 @@ const CRMPage = lazy(() => import("@/pages/CRMPage"));
 const ClientesPage = lazy(() => import("@/pages/ClientesPage"));
 const BankAccountsPage = lazy(() => import("@/pages/BankAccountsPage"));
 const FinancialDashboard = lazy(() => import("@/pages/FinancialDashboard"));
+const EmpresasPage = lazy(() => import("@/pages/EmpresasPage"));
 const EquipePage = lazy(() => import("@/pages/EquipePage"));
 const InvitePage = lazy(() => import("@/pages/InvitePage"));
 const FormularioPage = lazy(() => import("@/pages/FormularioPage"));
@@ -102,6 +103,7 @@ const App = () => (
                 <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
                 <Route path="/conciliacao" element={<ModuleRoute module="financeiro" element={<ConciliacaoPage />} />} />
                 <Route path="/financeiro-dashboard" element={<ModuleRoute module="financeiro" element={<FinancialDashboard />} />} />
+                <Route path="/empresas" element={<ModuleRoute module="financeiro" element={<EmpresasPage />} />} />
                 <Route path="/contas-bancarias" element={<ModuleRoute module="financeiro" element={<BankAccountsPage />} />} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="financeiro" element={<ContasPagarPage />} />} />
                 <Route path="/recebimentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
