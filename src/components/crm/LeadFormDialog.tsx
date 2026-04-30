@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,11 +47,13 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormData>();
+  const [leadFiles, setLeadFiles] = useState<File[]>([]);
 
   const todayDate = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (open) {
+      setLeadFiles([]);
       if (lead) {
         reset({
           title: lead.title,
@@ -106,7 +108,40 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
         };
         const { data: createdLead, error } = await supabase.from('leads').insert(insertPayload as any).select('id').single();
         if (error) throw error;
-        return createdLead.id as string;
+        const newLeadId = createdLead.id as string;
+
+        if (leadFiles.length > 0) {
+          const userData = await supabase.auth.getUser();
+          const uploadedBy = userData.data.user?.id || null;
+
+          for (const file of leadFiles) {
+            const safeName = file.name.replace(/\s+/g, '-');
+            const filePath = `${newLeadId}/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
+
+            const { error: uploadError } = await (supabase as any).storage.from('lead-files').upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+            if (uploadError) throw uploadError;
+
+            const { data: publicData } = (supabase as any).storage.from('lead-files').getPublicUrl(filePath);
+            const fileUrl = publicData?.publicUrl || null;
+            if (!fileUrl) throw new Error('Falha ao gerar URL do arquivo');
+
+            const { error: insertError } = await (supabase as any).from('lead_files').insert({
+              lead_id: newLeadId,
+              file_name: file.name,
+              file_url: fileUrl,
+              storage_path: filePath,
+              mime_type: file.type || null,
+              size_bytes: file.size || null,
+              uploaded_by: uploadedBy,
+            });
+            if (insertError) throw insertError;
+          }
+        }
+
+        return newLeadId;
       }
     },
     onSuccess: (savedLeadId, variables) => {
@@ -326,6 +361,21 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
                   className="bg-secondary/20 border-border/10 focus:border-gold rounded-xl resize-none text-sm font-medium p-4 shadow-sm min-h-[100px]"
                 />
               </div>
+
+              {!lead && (
+                <div className="sm:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Anexos do Orçamento</Label>
+                  <Input
+                    type="file"
+                    multiple
+                    onChange={(e) => setLeadFiles(Array.from(e.target.files || []))}
+                    className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl text-sm font-bold shadow-sm file:mr-3 file:rounded-lg file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-gold"
+                  />
+                  <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">
+                    {leadFiles.length > 0 ? `${leadFiles.length} arquivo(s) selecionado(s)` : 'Opcional: anexe proposta, orçamento ou briefing inicial.'}
+                  </p>
+                </div>
+              )}
             </div>
           </form>
         </div>
