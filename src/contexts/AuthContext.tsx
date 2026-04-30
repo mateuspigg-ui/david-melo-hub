@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -46,20 +46,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const loadUserContext = async (userId: string) => {
-    await withTimeout(Promise.all([fetchProfile(userId), fetchPermissions(userId)]));
-  };
-
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
     setProfile(data);
-  };
+  }, []);
 
-  const fetchPermissions = async (userId: string) => {
+  const fetchPermissions = useCallback(async (userId: string) => {
     // Check admin
     const { data: adminCheck } = await supabase.rpc('has_role', { _user_id: userId, _role: 'admin' as any });
     const admin = !!adminCheck;
@@ -72,7 +68,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data } = await supabase.from('module_permissions').select('module').eq('user_id', userId);
       setAllowedModules((data || []).map(d => d.module));
     }
-  };
+  }, []);
+
+  const loadUserContext = useCallback(async (userId: string) => {
+    await withTimeout(Promise.all([fetchProfile(userId), fetchPermissions(userId)]));
+  }, [fetchPermissions, fetchProfile]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearTimeout(forceReleaseLoading);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserContext]);
 
   const hasModuleAccess = (module: string) => {
     if (isAdmin || allowedModules.includes('all')) return true;

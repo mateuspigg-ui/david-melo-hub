@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -107,18 +107,18 @@ export default function MensagensPage() {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const markChatAsReadLocally = (chatId: string) => {
+  const markChatAsReadLocally = useCallback((chatId: string) => {
     queryClient.setQueryData<ChatRow[]>(['lead_chats_inbox'], (prev = []) => (
       prev.map((chat) => (chat.id === chatId ? { ...chat, unread_company: 0 } : chat))
     ));
     queryClient.invalidateQueries({ queryKey: ['chat_unread_total'] });
-  };
+  }, [queryClient]);
 
-  const markChatAsReadOnServer = async (chatId: string) => {
+  const markChatAsReadOnServer = useCallback(async (chatId: string) => {
     await (supabase as any).rpc('mark_company_chat_read', { p_chat_id: chatId });
     queryClient.invalidateQueries({ queryKey: ['lead_chats_inbox'] });
     queryClient.invalidateQueries({ queryKey: ['chat_unread_total'] });
-  };
+  }, [queryClient]);
 
   const { data: chats = [], isLoading } = useQuery({
     queryKey: ['lead_chats_inbox'],
@@ -160,7 +160,7 @@ export default function MensagensPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [queryClient, selectedId]);
+  }, [queryClient, selectedId, toast]);
 
   // Carrega mensagens do chat selecionado
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function MensagensPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedId, queryClient]);
+  }, [selectedId, markChatAsReadLocally, markChatAsReadOnServer]);
 
   const filteredChats = useMemo(() => {
     const q = search.trim().toLowerCase();

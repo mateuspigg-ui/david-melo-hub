@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicSupabase } from '@/integrations/supabase/publicClient';
 import ChatThread, { type ChatMessage } from '@/components/chat/ChatThread';
@@ -66,7 +66,7 @@ export default function PublicChatPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const mapLegacyMessages = (rows: LegacyMessageRow[]): ChatMessage[] => {
+  const mapLegacyMessages = useCallback((rows: LegacyMessageRow[]): ChatMessage[] => {
     return (rows || []).map((item) => ({
       id: item.id,
       chat_id: `legacy-${token}`,
@@ -79,7 +79,7 @@ export default function PublicChatPage() {
       created_at: item.created_at,
       read_at: null,
     }));
-  };
+  }, [token]);
 
   // 1. Resolve o token público (aceita token novo e legado)
   useEffect(() => {
@@ -211,7 +211,7 @@ export default function PublicChatPage() {
       window.clearInterval(pollingId);
       void publicSupabase.removeChannel(channel);
     };
-  }, [info?.chat_id, info?.lead_id, resolvedToken, mode]);
+  }, [info?.chat_id, info?.lead_id, resolvedToken, mode, mapLegacyMessages]);
 
   const handleSend = async (body: string) => {
     if (!resolvedToken) return;

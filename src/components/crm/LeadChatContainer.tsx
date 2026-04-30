@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,8 +34,35 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchMessages = useCallback(async () => {
+    try {
+      if (chatToken) {
+        const { data, error } = await supabase.rpc('get_messages_by_token', { p_token: chatToken });
+        if (error) throw error;
+        setMessages(data || []);
+      } else if (leadId) {
+        const { data, error } = await supabase
+          .from('lead_messages')
+          .select('*')
+          .eq('lead_id', leadId)
+          .order('created_at', { ascending: true });
+        if (error) throw error;
+
+        const formatted = (data || []).map(m => ({
+            ...m,
+            is_from_me: !!m.sender_id // Na visão admin, se tem sender_id é da equipe (me)
+        }));
+        setMessages(formatted);
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar mensagens:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [chatToken, leadId]);
+
   useEffect(() => {
-    fetchMessages();
+    void fetchMessages();
 
     // Configurar Realtime
     const channel = supabase
@@ -88,40 +115,13 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [leadId, chatToken]);
+  }, [leadId, chatToken, isAdminView, fetchMessages]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
-
-  const fetchMessages = async () => {
-    try {
-      if (chatToken) {
-        const { data, error } = await supabase.rpc('get_messages_by_token', { p_token: chatToken });
-        if (error) throw error;
-        setMessages(data || []);
-      } else if (leadId) {
-        const { data, error } = await supabase
-          .from('lead_messages')
-          .select('*')
-          .eq('lead_id', leadId)
-          .order('created_at', { ascending: true });
-        if (error) throw error;
-        
-        const formatted = (data || []).map(m => ({
-            ...m,
-            is_from_me: !!m.sender_id // Na visão admin, se tem sender_id é da equipe (me)
-        }));
-        setMessages(formatted);
-      }
-    } catch (error: any) {
-      console.error('Erro ao carregar mensagens:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSendMessage = async (e?: React.FormEvent, attachment?: { url: string, type: string }) => {
     if (e) e.preventDefault();
