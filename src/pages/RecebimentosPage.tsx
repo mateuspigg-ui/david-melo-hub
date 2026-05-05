@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { format, isPast, isToday } from "date-fns";
-import { ArrowDownCircle, Calendar, Check, ChevronDown, LayoutGrid, List, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, List, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +53,16 @@ type InstallmentPlanItem = {
   amount: string;
   status?: string;
   paid_at?: string | null;
+};
+
+type InvoiceRecord = {
+  id: string;
+  payment_id: string | null;
+  status: "draft" | "processing" | "authorized" | "rejected" | "cancelled";
+  invoice_number: string | null;
+  error_message: string | null;
+  pdf_url: string | null;
+  xml_url: string | null;
 };
 
 const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
@@ -226,6 +236,47 @@ export default function RecebimentosPage() {
       return data || [];
     },
   });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ["invoices-select"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("invoices")
+        .select("id, payment_id, status, invoice_number, error_message, pdf_url, xml_url")
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
+        throw error;
+      }
+      return (data || []) as InvoiceRecord[];
+    },
+  });
+
+  const invoiceByPaymentId = useMemo(() => {
+    const map = new Map<string, InvoiceRecord>();
+    for (const invoice of invoices) {
+      if (!invoice.payment_id) continue;
+      if (!map.has(invoice.payment_id)) map.set(invoice.payment_id, invoice);
+    }
+    return map;
+  }, [invoices]);
+
+  const getInvoiceStatusLabel = (status?: string | null) => {
+    if (status === "authorized") return "Autorizada";
+    if (status === "processing") return "Processando";
+    if (status === "rejected") return "Rejeitada";
+    if (status === "cancelled") return "Cancelada";
+    if (status === "draft") return "Rascunho";
+    return "Não emitida";
+  };
+
+  const getInvoiceStatusClass = (status?: string | null) => {
+    if (status === "authorized") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    if (status === "processing") return "bg-amber-100 text-amber-700 border-amber-200";
+    if (status === "rejected") return "bg-destructive/10 text-destructive border-destructive/20";
+    if (status === "cancelled") return "bg-slate-100 text-slate-700 border-slate-200";
+    return "bg-secondary text-muted-foreground border-border/30";
+  };
 
   useEffect(() => {
     let active = true;
@@ -712,6 +763,37 @@ export default function RecebimentosPage() {
     onError: (e: any) => toast({ title: "Erro ao atualizar parcela", description: e?.message || "Tente novamente.", variant: "destructive" }),
   });
 
+  const issueInvoiceMutation = useMutation({
+    mutationFn: async (payment: Payment) => {
+      if (!payment.client_id) throw new Error("Este recebimento não possui cliente vinculado.");
+      if (!(payment as any).company_id) throw new Error("Vincule uma empresa ao contrato antes de emitir a nota.");
+
+      const firstInstallment = (installmentsByPayment.get(payment.id) || [])[0];
+      const { error } = await supabase.functions.invoke("invoice-issue", {
+        body: {
+          payment_id: payment.id,
+          company_id: (payment as any).company_id,
+          client_id: payment.client_id,
+          items: [
+            {
+              description: payment.events?.title || "Serviços de evento",
+              quantity: 1,
+              unit_amount: Number(firstInstallment?.amount || payment.total_event_value || 0),
+            },
+          ],
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["invoices-select"] });
+      toast({ title: "Emissão de NF iniciada" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Erro ao emitir nota", description: e?.message || "Tente novamente.", variant: "destructive" });
+    },
+  });
+
   const eventsByClient = useMemo(() => {
     if (!contractForm.client_id) return events;
     return events.filter((evt: any) => evt.client_id === contractForm.client_id);
@@ -877,6 +959,8 @@ export default function RecebimentosPage() {
                     {group.payments.map((payment) => {
                       const paymentExpanded = expandedPaymentId === payment.id;
                       const paymentInstallments = installmentsByPayment.get(payment.id) || [];
+                      const invoice = invoiceByPaymentId.get(payment.id);
+                      const canIssueInvoice = !invoice || invoice.status === "rejected" || invoice.status === "cancelled";
                       return (
                         <div key={payment.id} className="bg-white border border-border/30 rounded-xl overflow-hidden">
                           <button
@@ -886,8 +970,31 @@ export default function RecebimentosPage() {
                             <div>
                               <p className="text-sm font-bold uppercase">{payment.events?.title || "Evento sem título"}</p>
                               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Total {currencyFmt(payment.total_event_value)}</p>
+                              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] uppercase tracking-wider font-black", getInvoiceStatusClass(invoice?.status))}>
+                                  <FileText className="w-3 h-3 mr-1" /> NF {getInvoiceStatusLabel(invoice?.status)}
+                                </span>
+                                {invoice?.invoice_number && (
+                                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
+                                    Nº {invoice.invoice_number}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={issueInvoiceMutation.isPending || !canIssueInvoice}
+                                className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border-gold/30 text-gold hover:bg-gold hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  issueInvoiceMutation.mutate(payment);
+                                }}
+                              >
+                                {invoice?.status === "rejected" || invoice?.status === "cancelled" ? "Reemitir NF" : "Emitir NF"}
+                              </Button>
                               <Button
                                 type="button"
                                 size="sm"

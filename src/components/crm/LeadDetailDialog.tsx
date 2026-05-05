@@ -121,6 +121,11 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   const [newTask, setNewTask] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
+  const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskTitle, setEditingTaskTitle] = useState('');
+  const [editingTaskDueDate, setEditingTaskDueDate] = useState('');
+  const [editingTaskAssignee, setEditingTaskAssignee] = useState('');
   const [isLeadTasksUnavailable, setIsLeadTasksUnavailable] = useState(false);
 
   const registeredTeamMembers = (teamMembers || [])
@@ -336,6 +341,46 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
     },
   });
 
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ id, title, due_date, assigned_to }: { id: string; title: string; due_date: string | null; assigned_to: string | null }) => {
+      const { error } = await supabase
+        .from('lead_tasks')
+        .update({ title, due_date: due_date || null, assigned_to })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
+      setEditingTaskId(null);
+      setEditingTaskTitle('');
+      setEditingTaskDueDate('');
+      setEditingTaskAssignee('');
+      setIsTaskEditOpen(false);
+      toast({ title: 'Tarefa atualizada' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar tarefa', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase.from('lead_tasks').delete().eq('id', taskId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lead_tasks', lead?.id] });
+      queryClient.invalidateQueries({ queryKey: ['overdue_leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead_task_meta'] });
+      toast({ title: 'Tarefa excluída' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao excluir tarefa', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
   const deleteLeadMutation = useMutation({
     mutationFn: async () => {
       if (!lead) return;
@@ -413,6 +458,14 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
 
   const overdueTasks = tasks.filter(t => getTaskDueStatus(t) === 'overdue');
   const todayTasks = tasks.filter(t => getTaskDueStatus(t) === 'today');
+
+  const openTaskEdit = (task: any) => {
+    setEditingTaskId(task.id);
+    setEditingTaskTitle(task.title || '');
+    setEditingTaskDueDate(task.due_date || '');
+    setEditingTaskAssignee(task.assigned_to || '');
+    setIsTaskEditOpen(true);
+  };
 
   const handleTaskSubmit = () => {
     if (isLeadTasksUnavailable) {
@@ -715,6 +768,32 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                         </span>
                       )}
                     </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-gold"
+                        title="Editar tarefa"
+                        onClick={() => openTaskEdit(task)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        disabled={deleteTaskMutation.isPending}
+                        title="Excluir tarefa"
+                        onClick={() => {
+                          if (!window.confirm('Excluir esta tarefa?')) return;
+                          deleteTaskMutation.mutate(task.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -777,6 +856,62 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
         </Tabs>
 
         {/* Footer - Fixed */}
+        <Dialog open={isTaskEditOpen} onOpenChange={setIsTaskEditOpen}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle>Editar tarefa</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Input
+                value={editingTaskTitle}
+                onChange={(e) => setEditingTaskTitle(e.target.value)}
+                placeholder="Título da tarefa"
+              />
+              <div className="grid grid-cols-1 gap-3">
+                <Input
+                  type="date"
+                  value={editingTaskDueDate}
+                  onChange={(e) => setEditingTaskDueDate(e.target.value)}
+                />
+                <select
+                  value={editingTaskAssignee}
+                  onChange={(e) => setEditingTaskAssignee(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Sem responsavel</option>
+                  {registeredTeamMembers.map((member) => (
+                    <option key={member.id} value={member.id}>{member.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsTaskEditOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  disabled={updateTaskMutation.isPending || !editingTaskId || !editingTaskTitle.trim()}
+                  onClick={() => {
+                    if (!editingTaskId) return;
+                    updateTaskMutation.mutate({
+                      id: editingTaskId,
+                      title: editingTaskTitle.trim(),
+                      due_date: editingTaskDueDate || null,
+                      assigned_to: editingTaskAssignee || null,
+                    });
+                  }}
+                >
+                  Salvar alterações
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <div className="p-4 md:p-5 bg-white border-t border-border/10 flex-none flex flex-wrap justify-end items-center gap-2 md:gap-3">
           <AlertDialog>
             <AlertDialogTrigger asChild>

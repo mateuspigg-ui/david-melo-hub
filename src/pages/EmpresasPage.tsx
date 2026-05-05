@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Building2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -14,6 +15,21 @@ type Company = {
   trade_name: string | null;
   cnpj: string | null;
   created_at?: string;
+};
+
+type CompanyFiscalSettings = {
+  id: string;
+  company_id: string;
+  provider: string;
+  environment: "homologation" | "production";
+  municipal_registration: string | null;
+  tax_regime: string | null;
+  cnae: string | null;
+  service_code_default: string | null;
+  iss_rate: number;
+  rps_series: string | null;
+  next_rps_number: number | null;
+  provider_account_ref: string | null;
 };
 
 const cleanDigits = (value: string) => value.replace(/\D/g, "").slice(0, 14);
@@ -53,6 +69,19 @@ export default function EmpresasPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [form, setForm] = useState({ legal_name: "", trade_name: "", cnpj: "" });
+  const [selectedCompanyId, setSelectedCompanyId] = useState("");
+  const [fiscalForm, setFiscalForm] = useState({
+    provider: "focus_nfe",
+    environment: "homologation",
+    municipal_registration: "",
+    tax_regime: "",
+    cnae: "",
+    service_code_default: "",
+    iss_rate: "0",
+    rps_series: "",
+    next_rps_number: "",
+    provider_account_ref: "",
+  });
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ["companies"],
@@ -75,9 +104,56 @@ export default function EmpresasPage() {
     });
   }, [companies, search]);
 
+  const { data: fiscalSettings = [] } = useQuery({
+    queryKey: ["company-fiscal-settings"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("company_fiscal_settings")
+        .select("*");
+      if (error) throw error;
+      return (data || []) as CompanyFiscalSettings[];
+    },
+  });
+
+  const selectedFiscalSettings = useMemo(
+    () => fiscalSettings.find((item) => item.company_id === selectedCompanyId) || null,
+    [fiscalSettings, selectedCompanyId]
+  );
+
   const resetForm = () => {
     setForm({ legal_name: "", trade_name: "", cnpj: "" });
     setEditingCompany(null);
+  };
+
+  const fillFiscalForm = (settings: CompanyFiscalSettings | null) => {
+    if (!settings) {
+      setFiscalForm({
+        provider: "focus_nfe",
+        environment: "homologation",
+        municipal_registration: "",
+        tax_regime: "",
+        cnae: "",
+        service_code_default: "",
+        iss_rate: "0",
+        rps_series: "",
+        next_rps_number: "",
+        provider_account_ref: "",
+      });
+      return;
+    }
+
+    setFiscalForm({
+      provider: settings.provider || "focus_nfe",
+      environment: settings.environment || "homologation",
+      municipal_registration: settings.municipal_registration || "",
+      tax_regime: settings.tax_regime || "",
+      cnae: settings.cnae || "",
+      service_code_default: settings.service_code_default || "",
+      iss_rate: String(settings.iss_rate ?? 0),
+      rps_series: settings.rps_series || "",
+      next_rps_number: settings.next_rps_number ? String(settings.next_rps_number) : "",
+      provider_account_ref: settings.provider_account_ref || "",
+    });
   };
 
   const saveMutation = useMutation({
@@ -129,6 +205,56 @@ export default function EmpresasPage() {
     },
     onError: (error: any) => {
       toast({ title: "Erro ao excluir", description: getFriendlyCompanyError(error), variant: "destructive" });
+    },
+  });
+
+  const saveFiscalMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompanyId) throw new Error("Selecione uma empresa para salvar as configurações fiscais.");
+
+      const issRate = Number(fiscalForm.iss_rate.replace(",", "."));
+      if (!Number.isFinite(issRate) || issRate < 0 || issRate > 100) {
+        throw new Error("Alíquota ISS inválida. Informe um valor entre 0 e 100.");
+      }
+
+      const nextRps = fiscalForm.next_rps_number.trim();
+      const parsedNextRps = nextRps ? Number(nextRps) : null;
+      if (parsedNextRps != null && (!Number.isInteger(parsedNextRps) || parsedNextRps < 1)) {
+        throw new Error("Próximo RPS inválido. Informe um número inteiro maior que zero.");
+      }
+
+      const payload = {
+        company_id: selectedCompanyId,
+        provider: fiscalForm.provider.trim() || "focus_nfe",
+        environment: fiscalForm.environment,
+        municipal_registration: fiscalForm.municipal_registration.trim() || null,
+        tax_regime: fiscalForm.tax_regime.trim() || null,
+        cnae: fiscalForm.cnae.trim() || null,
+        service_code_default: fiscalForm.service_code_default.trim() || null,
+        iss_rate: issRate,
+        rps_series: fiscalForm.rps_series.trim() || null,
+        next_rps_number: parsedNextRps,
+        provider_account_ref: fiscalForm.provider_account_ref.trim() || null,
+      };
+
+      if (selectedFiscalSettings?.id) {
+        const { error } = await (supabase as any)
+          .from("company_fiscal_settings")
+          .update(payload)
+          .eq("id", selectedFiscalSettings.id);
+        if (error) throw error;
+        return;
+      }
+
+      const { error } = await (supabase as any).from("company_fiscal_settings").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["company-fiscal-settings"] });
+      toast({ title: "Configuração fiscal salva" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro ao salvar fiscal", description: String(error?.message || "Tente novamente."), variant: "destructive" });
     },
   });
 
@@ -225,6 +351,106 @@ export default function EmpresasPage() {
             </table>
           </div>
         )}
+      </div>
+
+      <div className="bg-white premium-shadow rounded-2xl border border-border/40 p-6 md:p-8 space-y-6">
+        <div className="space-y-1">
+          <h2 className="text-xl font-display tracking-tight uppercase">Configuração Fiscal (NFSe)</h2>
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Configure os parâmetros de emissão por empresa.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa *</Label>
+            <Select
+              value={selectedCompanyId}
+              onValueChange={(value) => {
+                setSelectedCompanyId(value);
+                const next = fiscalSettings.find((item) => item.company_id === value) || null;
+                fillFiscalForm(next);
+              }}
+            >
+              <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
+                <SelectValue placeholder="Selecione uma empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.trade_name || company.legal_name || "Empresa"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Provedor</Label>
+            <Input value={fiscalForm.provider} onChange={(e) => setFiscalForm({ ...fiscalForm, provider: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Ambiente</Label>
+            <Select value={fiscalForm.environment} onValueChange={(v) => setFiscalForm({ ...fiscalForm, environment: v as "homologation" | "production" })}>
+              <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="homologation">Homologação</SelectItem>
+                <SelectItem value="production">Produção</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Inscrição Municipal</Label>
+            <Input value={fiscalForm.municipal_registration} onChange={(e) => setFiscalForm({ ...fiscalForm, municipal_registration: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Regime Tributário</Label>
+            <Input value={fiscalForm.tax_regime} onChange={(e) => setFiscalForm({ ...fiscalForm, tax_regime: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CNAE</Label>
+            <Input value={fiscalForm.cnae} onChange={(e) => setFiscalForm({ ...fiscalForm, cnae: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Código Serviço Padrão</Label>
+            <Input value={fiscalForm.service_code_default} onChange={(e) => setFiscalForm({ ...fiscalForm, service_code_default: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Alíquota ISS (%)</Label>
+            <Input value={fiscalForm.iss_rate} onChange={(e) => setFiscalForm({ ...fiscalForm, iss_rate: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Série RPS</Label>
+            <Input value={fiscalForm.rps_series} onChange={(e) => setFiscalForm({ ...fiscalForm, rps_series: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Próximo Número RPS</Label>
+            <Input value={fiscalForm.next_rps_number} onChange={(e) => setFiscalForm({ ...fiscalForm, next_rps_number: e.target.value.replace(/\D/g, "") })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Referência da Conta no Provedor</Label>
+            <Input value={fiscalForm.provider_account_ref} onChange={(e) => setFiscalForm({ ...fiscalForm, provider_account_ref: e.target.value })} className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+          </div>
+        </div>
+
+        <div className="flex justify-end border-t border-border/20 pt-4">
+          <Button
+            onClick={() => saveFiscalMutation.mutate()}
+            disabled={saveFiscalMutation.isPending || !selectedCompanyId}
+            className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest"
+          >
+            {saveFiscalMutation.isPending ? "Salvando..." : selectedFiscalSettings ? "Atualizar Configuração Fiscal" : "Salvar Configuração Fiscal"}
+          </Button>
+        </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
