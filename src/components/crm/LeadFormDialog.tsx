@@ -145,9 +145,8 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
                 lead_id: newLeadId,
                 file_name: file.name,
                 file_url: fileUrl,
-                storage_path: filePath,
-                mime_type: file.type || null,
-                size_bytes: file.size || null,
+                file_type: file.type || null,
+                file_size: file.size || null,
                 uploaded_by: uploadedBy,
               });
               if (insertError) throw insertError;
