@@ -99,6 +99,11 @@ export default function CRMPage() {
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['profiles'],
     queryFn: async () => {
+      const { data: rpcData, error: rpcError } = await (supabase as any).rpc('get_team_members_for_assignment');
+      if (!rpcError && Array.isArray(rpcData)) {
+        return rpcData.filter((p: any) => !!p?.id);
+      }
+
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
@@ -106,7 +111,6 @@ export default function CRMPage() {
         .order('full_name');
 
       if (profilesError) return [];
-
       return (profiles || []).filter((p: any) => !!p?.id);
     },
   });
