@@ -10,11 +10,12 @@ import { useAuth } from '@/contexts/AuthContext';
 const GOLD_COLORS = ['#C5A059', '#B89451', '#D4AF37', '#997F3D', '#E5C185'];
 
 const PIPELINE_COLORS: Record<string, string> = {
-  'Novo Contato': 'hsl(45, 70%, 50%)',       // gold (same as kanban)
-  'Orçamento Enviado': 'hsl(210, 60%, 50%)', // blue
-  'Em Negociação': 'hsl(35, 80%, 55%)',      // orange
-  'Fechados': 'hsl(142, 60%, 45%)',          // green
-  'Perdidos': 'hsl(0, 60%, 50%)',            // red
+  'Novo Contato': 'hsl(var(--gold))',
+  'Orçamento Enviado': 'hsl(210 60% 50%)',
+  'Cliente em Contato': 'hsl(48 95% 52%)',
+  'Em Negociação': 'hsl(35 80% 55%)',
+  'Fechados': 'hsl(142 60% 45%)',
+  'Perdidos': 'hsl(0 60% 50%)',
 };
 
 const Dashboard = () => {
@@ -86,6 +87,7 @@ const Dashboard = () => {
       const counts: Record<string, number> = {
         'novo_contato': 0,
         'orcamento_enviado': 0,
+        'cliente_em_contato': 0,
         'em_negociacao': 0,
         'fechados': 0,
         'perdidos': 0
@@ -98,6 +100,7 @@ const Dashboard = () => {
       return [
         { name: 'Novo Contato', value: counts.novo_contato },
         { name: 'Orçamento Enviado', value: counts.orcamento_enviado },
+        { name: 'Cliente em Contato', value: counts.cliente_em_contato },
         { name: 'Em Negociação', value: counts.em_negociacao },
         { name: 'Fechados', value: counts.fechados },
         { name: 'Perdidos', value: counts.perdidos },
