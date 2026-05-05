@@ -20,7 +20,7 @@ interface Props {
   onOpenLeadCard: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
   clients: { id: string; first_name: string; last_name: string }[];
-  teamMembers: { id: string; full_name: string }[];
+  teamMembers: { id: string; full_name: string; email?: string | null }[];
   stages: { id: string; label: string; color: string }[];
   eventTypes: { value: string; label: string }[];
 }
@@ -129,8 +129,13 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   const [isLeadTasksUnavailable, setIsLeadTasksUnavailable] = useState(false);
 
   const registeredTeamMembers = (teamMembers || [])
-    .filter((member) => member?.id && String(member.full_name || '').trim().length > 0)
-    .map((member) => ({ id: member.id, full_name: member.full_name.trim() }));
+    .filter((member) => member?.id)
+    .map((member) => {
+      const fullName = String(member.full_name || '').trim();
+      const email = String(member.email || '').trim();
+      const displayName = fullName || email || `Usuario ${member.id.slice(0, 6)}`;
+      return { id: member.id, full_name: displayName };
+    });
 
   const isLeadTasksMissingTableError = (error: any) => {
     const message = String(error?.message || '');

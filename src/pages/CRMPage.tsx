@@ -100,12 +100,12 @@ export default function CRMPage() {
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, email')
         .order('full_name');
 
       if (profilesError) return [];
 
-      return (profiles || []).filter((p: any) => String(p?.full_name || '').trim().length > 0);
+      return (profiles || []).filter((p: any) => !!p?.id);
     },
   });
 
