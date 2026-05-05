@@ -103,7 +103,7 @@ export default function CRMPage() {
         .select('id, full_name')
         .order('full_name');
 
-      if (profilesError) throw profilesError;
+      if (profilesError) return [];
 
       const namedProfiles = (profiles || []).filter((p: any) => String(p?.full_name || '').trim().length > 0);
 
@@ -124,7 +124,7 @@ export default function CRMPage() {
       const { data, error } = await supabase
         .from('lead_tasks')
         .select('lead_id, status, assigned_to');
-      if (error) throw error;
+      if (error) return {};
 
       const meta: Record<string, { pendingCount: number; assignees: string[] }> = {};
       const memberById = new Map((teamMembers || []).map((m: any) => [m.id, m.full_name]));
