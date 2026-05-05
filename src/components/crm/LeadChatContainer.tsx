@@ -34,6 +34,13 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const formatSafeTime = (value?: string | null) => {
+    if (!value) return '--:--';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '--:--';
+    return format(parsed, 'HH:mm');
+  };
+
   const fetchMessages = useCallback(async () => {
     try {
       if (chatToken) {
@@ -274,7 +281,7 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
 
               <div className={`mt-1.5 flex items-center gap-1.5 ${msg.is_from_me ? 'justify-end' : 'justify-start'}`}>
                 <span className="text-[8px] font-bold opacity-60 uppercase">
-                  {format(new Date(msg.created_at), 'HH:mm')}
+                  {formatSafeTime(msg.created_at)}
                 </span>
               </div>
             </div>

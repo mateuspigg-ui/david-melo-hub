@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, MapPin, Users, DollarSign, Clock, Edit, Trash2, CheckCircle2, Phone, AlertTriangle, Loader2, UserPlus, MessageCircle, Upload, FileText, ExternalLink } from 'lucide-react';
-import { format, isPast, isToday, parseISO } from 'date-fns';
+import { format, isPast, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import type { Lead } from '@/pages/CRMPage';
@@ -49,6 +49,12 @@ const getLeadFileStoragePath = (fileUrl: string) => {
   const markerIndex = fileUrl.indexOf(marker);
   if (markerIndex === -1) return null;
   return decodeURIComponent(fileUrl.slice(markerIndex + marker.length));
+};
+
+const parseValidDate = (value?: string | null, appendTime = false) => {
+  if (!value) return null;
+  const parsed = new Date(appendTime ? `${value}T00:00:00` : value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const playTaskCreatedAlert = () => {
@@ -455,7 +461,8 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   // Calcula status de prazo de cada tarefa
   const getTaskDueStatus = (task: { status: string; due_date: string | null }) => {
     if (task.status === 'done' || !task.due_date) return 'ok';
-    const due = parseISO(task.due_date);
+    const due = parseValidDate(task.due_date);
+    if (!due) return 'ok';
     if (isPast(due) && !isToday(due)) return 'overdue';
     if (isToday(due)) return 'today';
     return 'ok';
@@ -564,12 +571,12 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
           <TabsContent value="detalhes" className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8 m-0">
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-4">
-              {lead.event_date && (
+              {lead.event_date && parseValidDate(lead.event_date, true) && (
                 <div className="flex items-center gap-4 text-sm font-bold text-foreground/80">
                   <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold shadow-sm">
                     <Calendar className="w-5 h-5" />
                   </div>
-                  <span>{format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
+                  <span>{format(parseValidDate(lead.event_date, true)!, "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
                 </div>
               )}
               {lead.event_time && (
@@ -756,7 +763,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                       <span className={`text-sm font-bold block ${task.status === 'done' ? 'line-through text-muted-foreground/40' : dueStatus === 'overdue' ? 'text-red-700' : 'text-foreground/80'}`}>
                         {task.title}
                       </span>
-                      {task.due_date && (
+                      {task.due_date && parseValidDate(task.due_date) && (
                         <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1 mt-1 ${
                           dueStatus === 'overdue' ? 'text-red-500' :
                           dueStatus === 'today' ? 'text-orange-500' :
@@ -764,7 +771,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                         }`}>
                           {dueStatus === 'overdue' && <AlertTriangle className="w-3 h-3" />}
                           {dueStatus === 'overdue' ? 'ATRASADA · ' : dueStatus === 'today' ? 'HOJE · ' : ''}
-                          Prazo: {format(parseISO(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                          Prazo: {format(parseValidDate(task.due_date)!, "dd/MM/yyyy", { locale: ptBR })}
                         </span>
                       )}
                       {task.assignee?.full_name && (
