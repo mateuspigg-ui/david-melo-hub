@@ -346,11 +346,11 @@ export default function CRMPage() {
           </div>
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={collisionDetectionStrategy} autoScroll={false} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="px-2">
             <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-4 relative overflow-hidden group h-[calc(100vh-260px)] min-h-[520px]">
               <div className="absolute inset-0 bg-gradient-to-br from-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-              <div className="flex gap-5 overflow-x-auto overflow-y-hidden pb-2 snap-x snap-mandatory h-full relative z-10">
+              <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-2 h-full relative z-10">
                 {STAGES.map(stage => (
                   <KanbanColumn
                     key={stage.id}
