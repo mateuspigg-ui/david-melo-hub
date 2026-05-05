@@ -34,6 +34,20 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
       ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim()
       : null;
 
+  const formatSafeDate = (value?: string | null, fmt = 'dd/MM/yy') => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return format(date, fmt, { locale: ptBR });
+  };
+
+  const formatSafeEventDate = (value?: string | null) => {
+    if (!value) return '-';
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return '-';
+    return format(date, "dd 'de' MMM, yyyy", { locale: ptBR });
+  };
+
   const cardBorder = isDragging
     ? 'border-gold/30'
     : isOverlay
@@ -151,7 +165,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
           {lead.event_date && (
             <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground/80 font-bold uppercase tracking-wider">
               <Calendar className="w-3.5 h-3.5 text-gold/60" />
-              {format(new Date(lead.event_date + 'T00:00:00'), "dd 'de' MMM, yyyy", { locale: ptBR })}
+              {formatSafeEventDate(lead.event_date)}
             </div>
           )}
           
@@ -195,7 +209,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
           <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-60 transition-opacity">
             <Clock className="w-3 h-3" />
             <span className="text-[9px] font-bold">
-              {format(new Date(lead.created_at), "dd/MM/yy")}
+              {formatSafeDate(lead.created_at)}
             </span>
           </div>
         </div>

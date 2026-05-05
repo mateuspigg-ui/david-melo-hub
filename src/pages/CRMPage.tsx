@@ -81,8 +81,8 @@ export default function CRMPage() {
         .from('leads')
         .select('*, clients(first_name, last_name), profiles:assigned_to(full_name)')
         .order('updated_at', { ascending: false });
-      if (error) throw error;
-      return data as Lead[];
+      if (error) return [];
+      return (data || []) as Lead[];
     },
   });
 
@@ -90,8 +90,8 @@ export default function CRMPage() {
     queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await supabase.from('clients').select('id, first_name, last_name').order('first_name');
-      if (error) throw error;
-      return data;
+      if (error) return [];
+      return data || [];
     },
   });
 
