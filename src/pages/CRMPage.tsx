@@ -16,6 +16,7 @@ import { publishLeadAlert } from '@/lib/leadAlerts';
 const STAGES = [
   { id: 'novo_contato', label: 'Novo Contato', color: 'hsl(var(--gold))' },
   { id: 'orcamento_enviado', label: 'Orçamento Enviado', color: 'hsl(210 60% 50%)' },
+  { id: 'cliente_em_contato', label: 'Cliente em Contato', color: 'hsl(195 75% 45%)' },
   { id: 'em_negociacao', label: 'Em Negociação', color: 'hsl(35 80% 55%)' },
   { id: 'fechados', label: 'Fechados', color: 'hsl(142 60% 45%)' },
   { id: 'perdidos', label: 'Perdidos', color: 'hsl(0 60% 50%)' },
