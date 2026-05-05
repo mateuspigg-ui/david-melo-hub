@@ -105,16 +105,7 @@ export default function CRMPage() {
 
       if (profilesError) return [];
 
-      const namedProfiles = (profiles || []).filter((p: any) => String(p?.full_name || '').trim().length > 0);
-
-      const { data: roles, error: rolesError } = await supabase.from('user_roles').select('user_id');
-      if (rolesError || !roles?.length) {
-        return namedProfiles;
-      }
-
-      const activeUserIds = new Set((roles || []).map((r: any) => r.user_id).filter(Boolean));
-      const filtered = namedProfiles.filter((p: any) => activeUserIds.has(p.id));
-      return filtered.length ? filtered : namedProfiles;
+      return (profiles || []).filter((p: any) => String(p?.full_name || '').trim().length > 0);
     },
   });
 
