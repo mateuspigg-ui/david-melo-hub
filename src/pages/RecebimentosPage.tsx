@@ -806,7 +806,7 @@ export default function RecebimentosPage() {
               <SelectContent>
                 <SelectItem value="all">Todas empresas</SelectItem>
                 {companies.map((company: any) => (
-                  <SelectItem key={company.id} value={company.id}>{(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}</SelectItem>
+                  <SelectItem key={company.id} value={company.id}>{company.trade_name || company.legal_name || "Empresa"}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1034,7 +1034,7 @@ export default function RecebimentosPage() {
                     <SelectContent>
                       <SelectItem value="none">Sem vínculo</SelectItem>
                       {companies.map((company: any) => (
-                        <SelectItem key={company.id} value={company.id}>{(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}</SelectItem>
+                        <SelectItem key={company.id} value={company.id}>{company.trade_name || company.legal_name || "Empresa"}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

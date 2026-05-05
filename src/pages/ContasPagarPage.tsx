@@ -268,9 +268,9 @@ export default function ContasPagarPage() {
             <SelectContent className="bg-white border-border/40 shadow-2xl">
               <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todas empresas</SelectItem>
               {companies.map((company: any) => (
-                <SelectItem key={company.id} value={company.id} className="font-medium text-xs font-bold">
-                  {(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}
-                </SelectItem>
+                  <SelectItem key={company.id} value={company.id} className="font-medium text-xs font-bold">
+                    {company.trade_name || company.legal_name || "Empresa"}
+                  </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -414,7 +414,7 @@ export default function ContasPagarPage() {
                     <SelectItem value="none" className="font-bold text-xs uppercase">Sem vínculo</SelectItem>
                     {companies.map((company: any) => (
                       <SelectItem key={company.id} value={company.id} className="font-bold text-xs">
-                        {(company.trade_name || company.legal_name || "Empresa")} {company.cnpj ? `• ${company.cnpj}` : ""}
+                        {company.trade_name || company.legal_name || "Empresa"}
                       </SelectItem>
                     ))}
                   </SelectContent>
