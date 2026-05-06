@@ -1187,9 +1187,9 @@ export default function RecebimentosPage() {
       )}
 
       <Dialog open={contractOpen} onOpenChange={setContractOpen}>
-        <DialogContent className="max-w-2xl rounded-2xl">
+        <DialogContent className="max-w-2xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader><DialogTitle>{editingPayment ? "Editar pagamento" : "Novo contrato"}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto pr-1">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Cliente</Label>
@@ -1283,7 +1283,7 @@ export default function RecebimentosPage() {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-3 border-t border-border/20 bg-background">
             <Button variant="ghost" onClick={() => { setContractOpen(false); setEditingPayment(null); }}>Cancelar</Button>
             <Button onClick={() => createContractMutation.mutate()} disabled={createContractMutation.isPending}>{editingPayment ? "Salvar alterações" : "Cadastrar contrato"}</Button>
           </DialogFooter>
