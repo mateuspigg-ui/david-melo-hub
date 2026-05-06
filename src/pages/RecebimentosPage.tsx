@@ -1283,7 +1283,7 @@ export default function RecebimentosPage() {
               </div>
             )}
           </div>
-          <DialogFooter className="pt-3 border-t border-border/20 bg-background">
+          <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => { setContractOpen(false); setEditingPayment(null); }}>Cancelar</Button>
             <Button onClick={() => createContractMutation.mutate()} disabled={createContractMutation.isPending}>{editingPayment ? "Salvar alterações" : "Cadastrar contrato"}</Button>
           </DialogFooter>
