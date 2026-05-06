@@ -1291,7 +1291,7 @@ export default function RecebimentosPage() {
       </Dialog>
 
       <Dialog open={accountPickerOpen} onOpenChange={setAccountPickerOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader><DialogTitle>Conta de recebimento</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <Label>Conta bancária</Label>
@@ -1304,7 +1304,7 @@ export default function RecebimentosPage() {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)}>Cancelar</Button>
             <Button
               disabled={!pendingInstallment || (bankAccounts.length > 0 && !selectedBankAccountId)}
@@ -1329,7 +1329,7 @@ export default function RecebimentosPage() {
           setSelectedEntryBankAccountId("");
         }
       }}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader><DialogTitle>Conta de recebimento da entrada</DialogTitle></DialogHeader>
           <div className="space-y-2">
             <Label>Conta bancária</Label>
@@ -1342,7 +1342,7 @@ export default function RecebimentosPage() {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setEntryAccountPickerOpen(false)}>Cancelar</Button>
             <Button
               disabled={!pendingEntryPayment || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}

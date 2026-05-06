@@ -1030,7 +1030,7 @@ export default function PagamentosPage() {
           setSelectedBankAccountId("");
         }
       }}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-xl font-display">Conta de recebimento</DialogTitle>
           </DialogHeader>
@@ -1049,7 +1049,7 @@ export default function PagamentosPage() {
               </SelectContent>
             </Select>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)} className="font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
             <Button
               onClick={confirmInstallmentPayment}
