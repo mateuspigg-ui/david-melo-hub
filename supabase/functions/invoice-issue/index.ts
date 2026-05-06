@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getFiscalProvider, type FiscalProviderName } from '../_shared/fiscal/index.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -183,7 +184,29 @@ Deno.serve(async (req) => {
       { invoice_id: invoice.id, event_type: 'created', payload: { status: 'draft' }, created_by: user.id },
     ]);
 
-    const providerReference = `mock_${crypto.randomUUID()}`;
+    const providerName = String(fiscalSettings.provider || '').toLowerCase() as FiscalProviderName;
+    if (!['plugnotas', 'focusnfe', 'enotas'].includes(providerName)) {
+      return json(400, { error: 'Provider fiscal inválido. Use plugnotas, focusnfe ou enotas.' });
+    }
+
+    const fiscalProvider = getFiscalProvider(providerName);
+    const issueResult = await fiscalProvider.issueInvoice({
+      invoice_id: invoice.id,
+      company_id,
+      client_id,
+      environment: fiscalSettings.environment === 'production' ? 'production' : 'homologation',
+      amount_services: amountServices,
+      amount_iss: amountIss,
+      amount_net: amountNet,
+      rps_series: fiscalSettings.rps_series || null,
+      items: calculatedItems,
+    });
+
+    if (!issueResult.accepted || !issueResult.provider_reference) {
+      return json(502, { error: 'Provider fiscal recusou a emissão.' });
+    }
+
+    const providerReference = issueResult.provider_reference;
     const { error: processingError } = await adminClient
       .from('invoices')
       .update({
