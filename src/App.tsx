@@ -15,6 +15,7 @@ const AgendaPage = lazy(() => import("@/pages/AgendaPage"));
 const EventosPage = lazy(() => import("@/pages/EventosPage"));
 const ContasPagarPage = lazy(() => import("@/pages/ContasPagarPage"));
 const RecebimentosPage = lazy(() => import("@/pages/RecebimentosPage"));
+const NotasFiscaisPage = lazy(() => import("@/pages/NotasFiscaisPage"));
 const ConciliacaoPage = lazy(() => import("@/pages/ConciliacaoPage"));
 const CRMPage = lazy(() => import("@/pages/CRMPage"));
 const ClientesPage = lazy(() => import("@/pages/ClientesPage"));
@@ -107,6 +108,7 @@ const App = () => (
                 <Route path="/contas-bancarias" element={<ModuleRoute module="financeiro" element={<BankAccountsPage />} />} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="financeiro" element={<ContasPagarPage />} />} />
                 <Route path="/recebimentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
+                <Route path="/notas-fiscais" element={<ModuleRoute module="financeiro" element={<NotasFiscaisPage />} />} />
                 <Route path="/equipe" element={<ModuleRoute module="equipe" element={<EquipePage />} />} />
                 <Route path="/almoxarifado" element={<ModuleRoute module="almoxarifado" element={<AlmoxarifadoDashboardPage />} />} />
                 <Route path="/almoxarifado/alimentacao" element={<ModuleRoute module="almoxarifado" element={<AlimentacaoPage />} />} />

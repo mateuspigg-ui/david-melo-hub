@@ -59,6 +59,7 @@ const sections: NavSection[] = [
       { label: 'Conciliação', path: '/conciliacao', icon: ArrowDownUp, module: 'financeiro' },
       { label: 'Contas a Pagar', path: '/contas-pagar', icon: Receipt, module: 'financeiro' },
       { label: 'Recebimentos', path: '/recebimentos', icon: ArrowDownUp, module: 'financeiro' },
+      { label: 'Notas Fiscais', path: '/notas-fiscais', icon: FileText, module: 'financeiro' },
     ],
   },
   {
