@@ -454,12 +454,12 @@ export default function EmpresasPage() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xl rounded-2xl">
+        <DialogContent className="max-w-xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingCompany ? "Editar empresa" : "Nova empresa"}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto pr-1">
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Nome Fantasia</Label>
               <Input
@@ -491,7 +491,7 @@ export default function EmpresasPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setDialogOpen(false)} className="font-bold uppercase text-[10px] tracking-widest">
               Cancelar
             </Button>
