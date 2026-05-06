@@ -63,6 +63,7 @@ type InvoiceRecord = {
   error_message: string | null;
   pdf_url: string | null;
   xml_url: string | null;
+  cancelled_at?: string | null;
 };
 
 const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
@@ -242,13 +243,17 @@ export default function RecebimentosPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("invoices")
-        .select("id, payment_id, status, invoice_number, error_message, pdf_url, xml_url")
+        .select("id, payment_id, status, invoice_number, error_message, pdf_url, xml_url, cancelled_at")
         .order("created_at", { ascending: false });
       if (error) {
         if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
         throw error;
       }
       return (data || []) as InvoiceRecord[];
+    },
+    refetchInterval: (query) => {
+      const current = (query.state.data as InvoiceRecord[] | undefined) || [];
+      return current.some((invoice) => invoice.status === "processing") ? 8000 : false;
     },
   });
 
@@ -794,6 +799,25 @@ export default function RecebimentosPage() {
     },
   });
 
+  const cancelInvoiceMutation = useMutation({
+    mutationFn: async ({ invoice, reason }: { invoice: InvoiceRecord; reason: string }) => {
+      const { error } = await supabase.functions.invoke("invoice-cancel", {
+        body: {
+          invoice_id: invoice.id,
+          reason,
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["invoices-select"] });
+      toast({ title: "Nota fiscal cancelada" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Erro ao cancelar nota", description: e?.message || "Tente novamente.", variant: "destructive" });
+    },
+  });
+
   const eventsByClient = useMemo(() => {
     if (!contractForm.client_id) return events;
     return events.filter((evt: any) => evt.client_id === contractForm.client_id);
@@ -979,6 +1003,11 @@ export default function RecebimentosPage() {
                                     Nº {invoice.invoice_number}
                                   </span>
                                 )}
+                                {invoice?.status === "rejected" && invoice?.error_message && (
+                                  <span className="text-[9px] font-bold text-destructive/80 uppercase tracking-wider">
+                                    Motivo: {invoice.error_message}
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -995,6 +1024,52 @@ export default function RecebimentosPage() {
                               >
                                 {invoice?.status === "rejected" || invoice?.status === "cancelled" ? "Reemitir NF" : "Emitir NF"}
                               </Button>
+                              {invoice?.status === "authorized" && invoice?.pdf_url && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(invoice.pdf_url!, "_blank", "noopener,noreferrer");
+                                  }}
+                                >
+                                  PDF
+                                </Button>
+                              )}
+                              {invoice?.status === "authorized" && invoice?.xml_url && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(invoice.xml_url!, "_blank", "noopener,noreferrer");
+                                  }}
+                                >
+                                  XML
+                                </Button>
+                              )}
+                              {invoice?.status === "authorized" && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={cancelInvoiceMutation.isPending}
+                                  className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border-destructive/30 text-destructive hover:bg-destructive hover:text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const reason = window.prompt("Informe o motivo do cancelamento:", "Cancelamento solicitado pelo cliente") || "";
+                                    if (!reason.trim()) return;
+                                    if (!window.confirm("Confirmar cancelamento desta NF?")) return;
+                                    cancelInvoiceMutation.mutate({ invoice, reason: reason.trim() });
+                                  }}
+                                >
+                                  Cancelar NF
+                                </Button>
+                              )}
                               <Button
                                 type="button"
                                 size="sm"
