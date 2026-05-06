@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getFiscalProvider, type FiscalProviderName } from '../_shared/fiscal/index.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,9 +43,25 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const invoiceId = body?.invoice_id ? String(body.invoice_id) : null;
-    const providerReference = body?.provider_reference ? String(body.provider_reference) : null;
-    const status = body?.status ? String(body.status).toLowerCase() : null;
+    const providerHeader = String(req.headers.get('x-fiscal-provider') || body?.provider || '').toLowerCase();
+    let invoiceId = body?.invoice_id ? String(body.invoice_id) : null;
+    let providerReference = body?.provider_reference ? String(body.provider_reference) : null;
+    let status = body?.status ? String(body.status).toLowerCase() : null;
+
+    if (['plugnotas', 'focusnfe', 'enotas'].includes(providerHeader)) {
+      const normalized = getFiscalProvider(providerHeader as FiscalProviderName).normalizeWebhook(body, req.headers);
+      providerReference = normalized.provider_reference || providerReference;
+      status = normalized.status || status;
+      invoiceId = invoiceId || null;
+
+      body.invoice_number = normalized.invoice_number || body.invoice_number;
+      body.verification_code = normalized.verification_code || body.verification_code;
+      body.pdf_url = normalized.pdf_url || body.pdf_url;
+      body.xml_url = normalized.xml_url || body.xml_url;
+      body.error_message = normalized.reason || body.error_message;
+      body.issued_at = normalized.issued_at || body.issued_at;
+      body.cancelled_at = normalized.cancelled_at || body.cancelled_at;
+    }
 
     if (!invoiceId && !providerReference) {
       return json(400, { error: 'invoice_id ou provider_reference é obrigatório.' });

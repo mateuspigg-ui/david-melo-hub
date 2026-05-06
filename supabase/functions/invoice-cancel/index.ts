@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getFiscalProvider, type FiscalProviderName } from '../_shared/fiscal/index.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
 
     const { data: invoice, error: invoiceError } = await adminClient
       .from('invoices')
-      .select('id, status, provider_reference')
+      .select('id, company_id, status, provider, provider_reference')
       .eq('id', invoice_id)
       .maybeSingle();
 
@@ -78,6 +79,23 @@ Deno.serve(async (req) => {
 
     if (invoice.status !== 'authorized') {
       return json(400, { error: 'Somente notas autorizadas podem ser canceladas.' });
+    }
+
+    const providerName = String(invoice.provider || '').toLowerCase() as FiscalProviderName;
+    if (['plugnotas', 'focusnfe', 'enotas'].includes(providerName) && invoice.provider_reference) {
+      const { data: fiscalSettings } = await adminClient
+        .from('company_fiscal_settings')
+        .select('environment')
+        .eq('company_id', invoice.company_id)
+        .maybeSingle();
+
+      const fiscalProvider = getFiscalProvider(providerName);
+      await fiscalProvider.cancelInvoice({
+        invoice_id: invoice.id,
+        provider_reference: String(invoice.provider_reference),
+        reason: cancelReason,
+        environment: fiscalSettings?.environment === 'production' ? 'production' : 'homologation',
+      });
     }
 
     const { error: updateError } = await adminClient
