@@ -11,6 +11,14 @@ import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
 
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  corrente: 'Corrente Executiva',
+  fiscal: 'Conta Fiscal',
+  poupanca: 'Poupanca / Reserva',
+  investimento: 'Investimento Privado',
+  investimentos: 'Investimento Privado',
+};
+
 const BankAccountsPage = () => {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,6 +95,11 @@ const BankAccountsPage = () => {
       String(a.bank_name || '').localeCompare(String(b.bank_name || ''), 'pt-BR', { sensitivity: 'base' })
     );
   }, [accounts]);
+
+  const getAccountTypeLabel = (value?: string | null) => {
+    const key = String(value || '').trim().toLowerCase();
+    return ACCOUNT_TYPE_LABELS[key] || (value ? String(value) : '---');
+  };
 
   return (
     <div className="p-8 space-y-10 animate-fade-in max-w-[1500px] mx-auto min-h-screen">
@@ -178,7 +191,7 @@ const BankAccountsPage = () => {
 
             <div className="flex items-center justify-between mt-10 pt-6 border-t border-border/10">
                <div>
-                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-40">{account.account_type}</p>
+                  <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-40">{getAccountTypeLabel(account.account_type)}</p>
                </div>
                <div className="flex gap-3">
                  <button 
@@ -237,7 +250,7 @@ const BankAccountsPage = () => {
                       <p className="text-xs text-muted-foreground">ID: {account.bank_code || '---'}</p>
                     </td>
                     <td className="py-4 px-6 text-sm">{account.agency} / {account.account_number}{account.account_digit ? `-${account.account_digit}` : ''}</td>
-                    <td className="py-4 px-6 text-xs uppercase text-muted-foreground">{account.account_type || '---'}</td>
+                    <td className="py-4 px-6 text-xs uppercase text-muted-foreground">{getAccountTypeLabel(account.account_type)}</td>
                     <td className={`py-4 px-6 text-xs uppercase font-bold ${account.status === 'active' ? 'text-emerald-600' : 'text-destructive'}`}>{account.status === 'active' ? 'Ativo' : 'Offline'}</td>
                     <td className="py-4 px-6">
                       <div className="flex justify-end gap-2">
@@ -364,6 +377,7 @@ const BankAccountsPage = () => {
                   className="flex h-12 w-full rounded-xl bg-secondary/20 border border-border/10 px-4 py-2 text-xs font-black uppercase tracking-widest focus:border-gold text-foreground outline-none shadow-sm"
                 >
                   <option value="corrente">Corrente Executiva</option>
+                  <option value="fiscal">Conta Fiscal</option>
                   <option value="poupanca">Poupança / Reserva</option>
                   <option value="investimento">Investimento Privado</option>
                 </select>

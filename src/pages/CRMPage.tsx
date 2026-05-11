@@ -107,7 +107,7 @@ export default function CRMPage() {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
-        .eq('role', 'team_member')
+        .in('role', ['team_member', 'admin'])
         .order('full_name');
 
       if (profilesError) return [];

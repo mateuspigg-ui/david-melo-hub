@@ -33,6 +33,35 @@ const InvitePage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const acceptInvitationWithRetry = async (tokenValue: string, userId: string) => {
+    const maxAttempts = 6;
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const { error } = await supabase.rpc('accept_invitation', {
+        p_token: tokenValue,
+        p_user_id: userId,
+      });
+
+      if (!error) return;
+
+      lastError = error;
+      const isUserFkError =
+        String(error?.message || '').includes('module_permissions_user_id_fkey') ||
+        String(error?.message || '').includes('violates foreign key constraint');
+
+      if (!isUserFkError || attempt === maxAttempts) {
+        throw error;
+      }
+
+      await wait(700 * attempt);
+    }
+
+    if (lastError) throw lastError;
+  };
+
   useEffect(() => {
     const fetchInvitation = async () => {
       const { data, error } = await supabase
@@ -66,13 +95,19 @@ const InvitePage = () => {
       });
       if (signUpError) throw signUpError;
 
+      const looksLikeExistingUser =
+        !!signUpData?.user &&
+        !signUpData?.session &&
+        Array.isArray((signUpData.user as any).identities) &&
+        (signUpData.user as any).identities.length === 0;
+
+      if (looksLikeExistingUser) {
+        throw new Error('Este e-mail ja possui conta. Faca login ou redefina a senha e depois solicite um novo convite.');
+      }
+
       if (signUpData.user) {
         // 2. Accept invitation (creates permissions + role)
-        const { error: rpcError } = await supabase.rpc('accept_invitation', {
-          p_token: normalizedToken,
-          p_user_id: signUpData.user.id,
-        });
-        if (rpcError) throw rpcError;
+        await acceptInvitationWithRetry(normalizedToken, signUpData.user.id);
       }
 
       toast({
