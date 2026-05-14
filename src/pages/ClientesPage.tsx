@@ -26,6 +26,7 @@ interface Client {
   instagram: string | null;
   cpf_cnpj: string | null;
   address: string | null;
+  birth_date: string | null;
   created_at: string;
 }
 
@@ -45,7 +46,7 @@ interface ClientLeadEntry {
   created_at: string;
 }
 
-const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '', cpf_cnpj: '', address: '' };
+const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '', cpf_cnpj: '', address: '', birth_date: '' };
 
 const ClientesPage = () => {
   const [search, setSearch] = useState('');
@@ -55,8 +56,46 @@ const ClientesPage = () => {
   const [selectedClosedLeadId, setSelectedClosedLeadId] = useState('');
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [form, setForm] = useState(emptyForm);
+  const [cep, setCep] = useState('');
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
   const { toast } = useToast();
   const qc = useQueryClient();
+
+  const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 5) return digits;
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  };
+
+  const fetchAddressByCep = async (rawCep?: string) => {
+    const cepDigits = String(rawCep ?? cep).replace(/\D/g, '');
+    if (cepDigits.length !== 8) return;
+
+    setIsFetchingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+      if (!response.ok) throw new Error('Falha ao consultar CEP');
+      const data = await response.json();
+      if (data?.erro) {
+        toast({ title: 'CEP não encontrado', description: 'Verifique o CEP informado.', variant: 'destructive' });
+        return;
+      }
+
+      const fullAddress = [
+        data?.logradouro,
+        data?.bairro,
+        [data?.localidade, data?.uf].filter(Boolean).join(' - '),
+      ].filter(Boolean).join(', ');
+
+      if (fullAddress) {
+        setForm((prev) => ({ ...prev, address: fullAddress }));
+      }
+    } catch {
+      toast({ title: 'Erro ao buscar CEP', description: 'Não foi possível consultar o CEP agora.', variant: 'destructive' });
+    } finally {
+      setIsFetchingCep(false);
+    }
+  };
 
   const isMissingAddressColumnError = (error: any) => {
     const message = String(error?.message || '');
@@ -66,6 +105,11 @@ const ClientesPage = () => {
   const isMissingCpfCnpjColumnError = (error: any) => {
     const message = String(error?.message || '');
     return /could not find the ['"]cpf_cnpj['"] column/i.test(message) || /cpf_cnpj.*schema cache/i.test(message);
+  };
+
+  const isMissingBirthDateColumnError = (error: any) => {
+    const message = String(error?.message || '');
+    return /could not find the ['"]birth_date['"] column/i.test(message) || /birth_date.*schema cache/i.test(message);
   };
 
   const { data: clients = [], isLoading } = useQuery({
@@ -127,27 +171,30 @@ const ClientesPage = () => {
 
       const address = form.address.trim();
       const payloadWithAddress = address ? { ...payloadWithCpf, address } : payloadWithCpf;
+      const birthDate = form.birth_date || null;
+      const payload = { ...payloadWithAddress, birth_date: birthDate };
 
       const stripUnsupportedColumns = (payload: any, error: any) => {
         const nextPayload = { ...payload };
         if (isMissingAddressColumnError(error)) delete nextPayload.address;
         if (isMissingCpfCnpjColumnError(error)) delete nextPayload.cpf_cnpj;
+        if (isMissingBirthDateColumnError(error)) delete nextPayload.birth_date;
         return nextPayload;
       };
 
       if (editingClient) {
-        const { error } = await (supabase as any).from('clients').update(payloadWithAddress).eq('id', editingClient.id);
-        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error))) {
-          const retryPayload = stripUnsupportedColumns(payloadWithAddress, error);
+        const { error } = await (supabase as any).from('clients').update(payload).eq('id', editingClient.id);
+        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error) || isMissingBirthDateColumnError(error))) {
+          const retryPayload = stripUnsupportedColumns(payload, error);
           const retry = await (supabase as any).from('clients').update(retryPayload).eq('id', editingClient.id);
           if (retry.error) throw retry.error;
           return;
         }
         if (error) throw error;
       } else {
-        const { data, error } = await (supabase as any).from('clients').insert(payloadWithAddress).select('id').single();
-        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error))) {
-          const retryPayload = stripUnsupportedColumns(payloadWithAddress, error);
+        const { data, error } = await (supabase as any).from('clients').insert(payload).select('id').single();
+        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error) || isMissingBirthDateColumnError(error))) {
+          const retryPayload = stripUnsupportedColumns(payload, error);
           const retry = await (supabase as any).from('clients').insert(retryPayload).select('id').single();
           if (retry.error) throw retry.error;
 
@@ -226,6 +273,7 @@ const ClientesPage = () => {
     setEditingClient(null);
     setSelectedClosedLeadId('');
     setForm(emptyForm);
+    setCep('');
   };
 
   const openEdit = (c: Client) => {
@@ -238,7 +286,9 @@ const ClientesPage = () => {
       instagram: c.instagram || '',
       cpf_cnpj: c.cpf_cnpj || '',
       address: c.address || '',
+      birth_date: c.birth_date || '',
     });
+    setCep('');
     setDialogOpen(true);
   };
 
@@ -554,12 +604,12 @@ const ClientesPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Telefone / WhatsApp</Label>
-                  <Input
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                    placeholder="(00) 00000-0000"
-                  />
+                    <Input
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: formatPhone(e.target.value) })}
+                      className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                      placeholder="(00) 00000-0000"
+                    />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço de E-mail (Opcional)</Label>
@@ -574,12 +624,43 @@ const ClientesPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CPF/CNPJ (Opcional)</Label>
+                    <Input
+                      value={form.cpf_cnpj}
+                      onChange={(e) => setForm({ ...form, cpf_cnpj: formatCpfCnpj(e.target.value) })}
+                      className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Data de Nascimento (Opcional)</Label>
                   <Input
-                    value={form.cpf_cnpj}
-                    onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
+                    type="date"
+                    value={form.birth_date}
+                    onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
-                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
                   />
+                </div>
+                <div className="sm:col-span-2 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">CEP</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={cep}
+                      onChange={(e) => setCep(formatCep(e.target.value))}
+                      onBlur={() => { void fetchAddressByCep(); }}
+                      className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                      placeholder="00000-000"
+                      maxLength={9}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { void fetchAddressByCep(); }}
+                      disabled={isFetchingCep}
+                      className="h-12 px-5 rounded-xl"
+                    >
+                      {isFetchingCep ? 'Buscando...' : 'Buscar'}
+                    </Button>
+                  </div>
                 </div>
                 <div className="sm:col-span-2 space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Endereço (Opcional)</Label>
@@ -649,3 +730,22 @@ const ClientesPage = () => {
 };
 
 export default ClientesPage;
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const formatCpfCnpj = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 11) {
+      if (digits.length <= 3) return digits;
+      if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+      if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+    }
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  };
