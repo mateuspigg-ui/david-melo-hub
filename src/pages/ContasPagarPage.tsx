@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, Trash2, Check } from "lucide-react";
-import { format, isPast, isToday } from "date-fns";
+import { differenceInCalendarDays, format, startOfDay } from "date-fns";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
@@ -24,6 +24,28 @@ const isAccountPaid = (status: string | null | undefined, paidAt?: string | null
 const isAccountPending = (status: string | null | undefined, paidAt?: string | null) => {
   if (isAccountPaid(status, paidAt)) return false;
   return PENDING_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PENDING_STATUS_VALUES)[number]) || !status;
+};
+
+const LATE_FEE_RATE = 0.02;
+const DAILY_INTEREST_RATE = 0.00033;
+const INTEREST_GRACE_DAYS = 1;
+
+const getDaysOverdue = (dueDateIso: string) => {
+  const today = startOfDay(new Date());
+  const due = startOfDay(new Date(`${dueDateIso}T12:00:00`));
+  if (Number.isNaN(due.getTime())) return 0;
+  return Math.max(0, differenceInCalendarDays(today, due));
+};
+
+const getUpdatedAmount = (amount: number, dueDateIso: string, isPaid: boolean) => {
+  if (isPaid) return amount;
+  const overdueDays = getDaysOverdue(dueDateIso);
+  if (overdueDays <= 0) return amount;
+
+  const fee = amount * LATE_FEE_RATE;
+  const daysWithInterest = Math.max(0, overdueDays - INTEREST_GRACE_DAYS);
+  const interest = amount * DAILY_INTEREST_RATE * daysWithInterest;
+  return amount + fee + interest;
 };
 
 const getFriendlyAccountsPayableError = (error: any) => {
@@ -45,8 +67,10 @@ type AccountPayable = {
   payment_status: string;
   paid_at: string | null;
   supplier_id: string | null;
+  category_id: string | null;
   created_at: string;
   suppliers?: { company_name: string } | null;
+  accounts_payable_categories?: { name: string } | null;
   company_id?: string | null;
 };
 
@@ -55,8 +79,14 @@ export default function ContasPagarPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("due_date");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "" });
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
+  const [form, setForm] = useState({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "" });
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
 
   const { data: items = [], isLoading } = useQuery({
@@ -64,7 +94,7 @@ export default function ContasPagarPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("accounts_payable")
-        .select("*, suppliers(company_name)")
+        .select("*, suppliers(company_name), accounts_payable_categories(name)")
         .order("due_date", { ascending: true });
       if (error) throw error;
       return data as AccountPayable[];
@@ -94,6 +124,21 @@ export default function ContasPagarPage() {
     },
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["accounts-payable-categories"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("accounts_payable_categories")
+        .select("id, name")
+        .order("name", { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const parsedAmount = parseCurrencyInput(form.amount);
@@ -106,6 +151,7 @@ export default function ContasPagarPage() {
         amount: parsedAmount,
         due_date: form.due_date,
         supplier_id: form.supplier_id || null,
+        category_id: form.category_id || null,
         company_id: form.company_id || null,
         payment_status: "nao_pago",
         paid_at: null,
@@ -136,7 +182,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "" });
+      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "" });
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -199,16 +245,78 @@ export default function ContasPagarPage() {
   });
 
   const filtered = items.filter((item) => {
-    const matchSearch = `${item.description} ${item.suppliers?.company_name || ""}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = `${item.description} ${item.suppliers?.company_name || ""} ${item.accounts_payable_categories?.name || ""}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all"
       || (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
       || (statusFilter === "nao_pago" && isAccountPending(item.payment_status, item.paid_at));
     const matchCompany = companyFilter === "all" || String((item as any).company_id || "") === companyFilter;
-    return matchSearch && matchStatus && matchCompany;
+    const matchCategory = categoryFilter === "all" || String(item.category_id || "") === categoryFilter;
+    return matchSearch && matchStatus && matchCompany && matchCategory;
+  }).sort((a, b) => {
+    if (sortBy === "category") {
+      const categoryA = String(a.accounts_payable_categories?.name || "");
+      const categoryB = String(b.accounts_payable_categories?.name || "");
+      const byCategory = categoryA.localeCompare(categoryB, "pt-BR", { sensitivity: "base" });
+      if (byCategory !== 0) return byCategory;
+    }
+    return String(a.due_date || "").localeCompare(String(b.due_date || ""));
   });
 
-  const totalPending = items.filter((i) => isAccountPending(i.payment_status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
-  const totalOverdue = items.filter((i) => isAccountPending(i.payment_status, i.paid_at) && isPast(new Date(i.due_date + "T23:59:59")) && !isToday(new Date(i.due_date + "T12:00:00"))).reduce((s, i) => s + i.amount, 0);
+  const createSupplierMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        company_name: supplierForm.company_name.trim(),
+        cpf_cnpj: supplierForm.cpf_cnpj.trim() || null,
+        address: supplierForm.address.trim() || null,
+        phone: supplierForm.phone.trim() || null,
+        pix_details: supplierForm.pix_details.trim() || null,
+        instagram: supplierForm.instagram.trim() || null,
+      };
+      const { data, error } = await (supabase as any).from("suppliers").insert(payload).select("id").single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["suppliers-select"] });
+      setForm((prev) => ({ ...prev, supplier_id: data?.id || prev.supplier_id }));
+      setSupplierDialogOpen(false);
+      setSupplierForm({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
+      toast({ title: "Fornecedor cadastrado" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao cadastrar fornecedor", description: e?.message || "Não foi possível cadastrar fornecedor.", variant: "destructive" }),
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async () => {
+      const name = newCategoryName.trim();
+      if (!name) throw new Error("Informe o nome da categoria.");
+      const { data, error } = await (supabase as any)
+        .from("accounts_payable_categories")
+        .insert({ name })
+        .select("id, name")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["accounts-payable-categories"] });
+      setForm((prev) => ({ ...prev, category_id: data?.id || prev.category_id }));
+      setCategoryDialogOpen(false);
+      setNewCategoryName("");
+      toast({ title: "Categoria cadastrada" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao cadastrar categoria", description: e?.message || "Não foi possível cadastrar categoria.", variant: "destructive" }),
+  });
+
+  const totalPending = items
+    .filter((i) => isAccountPending(i.payment_status, i.paid_at))
+    .reduce((s, i) => s + i.amount, 0);
+  const totalOverdue = items
+    .filter((i) => isAccountPending(i.payment_status, i.paid_at) && getDaysOverdue(i.due_date) > 0)
+    .reduce((s, i) => s + i.amount, 0);
+  const totalOverdueUpdated = items
+    .filter((i) => isAccountPending(i.payment_status, i.paid_at) && getDaysOverdue(i.due_date) > 0)
+    .reduce((s, i) => s + getUpdatedAmount(i.amount, i.due_date, false), 0);
 
   return (
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2 pb-10">
@@ -236,6 +344,7 @@ export default function ContasPagarPage() {
           <div className="absolute top-0 left-0 w-2 h-full bg-destructive/40" />
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold font-bold text-destructive">Total Vencido</p>
           <p className="text-3xl font-display text-foreground mt-1 group-hover:text-destructive transition-colors">{currencyFmt(totalOverdue)}</p>
+          <p className="text-[10px] font-bold text-destructive/80 mt-1 uppercase tracking-wider">Atualizado: {currencyFmt(totalOverdueUpdated)}</p>
         </div>
       </div>
 
@@ -260,6 +369,15 @@ export default function ContasPagarPage() {
             <SelectItem value="pago" className="font-medium text-xs font-bold uppercase text-emerald-500">Pagos</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-52 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-white border-border/40 shadow-2xl">
+            <SelectItem value="due_date" className="font-medium text-xs font-bold uppercase">Ordenar por vencimento</SelectItem>
+            <SelectItem value="category" className="font-medium text-xs font-bold uppercase">Ordenar por categoria</SelectItem>
+          </SelectContent>
+        </Select>
         {companies.length > 0 && (
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
             <SelectTrigger className="w-64 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
@@ -271,6 +389,21 @@ export default function ContasPagarPage() {
                   <SelectItem key={company.id} value={company.id} className="font-medium text-xs font-bold">
                     {company.trade_name || company.legal_name || "Empresa"}
                   </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {categories.length > 0 && (
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-56 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-border/40 shadow-2xl">
+              <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todas categorias</SelectItem>
+              {categories.map((category: any) => (
+                <SelectItem key={category.id} value={category.id} className="font-medium text-xs font-bold uppercase">
+                  {category.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -290,7 +423,9 @@ export default function ContasPagarPage() {
       ) : (
         <div className="space-y-4">
           {filtered.map((item) => {
-            const overdue = isAccountPending(item.payment_status, item.paid_at) && isPast(new Date(item.due_date + "T23:59:59")) && !isToday(new Date(item.due_date + "T12:00:00"));
+            const overdueDays = getDaysOverdue(item.due_date);
+            const overdue = isAccountPending(item.payment_status, item.paid_at) && overdueDays > 0;
+            const updatedAmount = getUpdatedAmount(item.amount, item.due_date, isAccountPaid(item.payment_status, item.paid_at));
             return (
               <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border transition-all duration-300 hover:scale-[1.01] hover:shadow-xl group ${overdue ? "border-destructive/30 bg-destructive/[0.02]" : "border-border/40 premium-shadow"}`}>
                 <div className="flex items-center gap-4">
@@ -301,11 +436,15 @@ export default function ContasPagarPage() {
                     <h4 className="font-bold text-foreground text-sm tracking-tight leading-tight uppercase line-clamp-1">{item.description}</h4>
                     <div className="flex items-center gap-2 mt-1.5">
                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
-                        {item.suppliers?.company_name || "Sem fornecedor"}
-                      </p>
-                      <span className="text-muted-foreground/30 text-[10px]">•</span>
-                      <p className={`text-[10px] font-bold uppercase tracking-wider ${overdue ? "text-destructive" : "text-muted-foreground opacity-70"}`}>
-                        Vencimento: {format(new Date(item.due_date + "T12:00:00"), "dd MMM yyyy")}
+                         {item.suppliers?.company_name || "Sem fornecedor"}
+                       </p>
+                       <span className="text-muted-foreground/30 text-[10px]">•</span>
+                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
+                         {item.accounts_payable_categories?.name || "Sem categoria"}
+                       </p>
+                       <span className="text-muted-foreground/30 text-[10px]">•</span>
+                       <p className={`text-[10px] font-bold uppercase tracking-wider ${overdue ? "text-destructive" : "text-muted-foreground opacity-70"}`}>
+                         Vencimento: {format(new Date(item.due_date + "T12:00:00"), "dd MMM yyyy")}
                       </p>
                     </div>
                   </div>
@@ -314,7 +453,12 @@ export default function ContasPagarPage() {
                 <div className="flex items-center justify-between sm:justify-end gap-6 mt-4 sm:mt-0">
                   <div className="text-right">
                     <p className={`text-lg font-display tabular-nums tracking-tighter ${overdue ? "text-destructive" : "text-foreground"}`}>{currencyFmt(item.amount)}</p>
-                    {overdue && <p className="text-[8px] font-black text-destructive uppercase tracking-[0.2em] mt-0.5 animate-pulse">Título Vencido</p>}
+                    {overdue && (
+                      <>
+                        <p className="text-[8px] font-black text-destructive uppercase tracking-[0.2em] mt-0.5 animate-pulse">{overdueDays} dia(s) em atraso</p>
+                        <p className="text-[10px] font-bold text-destructive">Atualizado: {currencyFmt(updatedAmount)}</p>
+                      </>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -393,14 +537,33 @@ export default function ContasPagarPage() {
             
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa / Fornecedor</Label>
-              <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
-                <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
-                  <SelectValue placeholder="Selecionar da base de dados" />
-                </SelectTrigger>
-                <SelectContent className="bg-white shadow-2xl border-border/40">
-                  {suppliers.map((s) => <SelectItem key={s.id} value={s.id} className="font-bold text-xs uppercase">{s.company_name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg flex-1">
+                    <SelectValue placeholder="Selecionar da base de dados" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white shadow-2xl border-border/40">
+                    {suppliers.map((s) => <SelectItem key={s.id} value={s.id} className="font-bold text-xs uppercase">{s.company_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setSupplierDialogOpen(true)}>Novo</Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Categoria</Label>
+              <div className="flex gap-2">
+                <Select value={form.category_id || "none"} onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? "" : v })}>
+                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg flex-1">
+                    <SelectValue placeholder="Selecionar categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white shadow-2xl border-border/40">
+                    <SelectItem value="none" className="font-bold text-xs uppercase">Sem categoria</SelectItem>
+                    {categories.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setCategoryDialogOpen(true)}>Novo</Button>
+              </div>
             </div>
 
             {companies.length > 0 && (
@@ -429,6 +592,40 @@ export default function ContasPagarPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo Fornecedor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input value={supplierForm.company_name} onChange={(e) => setSupplierForm({ ...supplierForm, company_name: e.target.value })} placeholder="Nome / Razão social" />
+            <Input value={supplierForm.cpf_cnpj} onChange={(e) => setSupplierForm({ ...supplierForm, cpf_cnpj: e.target.value })} placeholder="CNPJ / CPF" />
+            <Input value={supplierForm.address} onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })} placeholder="Endereço" />
+            <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })} placeholder="Telefone" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setSupplierDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => createSupplierMutation.mutate()} disabled={!supplierForm.company_name.trim()}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Categoria</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Nome da categoria</Label>
+            <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Ex: Agua, Luz, Prolabore" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCategoryDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => createCategoryMutation.mutate()} disabled={!newCategoryName.trim()}>Salvar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

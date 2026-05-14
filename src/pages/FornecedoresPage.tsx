@@ -18,6 +18,8 @@ export default function FornecedoresPage() {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [form, setForm] = useState({
     company_name: '',
+    cpf_cnpj: '',
+    address: '',
     phone: '',
     pix_details: '',
     instagram: ''
@@ -77,7 +79,7 @@ export default function FornecedoresPage() {
     onError: (e: any) => toast({ title: 'Erro ao excluir fornecedor', description: e?.message || 'Verifique vínculos existentes.', variant: 'destructive' })
   });
 
-  const resetForm = () => setForm({ company_name: '', phone: '', pix_details: '', instagram: '' });
+  const resetForm = () => setForm({ company_name: '', cpf_cnpj: '', address: '', phone: '', pix_details: '', instagram: '' });
 
   const filtered = useMemo(() => {
     return suppliers
@@ -226,6 +228,8 @@ export default function FornecedoresPage() {
               <thead>
                 <tr className="bg-secondary/10 border-b border-border/20">
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Fornecedor</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">CNPJ / CPF</th>
+                  <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Endereço</th>
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Telefone</th>
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Instagram</th>
                   <th className="text-left py-4 px-6 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">PIX</th>
@@ -236,6 +240,8 @@ export default function FornecedoresPage() {
                 {filtered.map((s: any) => (
                   <tr key={s.id} className="hover:bg-secondary/5 transition-colors">
                     <td className="py-4 px-6 font-bold">{s.company_name}</td>
+                    <td className="py-4 px-6 text-sm">{s.cpf_cnpj || '---'}</td>
+                    <td className="py-4 px-6 text-sm">{s.address || '---'}</td>
                     <td className="py-4 px-6 text-sm">{s.phone || '---'}</td>
                     <td className="py-4 px-6 text-sm">{s.instagram ? `@${s.instagram}` : '---'}</td>
                     <td className="py-4 px-6 text-xs text-muted-foreground uppercase">{s.pix_details || '---'}</td>
@@ -272,6 +278,14 @@ export default function FornecedoresPage() {
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Contato (WhatsApp)</Label>
                 <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CNPJ / CPF</Label>
+                <Input value={form.cpf_cnpj} onChange={e => setForm({...form, cpf_cnpj: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Endereço</Label>
+                <Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Rua, número, bairro, cidade/UF" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificador Instagram</Label>
