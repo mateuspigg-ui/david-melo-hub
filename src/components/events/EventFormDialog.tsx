@@ -294,7 +294,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Data Prevista</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Data do Evento</Label>
               <Input 
                 type="date"
                 value={form.event_date} 

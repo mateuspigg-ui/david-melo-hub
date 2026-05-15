@@ -82,7 +82,7 @@ const AgendaPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lead_tasks')
-        .select('id, title, due_date, status, assigned_to, assignee:assigned_to(full_name), lead:lead_id(title)')
+        .select('id, title, due_date, due_time, status, assigned_to, assignee:assigned_to(full_name), lead:lead_id(title)')
         .order('due_date', { ascending: true });
       if (error) {
         if (/could not find the table ['"]public\.lead_tasks['"]/i.test(String(error.message || ''))) return [];
@@ -367,6 +367,7 @@ const AgendaPage = () => {
                             </span>
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-1 truncate">Lead: {leadTitle || 'Sem lead'}</p>
+                          {task.due_time && <p className="text-[11px] text-muted-foreground mt-1">Horário: {String(task.due_time).slice(0, 5)}</p>}
                           <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1"><Clock3 className="w-3 h-3" /> {assigneeName || 'Sem responsável'}</p>
                         </div>
                       );

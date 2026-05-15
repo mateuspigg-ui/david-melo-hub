@@ -58,6 +58,7 @@ export default function CRMPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [filterEventDate, setFilterEventDate] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
@@ -239,9 +240,10 @@ export default function CRMPage() {
         leadName.toLowerCase().includes(searchText) ||
         (lead.phone && lead.phone.includes(search));
       const matchesType = filterType === 'all' || lead.event_type === filterType;
-      return matchesSearch && matchesType;
+      const matchesEventDate = !filterEventDate || lead.event_date === filterEventDate;
+      return matchesSearch && matchesType && matchesEventDate;
     });
-  }, [leads, search, filterType]);
+  }, [leads, search, filterType, filterEventDate]);
 
   const leadsByStage = useMemo(() => {
     const map: Record<string, Lead[]> = {};
@@ -328,6 +330,19 @@ export default function CRMPage() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center gap-3 bg-white/50 border border-border/30 rounded-2xl px-4 h-14 group focus-within:border-gold/50 transition-all">
+            <Input
+              type="date"
+              value={filterEventDate}
+              onChange={(e) => setFilterEventDate(e.target.value)}
+              className="w-[200px] border-none bg-transparent h-full focus-visible:ring-0 font-black uppercase text-[10px] tracking-widest text-foreground/70"
+            />
+            {filterEventDate && (
+              <Button type="button" variant="ghost" className="h-9 px-3 text-[10px] font-black uppercase tracking-widest" onClick={() => setFilterEventDate('')}>
+                Limpar
+              </Button>
+            )}
           </div>
         </div>
       </div>

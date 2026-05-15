@@ -26,6 +26,7 @@ interface Client {
   instagram: string | null;
   cpf_cnpj: string | null;
   address: string | null;
+  address_number: string | null;
   birth_date: string | null;
   created_at: string;
 }
@@ -46,7 +47,7 @@ interface ClientLeadEntry {
   created_at: string;
 }
 
-const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '', cpf_cnpj: '', address: '', birth_date: '' };
+const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '', cpf_cnpj: '', address: '', address_number: '', birth_date: '' };
 
 const ClientesPage = () => {
   const [search, setSearch] = useState('');
@@ -112,6 +113,11 @@ const ClientesPage = () => {
     return /could not find the ['"]birth_date['"] column/i.test(message) || /birth_date.*schema cache/i.test(message);
   };
 
+  const isMissingAddressNumberColumnError = (error: any) => {
+    const message = String(error?.message || '');
+    return /could not find the ['"]address_number['"] column/i.test(message) || /address_number.*schema cache/i.test(message);
+  };
+
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -171,12 +177,15 @@ const ClientesPage = () => {
 
       const address = form.address.trim();
       const payloadWithAddress = address ? { ...payloadWithCpf, address } : payloadWithCpf;
+      const addressNumber = form.address_number.trim();
+      const payloadWithAddressNumber = addressNumber ? { ...payloadWithAddress, address_number: addressNumber } : payloadWithAddress;
       const birthDate = form.birth_date || null;
-      const payload = { ...payloadWithAddress, birth_date: birthDate };
+      const payload = { ...payloadWithAddressNumber, birth_date: birthDate };
 
       const stripUnsupportedColumns = (payload: any, error: any) => {
         const nextPayload = { ...payload };
         if (isMissingAddressColumnError(error)) delete nextPayload.address;
+        if (isMissingAddressNumberColumnError(error)) delete nextPayload.address_number;
         if (isMissingCpfCnpjColumnError(error)) delete nextPayload.cpf_cnpj;
         if (isMissingBirthDateColumnError(error)) delete nextPayload.birth_date;
         return nextPayload;
@@ -184,7 +193,7 @@ const ClientesPage = () => {
 
       if (editingClient) {
         const { error } = await (supabase as any).from('clients').update(payload).eq('id', editingClient.id);
-        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error) || isMissingBirthDateColumnError(error))) {
+        if (error && (isMissingAddressColumnError(error) || isMissingAddressNumberColumnError(error) || isMissingCpfCnpjColumnError(error) || isMissingBirthDateColumnError(error))) {
           const retryPayload = stripUnsupportedColumns(payload, error);
           const retry = await (supabase as any).from('clients').update(retryPayload).eq('id', editingClient.id);
           if (retry.error) throw retry.error;
@@ -193,7 +202,7 @@ const ClientesPage = () => {
         if (error) throw error;
       } else {
         const { data, error } = await (supabase as any).from('clients').insert(payload).select('id').single();
-        if (error && (isMissingAddressColumnError(error) || isMissingCpfCnpjColumnError(error) || isMissingBirthDateColumnError(error))) {
+        if (error && (isMissingAddressColumnError(error) || isMissingAddressNumberColumnError(error) || isMissingCpfCnpjColumnError(error) || isMissingBirthDateColumnError(error))) {
           const retryPayload = stripUnsupportedColumns(payload, error);
           const retry = await (supabase as any).from('clients').insert(retryPayload).select('id').single();
           if (retry.error) throw retry.error;
@@ -286,6 +295,7 @@ const ClientesPage = () => {
       instagram: c.instagram || '',
       cpf_cnpj: c.cpf_cnpj || '',
       address: c.address || '',
+      address_number: c.address_number || '',
       birth_date: c.birth_date || '',
     });
     setCep('');
@@ -669,6 +679,15 @@ const ClientesPage = () => {
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                     className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
                     placeholder="Rua, número, bairro, cidade - UF"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Número do Endereço (Opcional)</Label>
+                  <Input
+                    value={form.address_number}
+                    onChange={(e) => setForm({ ...form, address_number: e.target.value })}
+                    className="bg-secondary/20 border-border/10 focus:border-gold h-12 rounded-xl text-sm font-bold shadow-sm"
+                    placeholder="Ex: 123, A, S/N"
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-2">

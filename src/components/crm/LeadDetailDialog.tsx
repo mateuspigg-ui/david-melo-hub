@@ -126,11 +126,13 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   const queryClient = useQueryClient();
   const [newTask, setNewTask] = useState('');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskDueTime, setNewTaskDueTime] = useState('');
   const [newTaskAssignee, setNewTaskAssignee] = useState('');
   const [isTaskEditOpen, setIsTaskEditOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState('');
   const [editingTaskDueDate, setEditingTaskDueDate] = useState('');
+  const [editingTaskDueTime, setEditingTaskDueTime] = useState('');
   const [editingTaskAssignee, setEditingTaskAssignee] = useState('');
   const [isLeadTasksUnavailable, setIsLeadTasksUnavailable] = useState(false);
 
@@ -256,12 +258,13 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   });
 
   const addTaskMutation = useMutation({
-    mutationFn: async ({ title, due_date, assigned_to }: { title: string; due_date: string | null; assigned_to: string | null }) => {
+    mutationFn: async ({ title, due_date, due_time, assigned_to }: { title: string; due_date: string | null; due_time: string | null; assigned_to: string | null }) => {
       if (!lead) return;
       const { error } = await supabase.from('lead_tasks').insert({
         lead_id: lead.id,
         title,
         due_date: due_date || null,
+        due_time: due_time || null,
         assigned_to,
       });
       if (error) throw error;
@@ -280,6 +283,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setNewTask('');
       setNewTaskDueDate('');
+      setNewTaskDueTime('');
       setNewTaskAssignee('');
       onClose();
       playTaskCreatedAlert();
@@ -353,10 +357,10 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   });
 
   const updateTaskMutation = useMutation({
-    mutationFn: async ({ id, title, due_date, assigned_to }: { id: string; title: string; due_date: string | null; assigned_to: string | null }) => {
+    mutationFn: async ({ id, title, due_date, due_time, assigned_to }: { id: string; title: string; due_date: string | null; due_time: string | null; assigned_to: string | null }) => {
       const { error } = await supabase
         .from('lead_tasks')
-        .update({ title, due_date: due_date || null, assigned_to })
+        .update({ title, due_date: due_date || null, due_time: due_time || null, assigned_to })
         .eq('id', id);
       if (error) throw error;
     },
@@ -367,6 +371,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
       setEditingTaskId(null);
       setEditingTaskTitle('');
       setEditingTaskDueDate('');
+      setEditingTaskDueTime('');
       setEditingTaskAssignee('');
       setIsTaskEditOpen(false);
       toast({ title: 'Tarefa atualizada' });
@@ -475,6 +480,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
     setEditingTaskId(task.id);
     setEditingTaskTitle(task.title || '');
     setEditingTaskDueDate(task.due_date || '');
+    setEditingTaskDueTime(task.due_time || '');
     setEditingTaskAssignee(task.assigned_to || '');
     setIsTaskEditOpen(true);
   };
@@ -504,6 +510,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
     addTaskMutation.mutate({
       title: taskTitle,
       due_date: newTaskDueDate || null,
+      due_time: newTaskDueTime || null,
       assigned_to: assigneeIsRegistered ? newTaskAssignee : null,
     });
   };
@@ -771,7 +778,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                         }`}>
                           {dueStatus === 'overdue' && <AlertTriangle className="w-3 h-3" />}
                           {dueStatus === 'overdue' ? 'ATRASADA · ' : dueStatus === 'today' ? 'HOJE · ' : ''}
-                          Prazo: {format(parseValidDate(task.due_date)!, "dd/MM/yyyy", { locale: ptBR })}
+                          Prazo: {format(parseValidDate(task.due_date)!, "dd/MM/yyyy", { locale: ptBR })}{task.due_time ? ` ${task.due_time.slice(0, 5)}` : ''}
                         </span>
                       )}
                       {task.assignee?.full_name && (
@@ -850,6 +857,15 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                     ))}
                   </select>
                 </div>
+                <div className="w-32 space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 ml-1">Horário</label>
+                  <Input
+                    type="time"
+                    value={newTaskDueTime}
+                    onChange={e => setNewTaskDueTime(e.target.value)}
+                    className="h-10 bg-white border-border/10 focus:border-gold rounded-xl text-sm font-medium shadow-sm"
+                  />
+                </div>
                 <Button
                   type="submit"
                   disabled={addTaskMutation.isPending}
@@ -885,6 +901,11 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                   value={editingTaskDueDate}
                   onChange={(e) => setEditingTaskDueDate(e.target.value)}
                 />
+                <Input
+                  type="time"
+                  value={editingTaskDueTime}
+                  onChange={(e) => setEditingTaskDueTime(e.target.value)}
+                />
                 <select
                   value={editingTaskAssignee}
                   onChange={(e) => setEditingTaskAssignee(e.target.value)}
@@ -913,6 +934,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
                       id: editingTaskId,
                       title: editingTaskTitle.trim(),
                       due_date: editingTaskDueDate || null,
+                      due_time: editingTaskDueTime || null,
                       assigned_to: editingTaskAssignee || null,
                     });
                   }}

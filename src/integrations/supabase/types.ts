@@ -121,6 +121,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          address_number: string | null
           birth_date: string | null
           created_at: string
           email: string | null
@@ -131,6 +132,7 @@ export type Database = {
           phone: string | null
         }
         Insert: {
+          address_number?: string | null
           birth_date?: string | null
           created_at?: string
           email?: string | null
@@ -141,6 +143,7 @@ export type Database = {
           phone?: string | null
         }
         Update: {
+          address_number?: string | null
           birth_date?: string | null
           created_at?: string
           email?: string | null
@@ -404,6 +407,7 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
+          due_time: string | null
           id: string
           lead_id: string
           status: string
@@ -414,6 +418,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
           lead_id: string
           status?: string
@@ -424,6 +429,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
           lead_id?: string
           status?: string
