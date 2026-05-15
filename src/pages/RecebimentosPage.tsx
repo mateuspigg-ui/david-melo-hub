@@ -87,11 +87,25 @@ export default function RecebimentosPage() {
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
   const [pendingInstallment, setPendingInstallment] = useState<Installment | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
+  const [selectedInstallmentPaidDate, setSelectedInstallmentPaidDate] = useState("");
   const [entryAccountPickerOpen, setEntryAccountPickerOpen] = useState(false);
   const [pendingEntryPayment, setPendingEntryPayment] = useState<Payment | null>(null);
   const [selectedEntryBankAccountId, setSelectedEntryBankAccountId] = useState("");
+  const [selectedEntryPaidDate, setSelectedEntryPaidDate] = useState("");
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
   const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
+
+  const toDateInputValue = (value?: string | null) => {
+    if (!value) return format(new Date(), "yyyy-MM-dd");
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return format(new Date(), "yyyy-MM-dd");
+    return format(parsed, "yyyy-MM-dd");
+  };
+
+  const toIsoFromDateInput = (value?: string) => {
+    if (!value) return new Date().toISOString();
+    return new Date(`${value}T12:00:00`).toISOString();
+  };
 
   const syncEventPaymentStatus = async (eventId?: string | null) => {
     if (!eventId) return;
@@ -666,10 +680,11 @@ export default function RecebimentosPage() {
   });
 
   const toggleEntryMutation = useMutation({
-    mutationFn: async ({ paymentId, currentPaidAt, bankAccountId }: { paymentId: string; currentPaidAt: string | null; bankAccountId?: string | null }) => {
+    mutationFn: async ({ paymentId, currentPaidAt, bankAccountId, paidDate }: { paymentId: string; currentPaidAt: string | null; bankAccountId?: string | null; paidDate?: string }) => {
+      const paidAt = toIsoFromDateInput(paidDate);
       const payload = currentPaidAt
         ? { entry_paid_at: null, entry_bank_account_id: null }
-        : { entry_paid_at: new Date().toISOString(), entry_bank_account_id: bankAccountId || null };
+        : { entry_paid_at: paidAt, entry_bank_account_id: bankAccountId || null };
 
       let { error } = await supabase
         .from("payments")
@@ -677,10 +692,10 @@ export default function RecebimentosPage() {
         .eq("id", paymentId);
 
       if (error && isMissingEntryBankAccountColumnError(error)) {
-        const retry = await supabase
-          .from("payments")
-          .update({ entry_paid_at: currentPaidAt ? null : new Date().toISOString() } as any)
-          .eq("id", paymentId);
+          const retry = await supabase
+            .from("payments")
+            .update({ entry_paid_at: currentPaidAt ? null : paidAt } as any)
+            .eq("id", paymentId);
         error = retry.error;
       }
 
@@ -710,7 +725,7 @@ export default function RecebimentosPage() {
   });
 
   const toggleInstallmentMutation = useMutation({
-    mutationFn: async ({ installment, bankAccountId }: { installment: Installment; bankAccountId?: string | null }) => {
+    mutationFn: async ({ installment, bankAccountId, paidDate }: { installment: Installment; bankAccountId?: string | null; paidDate?: string }) => {
       const currentlyPaid = isInstallmentPaid(installment.status, installment.paid_at);
       if (currentlyPaid) {
         let lastError: any = null;
@@ -736,7 +751,7 @@ export default function RecebimentosPage() {
         return;
       }
 
-      const paidAt = new Date().toISOString();
+      const paidAt = toIsoFromDateInput(paidDate);
       let lastError: any = null;
       for (const fallbackStatus of PAID_STATUS_VALUES) {
         const { error } = await supabase
@@ -826,6 +841,7 @@ export default function RecebimentosPage() {
   const openEntryAccountPicker = (payment: Payment) => {
     setPendingEntryPayment(payment);
     setSelectedEntryBankAccountId(payment.entry_bank_account_id || "");
+    setSelectedEntryPaidDate(toDateInputValue(payment.entry_paid_at));
     setEntryAccountPickerOpen(true);
   };
 
@@ -1109,6 +1125,9 @@ export default function RecebimentosPage() {
                                     <div>
                                       <p className="text-[10px] uppercase tracking-wider font-bold">Entrada</p>
                                       <p className="text-xs text-muted-foreground">{payment.entry_date ? format(new Date(payment.entry_date + "T12:00:00"), "dd/MM/yyyy") : "-"}</p>
+                                      {payment.entry_paid_at && (
+                                        <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(payment.entry_paid_at), "dd/MM/yyyy")}</p>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-3">
@@ -1145,6 +1164,9 @@ export default function RecebimentosPage() {
                                     <div>
                                       <p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p>
                                       <p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>
+                                      {paid && inst.paid_at && (
+                                        <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <p className="font-display">{currencyFmt(inst.amount)}</p>
@@ -1164,6 +1186,7 @@ export default function RecebimentosPage() {
                                           }
                                           setPendingInstallment(inst);
                                           setSelectedBankAccountId("");
+                                          setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at));
                                           setAccountPickerOpen(true);
                                         }}
                                       >
@@ -1303,17 +1326,22 @@ export default function RecebimentosPage() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="space-y-1 pt-2">
+              <Label>Data do pagamento</Label>
+              <Input type="date" value={selectedInstallmentPaidDate} onChange={(e) => setSelectedInstallmentPaidDate(e.target.value)} />
+            </div>
           </div>
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingInstallment || (bankAccounts.length > 0 && !selectedBankAccountId)}
+              disabled={!pendingInstallment || !selectedInstallmentPaidDate || (bankAccounts.length > 0 && !selectedBankAccountId)}
               onClick={() => {
                 if (!pendingInstallment) return;
-                toggleInstallmentMutation.mutate({ installment: pendingInstallment, bankAccountId: selectedBankAccountId || null });
+                toggleInstallmentMutation.mutate({ installment: pendingInstallment, bankAccountId: selectedBankAccountId || null, paidDate: selectedInstallmentPaidDate });
                 setAccountPickerOpen(false);
                 setPendingInstallment(null);
                 setSelectedBankAccountId("");
+                setSelectedInstallmentPaidDate("");
               }}
             >
               Confirmar baixa
@@ -1327,6 +1355,7 @@ export default function RecebimentosPage() {
         if (!open) {
           setPendingEntryPayment(null);
           setSelectedEntryBankAccountId("");
+          setSelectedEntryPaidDate("");
         }
       }}>
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -1341,21 +1370,27 @@ export default function RecebimentosPage() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="space-y-1 pt-2">
+              <Label>Data do pagamento</Label>
+              <Input type="date" value={selectedEntryPaidDate} onChange={(e) => setSelectedEntryPaidDate(e.target.value)} />
+            </div>
           </div>
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setEntryAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingEntryPayment || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}
+              disabled={!pendingEntryPayment || !selectedEntryPaidDate || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}
               onClick={() => {
                 if (!pendingEntryPayment) return;
                 toggleEntryMutation.mutate({
                   paymentId: pendingEntryPayment.id,
                   currentPaidAt: pendingEntryPayment.entry_paid_at,
                   bankAccountId: selectedEntryBankAccountId || null,
+                  paidDate: selectedEntryPaidDate,
                 });
                 setEntryAccountPickerOpen(false);
                 setPendingEntryPayment(null);
                 setSelectedEntryBankAccountId("");
+                setSelectedEntryPaidDate("");
               }}
             >
               Confirmar baixa
