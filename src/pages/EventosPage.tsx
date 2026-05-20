@@ -9,6 +9,7 @@ import { EventFormDialog } from '@/components/events/EventFormDialog';
 import { cn } from '@/lib/utils';
 
 const INTERNAL_ACTIVITY_TYPES = ['Reunião', 'Degustação', 'Atendimento ao Cliente', 'Formatação de Festas'];
+import { formatEventDate } from '@/lib/dateUtils';
 
 const EventosPage = () => {
   const [search, setSearch] = useState('');
@@ -186,7 +187,7 @@ const EventosPage = () => {
                     <td className="py-6 px-8">
                       <div className="space-y-1">
                         <p className="text-xs font-bold text-foreground tracking-widest uppercase">
-                          {evt.event_date ? new Date(evt.event_date).toLocaleDateString('pt-BR') : '—'}
+                          {evt.event_date ? formatEventDate(evt.event_date) : '—'}
                         </p>
                         {evt.event_time && <p className="text-[9px] text-muted-foreground/50 font-black uppercase tracking-[0.2em]">{evt.event_time.substring(0, 5)}h</p>}
                       </div>

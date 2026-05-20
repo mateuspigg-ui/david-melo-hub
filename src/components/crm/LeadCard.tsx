@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Lead } from '@/pages/CRMPage';
 import { cn } from '@/lib/utils';
+import { formatSafeEventDate } from '@/lib/dateUtils';
 
 interface Props {
   lead: Lead;
@@ -41,12 +42,7 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
     return format(date, fmt, { locale: ptBR });
   };
 
-  const formatSafeEventDate = (value?: string | null) => {
-    if (!value) return '-';
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return '-';
-    return format(date, "dd 'de' MMM, yyyy", { locale: ptBR });
-  };
+
 
   const cardBorder = isDragging
     ? 'border-gold/30'

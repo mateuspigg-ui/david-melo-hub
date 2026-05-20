@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { formatEventDate } from '@/lib/dateUtils';
 import {
   addReservationItem,
   categoryLabel,
@@ -542,7 +543,7 @@ const SelecaoFestaPage = () => {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold text-sm">{reservation.events?.title || 'Evento sem título'}</p>
-                  <p className="text-xs text-muted-foreground">{reservation.events?.event_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${reservation.events.event_date}T00:00:00`)) : 'Sem data'} • {reservation.events?.location || 'Sem local'}</p>
+                  <p className="text-xs text-muted-foreground">{reservation.events?.event_date ? formatEventDate(reservation.events.event_date) : 'Sem data'} • {reservation.events?.location || 'Sem local'}</p>
                   <p className="text-[10px] text-gold font-bold uppercase tracking-wider mt-1">{statusLabel(reservation.reservation_status)}</p>
                 </div>
                 <Button
@@ -580,7 +581,7 @@ const SelecaoFestaPage = () => {
                     <p className="text-sm text-muted-foreground mt-1">
                       Cliente: {`${selectedReservation.events?.clients?.first_name || ''} ${selectedReservation.events?.clients?.last_name || ''}`.trim() || 'Não informado'}
                     </p>
-                    <p className="text-sm text-muted-foreground">Data: {selectedReservation.events?.event_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${selectedReservation.events.event_date}T00:00:00`)) : 'Não definida'} • Local: {selectedReservation.events?.location || 'Não definido'}</p>
+                    <p className="text-sm text-muted-foreground">Data: {selectedReservation.events?.event_date ? formatEventDate(selectedReservation.events.event_date) : 'Não definida'} • Local: {selectedReservation.events?.location || 'Não definido'}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Select value={selectedReservation.reservation_status} onValueChange={(v) => statusMutation.mutate({ id: selectedReservation.id, status: v })}>
@@ -675,7 +676,7 @@ const SelecaoFestaPage = () => {
               <SelectTrigger><SelectValue placeholder="Selecione o evento" /></SelectTrigger>
               <SelectContent>
                 {events.map((event: any) => (
-                  <SelectItem key={event.id} value={event.id}>{event.title} • {event.event_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${event.event_date}T00:00:00`)) : 'Sem data'}</SelectItem>
+                  <SelectItem key={event.id} value={event.id}>{event.title} • {event.event_date ? formatEventDate(event.event_date) : 'Sem data'}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

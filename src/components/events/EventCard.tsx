@@ -1,6 +1,8 @@
 import { MapPin, Calendar, Clock, DollarSign, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { formatEventDate } from '@/lib/dateUtils';
+
 export const EventCard = ({ event, onClick }: { event: any, onClick: (e: any) => void }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,7 +64,7 @@ export const EventCard = ({ event, onClick }: { event: any, onClick: (e: any) =>
                 <span className="text-[9px] font-black uppercase tracking-widest">Data</span>
               </div>
               <p className="text-sm font-bold text-foreground">
-                {new Date(event.event_date).toLocaleDateString('pt-BR')}
+                {formatEventDate(event.event_date)}
               </p>
             </div>
           )}

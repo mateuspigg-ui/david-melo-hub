@@ -176,10 +176,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
+import { parseLocalDate } from './dateUtils';
+
 export const calculateExpirationAlert = (expirationDate: string | null) => {
   if (!expirationDate) return null;
   const now = new Date();
-  const exp = new Date(`${expirationDate}T00:00:00`);
+  now.setHours(0, 0, 0, 0);
+  const exp = parseLocalDate(expirationDate);
+  if (!exp) return null;
   const diffDays = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return { type: 'expired', days: diffDays };
   if (diffDays <= 7) return { type: 'critical', days: diffDays };

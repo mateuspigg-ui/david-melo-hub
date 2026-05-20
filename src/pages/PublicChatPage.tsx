@@ -7,6 +7,7 @@ import logo from '@/assets/logo.png';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { parseLocalDate } from '@/lib/dateUtils';
 
 interface ChatInfo {
   chat_id: string;
@@ -277,7 +278,7 @@ export default function PublicChatPage() {
 
   const eventTypeLabel = info?.event_type ? (EVENT_LABELS[info.event_type] || info.event_type) : null;
   const eventDateLabel = info?.event_date
-    ? format(new Date(`${info.event_date}T00:00:00`), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+    ? format(parseLocalDate(info.event_date)!, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : null;
 
   if (loadingInfo) {

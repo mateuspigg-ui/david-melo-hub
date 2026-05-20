@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FOOD_CATEGORIES, UNITS, calculateExpirationAlert, categoryLabel, fetchInventoryItems, statusLabel, upsertInventoryItem, deleteInventoryItem, type InventoryItem } from '@/lib/inventory';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
+import { formatEventDate } from '@/lib/dateUtils';
 
 const emptyForm = {
   name: '',
@@ -207,7 +208,7 @@ const AlimentacaoPage = () => {
                       <td className="p-4">{Number(item.reserved_quantity)}</td>
                       <td className="p-4">{item.supplier || '-'}</td>
                       <td className="p-4">
-                        {item.expiration_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${item.expiration_date}T00:00:00`)) : '-'}
+                        {item.expiration_date ? formatEventDate(item.expiration_date) : '-'}
                         {expirationAlert && (
                           <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-700">
                             <CalendarClock size={12} />

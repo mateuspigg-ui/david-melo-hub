@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Boxes, AlertTriangle, PackageCheck, PackageOpen, Ban, ClipboardList } from 'lucide-react';
 import { fetchInventoryItems, fetchReservations, categoryLabel } from '@/lib/inventory';
+import { parseLocalDate, formatEventDate } from '@/lib/dateUtils';
 
 const COLORS = ['#C5A059', '#111827', '#C7CDD7', '#E2A53B', '#7C8AA6'];
 
@@ -54,11 +55,19 @@ const AlmoxarifadoDashboardPage = () => {
   }, [reservations]);
 
   const upcomingEvents = useMemo(() => {
-    const now = new Date();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
     return reservations
       .filter((reservation) => reservation.events?.event_date)
-      .filter((reservation) => new Date(`${reservation.events!.event_date}T00:00:00`) >= now)
-      .sort((a, b) => new Date(`${a.events?.event_date}T00:00:00`).getTime() - new Date(`${b.events?.event_date}T00:00:00`).getTime())
+      .filter((reservation) => {
+        const date = parseLocalDate(reservation.events!.event_date);
+        return date ? date >= todayStart : false;
+      })
+      .sort((a, b) => {
+        const dateA = parseLocalDate(a.events?.event_date)?.getTime() || 0;
+        const dateB = parseLocalDate(b.events?.event_date)?.getTime() || 0;
+        return dateA - dateB;
+      })
       .slice(0, 6);
   }, [reservations]);
 
@@ -162,7 +171,7 @@ const AlmoxarifadoDashboardPage = () => {
                   <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-gold">{reservation.reservation_status}</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {reservation.events?.event_date ? new Intl.DateTimeFormat('pt-BR').format(new Date(`${reservation.events.event_date}T00:00:00`)) : 'Sem data'} • {reservation.events?.location || 'Local pendente'}
+                  {reservation.events?.event_date ? formatEventDate(reservation.events.event_date) : 'Sem data'} • {reservation.events?.location || 'Local pendente'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Itens reservados: {reservation.event_inventory_items?.length || 0}</p>
               </div>

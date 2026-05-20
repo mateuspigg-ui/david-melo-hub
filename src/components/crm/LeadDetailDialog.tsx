@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import type { Lead } from '@/pages/CRMPage';
 import LeadChatPanel from '@/components/crm/LeadChatPanel';
+import { parseLocalDate } from '@/lib/dateUtils';
 
 interface Props {
   lead: Lead | null;
@@ -53,7 +54,10 @@ const getLeadFileStoragePath = (fileUrl: string) => {
 
 const parseValidDate = (value?: string | null, appendTime = false) => {
   if (!value) return null;
-  const parsed = new Date(appendTime ? `${value}T00:00:00` : value);
+  if (appendTime) {
+    return parseLocalDate(value);
+  }
+  const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 

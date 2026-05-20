@@ -4,6 +4,7 @@ import { Download, FileSpreadsheet, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { buildCsv, categoryLabel, downloadCsv, fetchInventoryItems, fetchReservations, fetchStockMovements } from '@/lib/inventory';
+import { parseLocalDate } from '@/lib/dateUtils';
 
 const currency = (value?: number | null) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
 
@@ -27,7 +28,11 @@ const RelatoriosEstoquePage = () => {
       case 'food_expiring':
         return items
           .filter((item) => item.type === 'food' && item.expiration_date)
-          .sort((a, b) => new Date(`${a.expiration_date}T00:00:00`).getTime() - new Date(`${b.expiration_date}T00:00:00`).getTime())
+          .sort((a, b) => {
+            const dateA = parseLocalDate(a.expiration_date)?.getTime() || 0;
+            const dateB = parseLocalDate(b.expiration_date)?.getTime() || 0;
+            return dateA - dateB;
+          })
           .map((item) => ({
             nome: item.name,
             categoria: categoryLabel(item.category),
