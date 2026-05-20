@@ -223,7 +223,7 @@ export const EventFormDialog = ({ open, onOpenChange, event, onSaved }: any) => 
                 size="sm"
                 onClick={handleDelete}
                 disabled={loading || deleting}
-                className="border-white/50 bg-white/10 text-white hover:bg-white hover:text-destructive whitespace-nowrap"
+                className="mr-10 border-white/50 bg-white/10 text-white hover:bg-white hover:text-destructive whitespace-nowrap"
               >
                 {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
                 Excluir
