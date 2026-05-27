@@ -569,6 +569,33 @@ export default function ContasPagarPage() {
               </Select>
             </div>
 
+            {form.expense_type === "recurring" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Modelo</Label>
+                  <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
+                    <SelectTrigger className="bg-white border-border/40 focus:ring-gold h-11 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white shadow-2xl border-border/40">
+                      <SelectItem value="split" className="font-bold text-xs uppercase">Dividida em meses</SelectItem>
+                      <SelectItem value="repeat" className="font-bold text-xs uppercase">Repete todo mes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Quantidade de meses</Label>
+                  <Input
+                    type="number"
+                    min="2"
+                    value={form.recurrence_months}
+                    onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
+                    className="bg-white border-border/40 focus:border-gold h-11 font-medium"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2 lg:col-span-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Título</Label>
               <Textarea 
@@ -602,33 +629,6 @@ export default function ContasPagarPage() {
               </div>
             </div>
             
-            {form.expense_type === "recurring" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Modelo</Label>
-                  <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
-                    <SelectTrigger className="bg-white border-border/40 focus:ring-gold h-11 rounded-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white shadow-2xl border-border/40">
-                      <SelectItem value="split" className="font-bold text-xs uppercase">Dividida em meses</SelectItem>
-                      <SelectItem value="repeat" className="font-bold text-xs uppercase">Repete todo mes</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Quantidade de meses</Label>
-                  <Input
-                    type="number"
-                    min="2"
-                    value={form.recurrence_months}
-                    onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
-                    className="bg-white border-border/40 focus:border-gold h-11 font-medium"
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Categoria</Label>
               <div className="flex gap-2">
