@@ -171,6 +171,8 @@ export default function ContasPagarPage() {
       const splitBaseCents = Math.floor(totalCents / scheduleCount);
       const splitRemainder = totalCents - (splitBaseCents * scheduleCount);
 
+      const normalizedDescription = form.description.trim() || "Despesa sem titulo";
+
       const payloads = Array.from({ length: scheduleCount }, (_, index) => {
         const dueDate = addMonths(baseDate, index).toISOString().split("T")[0];
         const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
@@ -178,8 +180,8 @@ export default function ContasPagarPage() {
           ? splitBaseCents + (index === scheduleCount - 1 ? splitRemainder : 0)
           : totalCents;
         const nextDescription = isSplit
-          ? `${form.description.trim()} (${index + 1}/${scheduleCount})`
-          : form.description.trim();
+          ? `${normalizedDescription} (${index + 1}/${scheduleCount})`
+          : normalizedDescription;
 
         return {
           description: nextDescription,
@@ -539,39 +541,6 @@ export default function ContasPagarPage() {
           </div>
           <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0 bg-gradient-to-b from-background to-secondary/10">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-2 lg:col-span-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Título *</Label>
-              <Textarea 
-                value={form.description} 
-                onChange={(e) => setForm({ ...form, description: e.target.value })} 
-                placeholder="Ex: Pagamento de serviço de buffet, limpeza do local..."
-                className="bg-secondary/30 border-border/40 focus:border-gold min-h-[80px] py-3 shadow-inner" 
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor do Título *</Label>
-                <Input 
-                  type="text"
-                  inputMode="numeric"
-                  value={form.amount} 
-                  onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })} 
-                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-bold text-gold" 
-                  placeholder="0,00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Data Vencimento *</Label>
-                <Input 
-                  type="date" 
-                  value={form.due_date} 
-                  onChange={(e) => setForm({ ...form, due_date: e.target.value })} 
-                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-medium" 
-                />
-              </div>
-            </div>
-            
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa / Fornecedor</Label>
               <div className="flex gap-2">
@@ -600,6 +569,39 @@ export default function ContasPagarPage() {
               </Select>
             </div>
 
+            <div className="space-y-2 lg:col-span-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Título</Label>
+              <Textarea 
+                value={form.description} 
+                onChange={(e) => setForm({ ...form, description: e.target.value })} 
+                placeholder="Opcional. Ex: Pagamento de serviço de buffet"
+                className="bg-secondary/30 border-border/40 focus:border-gold min-h-[80px] py-3 shadow-inner" 
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:col-span-2">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor do Título *</Label>
+                <Input 
+                  type="text"
+                  inputMode="numeric"
+                  value={form.amount} 
+                  onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })} 
+                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-bold text-gold" 
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Data Vencimento *</Label>
+                <Input 
+                  type="date" 
+                  value={form.due_date} 
+                  onChange={(e) => setForm({ ...form, due_date: e.target.value })} 
+                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-medium" 
+                />
+              </div>
+            </div>
+            
             {form.expense_type === "recurring" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
                 <div className="space-y-2">
@@ -666,7 +668,7 @@ export default function ContasPagarPage() {
 
             <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-6 border-t border-border/10 bg-background/95 backdrop-blur">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!form.description || !form.amount || !form.due_date} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
+              <Button onClick={() => createMutation.mutate()} disabled={!form.amount || !form.due_date} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
                 Efetuar Registro
               </Button>
             </div>
