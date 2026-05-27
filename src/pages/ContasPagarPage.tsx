@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, Trash2, Check } from "lucide-react";
-import { differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { addMonths, differenceInCalendarDays, format, startOfDay } from "date-fns";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
@@ -86,7 +86,17 @@ export default function ContasPagarPage() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
-  const [form, setForm] = useState({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "" });
+  const [form, setForm] = useState({
+    description: "",
+    amount: "",
+    due_date: "",
+    supplier_id: "",
+    company_id: "",
+    category_id: "",
+    expense_type: "single",
+    recurrence_mode: "repeat",
+    recurrence_months: "2",
+  });
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
 
   const { data: items = [], isLoading } = useQuery({
@@ -146,20 +156,46 @@ export default function ContasPagarPage() {
         throw new Error("Informe um valor válido maior que zero para a despesa.");
       }
 
-      const payload = {
-        description: form.description.trim(),
-        amount: parsedAmount,
-        due_date: form.due_date,
-        supplier_id: form.supplier_id || null,
-        category_id: form.category_id || null,
-        company_id: form.company_id || null,
-        payment_status: "nao_pago",
-        paid_at: null,
-      };
+      const recurrenceMonths = Math.max(1, Number(form.recurrence_months || "1"));
+      const scheduleCount = form.expense_type === "recurring" ? recurrenceMonths : 1;
+      if (!Number.isInteger(scheduleCount) || scheduleCount < 1) {
+        throw new Error("Informe um numero valido de meses para recorrencia.");
+      }
 
-      let { error } = await supabase.from("accounts_payable").insert(payload as any);
+      const baseDate = new Date(`${form.due_date}T12:00:00`);
+      if (Number.isNaN(baseDate.getTime())) {
+        throw new Error("Informe uma data de vencimento valida.");
+      }
+
+      const totalCents = Math.round(parsedAmount * 100);
+      const splitBaseCents = Math.floor(totalCents / scheduleCount);
+      const splitRemainder = totalCents - (splitBaseCents * scheduleCount);
+
+      const payloads = Array.from({ length: scheduleCount }, (_, index) => {
+        const dueDate = addMonths(baseDate, index).toISOString().split("T")[0];
+        const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
+        const amountCents = isSplit
+          ? splitBaseCents + (index === scheduleCount - 1 ? splitRemainder : 0)
+          : totalCents;
+        const nextDescription = isSplit
+          ? `${form.description.trim()} (${index + 1}/${scheduleCount})`
+          : form.description.trim();
+
+        return {
+          description: nextDescription,
+          amount: amountCents / 100,
+          due_date: dueDate,
+          supplier_id: form.supplier_id || null,
+          category_id: form.category_id || null,
+          company_id: form.company_id || null,
+          payment_status: "nao_pago",
+          paid_at: null,
+        };
+      });
+
+      let { error } = await supabase.from("accounts_payable").insert(payloads as any);
       if (error && isMissingCompanyIdColumnError(error)) {
-        const retryNoCompany = await supabase.from("accounts_payable").insert({ ...payload, company_id: undefined } as any);
+        const retryNoCompany = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, company_id: undefined })) as any);
         error = retryNoCompany.error;
       }
       if (!error) return;
@@ -171,7 +207,7 @@ export default function ContasPagarPage() {
       for (const status of PENDING_STATUS_VALUES) {
         const { error: fallbackError } = await supabase
           .from("accounts_payable")
-          .insert({ ...payload, payment_status: status } as any);
+          .insert(payloads.map((p) => ({ ...p, payment_status: status })) as any);
         if (!fallbackError) return;
         lastError = fallbackError;
       }
@@ -182,7 +218,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "" });
+      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -549,6 +585,46 @@ export default function ContasPagarPage() {
                 <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setSupplierDialogOpen(true)}>Novo</Button>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Tipo da Despesa</Label>
+              <Select value={form.expense_type} onValueChange={(v) => setForm({ ...form, expense_type: v })}>
+                <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-2xl border-border/40">
+                  <SelectItem value="single" className="font-bold text-xs uppercase">Unica</SelectItem>
+                  <SelectItem value="recurring" className="font-bold text-xs uppercase">Recorrente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {form.expense_type === "recurring" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-gold/20 bg-gold/5">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Modelo</Label>
+                  <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
+                    <SelectTrigger className="bg-white border-border/40 focus:ring-gold h-11 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white shadow-2xl border-border/40">
+                      <SelectItem value="split" className="font-bold text-xs uppercase">Dividida em meses</SelectItem>
+                      <SelectItem value="repeat" className="font-bold text-xs uppercase">Repete todo mes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Quantidade de meses</Label>
+                  <Input
+                    type="number"
+                    min="2"
+                    value={form.recurrence_months}
+                    onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
+                    className="bg-white border-border/40 focus:border-gold h-11 font-medium"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Categoria</Label>
