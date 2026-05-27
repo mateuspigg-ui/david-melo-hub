@@ -152,6 +152,9 @@ export default function ContratosPage() {
   const resetForm = () => setForm({ title: '', client_id: '', event_id: '', signed_status: 'draft', file_url: '' });
 
   const filtered = contracts.filter((c: any) => c.title.toLowerCase().includes(search.toLowerCase()));
+  const signedCount = contracts.filter((c: any) => c.signed_status === 'signed').length;
+  const pendingCount = contracts.filter((c: any) => c.signed_status === 'pending').length;
+  const draftCount = contracts.filter((c: any) => c.signed_status === 'draft').length;
 
   const statusMap: any = {
     draft: { label: 'Rascunho', color: 'bg-slate-100 text-slate-500', icon: Clock },
@@ -177,14 +180,31 @@ export default function ContratosPage() {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input 
-          placeholder="Buscar contratos por título..." 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          className="pl-11 bg-white border-border/30 h-12 rounded-xl premium-shadow" 
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 px-2">
+        <div className="rounded-2xl border border-border/30 bg-white p-5 premium-shadow">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Assinados</p>
+          <p className="text-3xl font-display mt-1 text-emerald-700">{signedCount}</p>
+        </div>
+        <div className="rounded-2xl border border-border/30 bg-white p-5 premium-shadow">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pendentes</p>
+          <p className="text-3xl font-display mt-1 text-amber-700">{pendingCount}</p>
+        </div>
+        <div className="rounded-2xl border border-border/30 bg-white p-5 premium-shadow">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rascunhos</p>
+          <p className="text-3xl font-display mt-1 text-slate-600">{draftCount}</p>
+        </div>
+      </div>
+
+      <div className="bg-white border border-border/30 rounded-2xl p-4 premium-shadow mx-2">
+        <div className="relative max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar contratos por título..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            className="pl-11 bg-white border-border/30 h-12 rounded-xl" 
+          />
+        </div>
       </div>
 
       <div className="bg-white premium-shadow rounded-[32px] border border-border/40 overflow-hidden">

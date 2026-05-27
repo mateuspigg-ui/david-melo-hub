@@ -59,6 +59,14 @@ const normalizeStatus = (status: string | null | undefined) => String(status || 
 const isInstallmentPaid = (status: string | null | undefined, paidAt?: string | null) =>
   PAID_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PAID_STATUS_VALUES)[number]) || !!paidAt;
 
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+
 export default function PagamentosPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -706,6 +714,15 @@ export default function PagamentosPage() {
         <div className="space-y-6 px-2">
           {filtered.map((p) => {
             const expanded = expandedId === p.id;
+            const paymentInstallments = installments.filter((inst) => inst.payment_id === p.id);
+            const paidInstallmentsTotal = paymentInstallments
+              .filter((inst) => isInstallmentPaid(inst.status, inst.paid_at))
+              .reduce((sum, inst) => sum + Number(inst.amount || 0), 0);
+            const paidEntryTotal = p.has_entry_payment && p.entry_amount && p.entry_paid_at ? Number(p.entry_amount || 0) : 0;
+            const paidTotal = paidInstallmentsTotal + paidEntryTotal;
+            const pendingTotal = Math.max(0, Number(p.total_event_value || 0) - paidTotal);
+            const paidPct = Number(p.total_event_value || 0) > 0 ? Math.min(100, (paidTotal / Number(p.total_event_value || 0)) * 100) : 0;
+            const clientName = p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Cliente não identificado";
             return (
               <div key={p.id} className={cn(
                 "group bg-white rounded-[32px] border transition-all duration-500 relative overflow-hidden",
@@ -717,16 +734,17 @@ export default function PagamentosPage() {
                   className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between p-8 cursor-pointer gap-8"
                   onClick={() => setExpandedId(expanded ? null : p.id)}
                 >
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-6 min-w-0">
                     <div className={cn(
-                      "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm shrink-0",
-                      expanded ? 'bg-gold text-white rotate-6' : 'bg-gold/10 text-gold'
+                      "w-16 h-16 rounded-2xl flex flex-col items-center justify-center transition-all duration-500 shadow-sm shrink-0",
+                      expanded ? 'bg-gold text-white rotate-3' : 'bg-gold/10 text-gold'
                     )}>
-                      <DollarSign className="w-8 h-8" />
+                      <span className="text-sm font-black leading-none">{getInitials(clientName || "C")}</span>
+                      <span className={cn("text-[8px] uppercase tracking-wider mt-1", expanded ? "text-white/80" : "text-gold/70")}>CLI</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-w-0">
                       <h4 className="text-xl font-display text-foreground tracking-tight leading-none uppercase">
-                        {p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Cliente não identificado"}
+                        {clientName}
                       </h4>
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="text-[10px] font-black text-gold uppercase tracking-[0.15em] bg-gold/5 px-2.5 py-1 rounded-lg border border-gold/10">
@@ -737,6 +755,15 @@ export default function PagamentosPage() {
                           <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
                             {p.installment_count} {p.installment_count === 1 ? 'parcela' : 'parcelas'} programada{p.installment_count === 1 ? '' : 's'}
                           </span>
+                        </div>
+                      </div>
+                      <div className="pt-1 max-w-[380px]">
+                        <div className="h-2 rounded-full bg-secondary/70 overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: `${paidPct}%` }} />
+                        </div>
+                        <div className="mt-2 flex items-center gap-3 text-[10px] uppercase tracking-wider font-bold">
+                          <span className="text-emerald-700">Recebido {currencyFmt(paidTotal)}</span>
+                          <span className="text-gold">Pendente {currencyFmt(pendingTotal)}</span>
                         </div>
                       </div>
                     </div>
@@ -821,7 +848,7 @@ export default function PagamentosPage() {
                         </div>
                       )}
                       
-                      {installments.map((inst) => {
+                      {paymentInstallments.map((inst) => {
                         const paid = isInstallmentPaid(inst.status, inst.paid_at);
                         return (
                           <div key={inst.id} className={cn(
