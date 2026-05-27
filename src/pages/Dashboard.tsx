@@ -403,7 +403,7 @@ const Dashboard = () => {
       iconClass: 'bg-amber-100 text-amber-700',
     },
     {
-      label: 'Vendas do Mes',
+      label: 'Recebimentos do Mes',
       value: formatCurrency(monthlyValue),
       subValue: `${conversionRate.toFixed(1)}% taxa de conversao`,
       icon: TrendingUp,
