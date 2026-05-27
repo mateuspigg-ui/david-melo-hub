@@ -59,6 +59,14 @@ const PAYMENT_METHOD_LABEL: Record<(typeof PAYMENT_METHOD_OPTIONS)[number], stri
   transferencia: "Transferencia",
 };
 
+const getInitials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+
 type InstallmentPlanItem = {
   installment_number: number;
   due_date: string;
@@ -440,6 +448,13 @@ export default function RecebimentosPage() {
     () => groupedByClient.find((group) => group.clientId === selectedClientId) || null,
     [groupedByClient, selectedClientId]
   );
+  const selectedClientStats = useMemo(() => {
+    if (!selectedClientGroup) return { pending: 0, received: 0, contracts: 0 };
+    const installments = selectedClientGroup.payments.flatMap((p) => installmentsByPayment.get(p.id) || []);
+    const pending = installments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + Number(i.amount || 0), 0);
+    const received = installments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + Number(i.paid_amount ?? i.amount ?? 0), 0);
+    return { pending, received, contracts: selectedClientGroup.payments.length };
+  }, [selectedClientGroup, installmentsByPayment]);
 
   const hasActiveFilters = search.trim() || statusFilter !== "all" || dateFilterMode !== "all" || dateFrom || dateTo || companyFilter !== "all";
   const resetFilters = () => {
@@ -1107,26 +1122,32 @@ export default function RecebimentosPage() {
             const clientInstallments = group.payments.flatMap((p) => installmentsByPayment.get(p.id) || []);
             const clientPending = clientInstallments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
             const clientReceived = clientInstallments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
+            const clientTotal = clientPending + clientReceived;
+            const receivedPct = clientTotal > 0 ? Math.min(100, (clientReceived / clientTotal) * 100) : 0;
             return (
-              <div key={group.clientId} className={cn("bg-white rounded-2xl border border-border/40 overflow-hidden", viewMode === "bloco" ? "premium-shadow" : "shadow-none border-border/20") }>
+              <div key={group.clientId} className={cn("rounded-2xl border border-border/40 overflow-hidden bg-gradient-to-br from-white via-white to-amber-50/30", viewMode === "bloco" ? "premium-shadow" : "shadow-none border-border/20") }>
                 <button
-                  className={cn("w-full flex items-center justify-between text-left", viewMode === "bloco" ? "p-6" : "p-4")}
+                  className={cn("w-full text-left", viewMode === "bloco" ? "p-6" : "p-4")}
                   onClick={() => {
                     setSelectedClientId(group.clientId);
                     setExpandedPaymentId(null);
                     setClientDetailsOpen(true);
                   }}
                 >
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-display uppercase">{group.clientName}</h3>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{group.payments.length} contrato{group.payments.length > 1 ? "s" : ""}</span>
-                      <span className="text-[10px] uppercase tracking-widest text-gold font-bold">A receber {currencyFmt(clientPending)}</span>
-                      <span className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Recebido {currencyFmt(clientReceived)}</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="h-12 w-12 rounded-xl bg-gold/15 text-gold flex items-center justify-center font-black text-sm shrink-0">{getInitials(group.clientName || "C")}</div>
+                      <div className="space-y-2 min-w-0">
+                        <h3 className="text-xl font-display uppercase truncate">{group.clientName}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{group.payments.length} contrato{group.payments.length > 1 ? "s" : ""}</span>
+                          <span className="text-[10px] uppercase tracking-widest text-gold font-bold">A receber {currencyFmt(clientPending)}</span>
+                          <span className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Recebido {currencyFmt(clientReceived)}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {group.clientId && !group.clientId.startsWith("sem-cliente-") && (
+                    <div className="flex items-center gap-2">
+                      {group.clientId && !group.clientId.startsWith("sem-cliente-") && (
                       <Button
                         type="button"
                         size="sm"
@@ -1141,8 +1162,15 @@ export default function RecebimentosPage() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
-                    )}
-                    <ArrowDownCircle className="w-5 h-5 text-gold" />
+                      )}
+                      <ArrowDownCircle className="w-5 h-5 text-gold" />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="h-2 rounded-full bg-secondary/60 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: `${receivedPct}%` }} />
+                    </div>
+                    <p className="mt-2 text-[10px] uppercase tracking-wider text-muted-foreground font-bold">{receivedPct.toFixed(1)}% do cliente já recebido</p>
                   </div>
                 </button>
               </div>
@@ -1152,18 +1180,33 @@ export default function RecebimentosPage() {
       )}
 
       <Dialog open={clientDetailsOpen} onOpenChange={setClientDetailsOpen}>
-        <DialogContent className="max-w-5xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-6xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedClientGroup?.clientName || "Cliente"}</DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto pr-1 space-y-4">
-            {selectedClientGroup?.payments.map((payment) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2">
+            <div className="rounded-xl border border-border/30 bg-secondary/10 p-4 transition-all hover:-translate-y-0.5">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Contratos</p>
+              <p className="text-2xl font-display mt-1">{selectedClientStats.contracts}</p>
+            </div>
+            <div className="rounded-xl border border-border/30 bg-amber-50 p-4 transition-all hover:-translate-y-0.5">
+              <p className="text-[10px] uppercase tracking-widest text-amber-700 font-bold">A receber</p>
+              <p className="text-2xl font-display mt-1">{currencyFmt(selectedClientStats.pending)}</p>
+            </div>
+            <div className="rounded-xl border border-border/30 bg-emerald-50 p-4 transition-all hover:-translate-y-0.5">
+              <p className="text-[10px] uppercase tracking-widest text-emerald-700 font-bold">Recebido</p>
+              <p className="text-2xl font-display mt-1">{currencyFmt(selectedClientStats.received)}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.8fr)] gap-4 overflow-hidden">
+            <div className="overflow-y-auto pr-1 space-y-4 max-h-[58vh]">
+              {selectedClientGroup?.payments.map((payment) => {
               const paymentExpanded = expandedPaymentId === payment.id;
               const paymentInstallments = installmentsByPayment.get(payment.id) || [];
               const invoice = invoiceByPaymentId.get(payment.id);
               const canIssueInvoice = !invoice || invoice.status === "rejected" || invoice.status === "cancelled";
               return (
-                <div key={payment.id} className="bg-white border border-border/30 rounded-xl overflow-hidden">
+                <div key={payment.id} className="bg-white border border-border/30 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                   <button
                     className="w-full flex items-center justify-between p-4 text-left"
                     onClick={() => setExpandedPaymentId(paymentExpanded ? null : payment.id)}
@@ -1204,8 +1247,10 @@ export default function RecebimentosPage() {
                       {paymentInstallments.map((inst) => {
                         const paid = isInstallmentPaid(inst.status, inst.paid_at);
                         const overdue = !paid && isPast(new Date(inst.due_date + "T23:59:59")) && !isToday(new Date(inst.due_date + "T12:00:00"));
+                        const dueToday = !paid && isToday(new Date(inst.due_date + "T12:00:00"));
                         return (
-                          <div key={inst.id} className={cn("flex items-center justify-between p-4 rounded-xl border", overdue ? "border-destructive/30 bg-destructive/[0.03]" : "border-border/30") }>
+                          <div key={inst.id} className={cn("relative flex items-center justify-between p-4 rounded-xl border pl-8", overdue ? "border-destructive/30 bg-destructive/[0.03]" : dueToday ? "border-gold/40 bg-gold/5" : "border-border/30") }>
+                            <div className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full", paid ? "bg-emerald-500" : overdue ? "bg-destructive" : dueToday ? "bg-gold" : "bg-slate-300")} />
                             <div><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}</div>
                             <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(inst.amount)}</p><Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white")} onClick={() => { if (paid) { toggleInstallmentMutation.mutate({ installment: inst }); return; } setPendingInstallment(inst); setSelectedBankAccountId(""); setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at)); setSelectedInstallmentPaidAmount(maskCurrencyInput(String(inst.paid_amount ?? inst.amount ?? ""))); setSelectedInstallmentPaymentMethod(inst.payment_method || ""); setAccountPickerOpen(true); }}>{paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}</Button></div>
                           </div>
@@ -1216,6 +1261,23 @@ export default function RecebimentosPage() {
                 </div>
               );
             })}
+            </div>
+
+            <aside className="hidden lg:flex flex-col gap-3 rounded-2xl border border-border/30 bg-secondary/10 p-4 h-fit sticky top-0">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Visao rapida</p>
+              <div className="rounded-xl bg-white border border-border/20 p-4">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Saldo do cliente</p>
+                <p className="text-2xl font-display mt-1 text-gold">{currencyFmt(selectedClientStats.pending)}</p>
+              </div>
+              <div className="rounded-xl bg-white border border-border/20 p-4">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Contratos ativos</p>
+                <p className="text-2xl font-display mt-1">{selectedClientStats.contracts}</p>
+              </div>
+              <div className="rounded-xl border border-dashed border-border/50 p-4 bg-white/70">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Dica de operacao</p>
+                <p className="text-xs text-muted-foreground mt-2 leading-relaxed">Use o botao de baixa para registrar conta, data, valor e forma de pagamento. As proximas parcelas serao recalculadas automaticamente pelo saldo restante.</p>
+              </div>
+            </aside>
           </div>
         </DialogContent>
       </Dialog>
