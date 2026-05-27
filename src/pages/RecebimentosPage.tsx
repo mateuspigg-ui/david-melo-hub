@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { format, isPast, isToday } from "date-fns";
-import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, List, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +91,7 @@ export default function RecebimentosPage() {
   const [dateTo, setDateTo] = useState("");
   const [companyFilter, setCompanyFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"bloco" | "lista">("bloco");
+  const [sortMode, setSortMode] = useState<"next_due" | "highest_pending" | "client_az">("next_due");
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
@@ -348,7 +349,7 @@ export default function RecebimentosPage() {
   const filteredPayments = useMemo(() => {
     const q = search.toLowerCase().trim();
     const todayIso = format(new Date(), "yyyy-MM-dd");
-    return payments.filter((p) => {
+    const base = payments.filter((p) => {
       const clientName = p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "";
       const eventName = p.events?.title || "";
       const textMatch = !q || `${clientName} ${eventName}`.toLowerCase().includes(q);
@@ -390,7 +391,38 @@ export default function RecebimentosPage() {
 
       return true;
     });
-  }, [payments, search, installmentsByPayment, statusFilter, dateFilterMode, dateFrom, dateTo, companyFilter]);
+
+    const getNextPendingDueDate = (payment: Payment) => {
+      const pendingDates = (installmentsByPayment.get(payment.id) || [])
+        .filter((inst) => !isInstallmentPaid(inst.status, inst.paid_at))
+        .map((inst) => new Date(`${inst.due_date}T12:00:00`).getTime())
+        .filter((value) => Number.isFinite(value));
+      if (!pendingDates.length) return Number.POSITIVE_INFINITY;
+      return Math.min(...pendingDates);
+    };
+
+    const getPendingAmount = (payment: Payment) => {
+      const pendingInstallments = (installmentsByPayment.get(payment.id) || [])
+        .filter((inst) => !isInstallmentPaid(inst.status, inst.paid_at))
+        .reduce((sum, inst) => sum + Number(inst.amount || 0), 0);
+      const pendingEntry = payment.has_entry_payment && Number(payment.entry_amount || 0) > 0 && !payment.entry_paid_at
+        ? Number(payment.entry_amount || 0)
+        : 0;
+      return pendingInstallments + pendingEntry;
+    };
+
+    return base.sort((a, b) => {
+      if (sortMode === "client_az") {
+        const nameA = `${a.clients?.first_name || ""} ${a.clients?.last_name || ""}`.trim().toLowerCase();
+        const nameB = `${b.clients?.first_name || ""} ${b.clients?.last_name || ""}`.trim().toLowerCase();
+        return nameA.localeCompare(nameB, "pt-BR");
+      }
+      if (sortMode === "highest_pending") {
+        return getPendingAmount(b) - getPendingAmount(a);
+      }
+      return getNextPendingDueDate(a) - getNextPendingDueDate(b);
+    });
+  }, [payments, search, installmentsByPayment, statusFilter, dateFilterMode, dateFrom, dateTo, companyFilter, sortMode]);
 
   const groupedByClient = useMemo(() => {
     const map = new Map<string, { clientName: string; payments: Payment[] }>();
@@ -402,6 +434,17 @@ export default function RecebimentosPage() {
     }
     return Array.from(map.entries()).map(([clientId, value]) => ({ clientId, ...value }));
   }, [filteredPayments]);
+
+  const hasActiveFilters = search.trim() || statusFilter !== "all" || dateFilterMode !== "all" || dateFrom || dateTo || companyFilter !== "all";
+  const resetFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setDateFilterMode("all");
+    setDateFrom("");
+    setDateTo("");
+    setCompanyFilter("all");
+    setSortMode("next_due");
+  };
 
   const totals = useMemo(() => {
     let pending = 0;
@@ -934,7 +977,7 @@ export default function RecebimentosPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/30 relative overflow-hidden">
           <div className="absolute left-0 top-0 h-full w-1.5 bg-gold/50" />
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">A Receber</p>
@@ -945,9 +988,32 @@ export default function RecebimentosPage() {
           <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Recebido</p>
           <p className="text-3xl font-display mt-1 tracking-tight">{currencyFmt(totals.received)}</p>
         </div>
+        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/30 relative overflow-hidden">
+          <div className="absolute left-0 top-0 h-full w-1.5 bg-sky-500/40" />
+          <p className="text-[10px] uppercase tracking-widest text-sky-700 font-bold">Clientes filtrados</p>
+          <p className="text-3xl font-display mt-1 tracking-tight">{groupedByClient.length}</p>
+        </div>
+        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/30 relative overflow-hidden">
+          <div className="absolute left-0 top-0 h-full w-1.5 bg-amber-500/40" />
+          <p className="text-[10px] uppercase tracking-widest text-amber-700 font-bold">Contratos filtrados</p>
+          <p className="text-3xl font-display mt-1 tracking-tight">{filteredPayments.length}</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_220px_220px_180px_180px] gap-3 items-end">
+      <div className="bg-white border border-border/30 rounded-2xl p-4 md:p-5 premium-shadow space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+            <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Filtros e organização</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant={statusFilter === "overdue" ? "default" : "outline"} className={cn("h-8 rounded-lg text-[10px] uppercase tracking-wider", statusFilter === "overdue" && "bg-destructive text-white hover:bg-destructive/90")} onClick={() => setStatusFilter(statusFilter === "overdue" ? "all" : "overdue")}>Atrasados</Button>
+            <Button type="button" size="sm" variant={statusFilter === "due_today" ? "default" : "outline"} className={cn("h-8 rounded-lg text-[10px] uppercase tracking-wider", statusFilter === "due_today" && "bg-gold text-white hover:bg-gold")} onClick={() => setStatusFilter(statusFilter === "due_today" ? "all" : "due_today")}>Vencem hoje</Button>
+            <Button type="button" size="sm" variant="ghost" className="h-8 rounded-lg text-[10px] uppercase tracking-wider" disabled={!hasActiveFilters} onClick={resetFilters}>Limpar filtros</Button>
+          </div>
+        </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_220px_220px_220px_180px_180px] gap-3 items-end">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -1000,6 +1066,18 @@ export default function RecebimentosPage() {
         )}
 
         <div className="space-y-1">
+          <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Ordenar por</Label>
+          <Select value={sortMode} onValueChange={(v: any) => setSortMode(v)}>
+            <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="next_due">Próximo vencimento</SelectItem>
+              <SelectItem value="highest_pending">Maior valor pendente</SelectItem>
+              <SelectItem value="client_az">Cliente A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</Label>
           <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} disabled={dateFilterMode !== "custom"} className="h-12 rounded-xl bg-white border-border/30" />
         </div>
@@ -1008,6 +1086,7 @@ export default function RecebimentosPage() {
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Até</Label>
           <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} disabled={dateFilterMode !== "custom"} className="h-12 rounded-xl bg-white border-border/30" />
         </div>
+      </div>
       </div>
 
       {isLoading ? (
