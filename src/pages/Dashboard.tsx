@@ -81,24 +81,49 @@ const Dashboard = () => {
       // Contas a receber projetadas (mesma base da tela de Recebimentos)
       const { data: pendingInstallments } = await supabase
         .from('payment_installments')
-        .select('amount, status')
+        .select('amount, status, payment_id')
         .in('status', ['pending', 'pendente']);
 
       const { data: pendingMonthInstallments } = await supabase
         .from('payment_installments')
-        .select('amount, due_date, status')
+        .select('amount, due_date, status, payment_id')
         .gte('due_date', monthStart)
         .lte('due_date', monthEnd)
         .in('status', ['pending', 'pendente']);
 
-      const receivableTotal = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
-      const receivableMonthTotal = pendingMonthInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+      const { data: pendingEntries } = await supabase
+        .from('payments')
+        .select('id, entry_amount, has_entry_payment, entry_paid_at')
+        .eq('has_entry_payment', true)
+        .is('entry_paid_at', null);
+
+      const { data: pendingMonthEntries } = await supabase
+        .from('payments')
+        .select('id, entry_amount, entry_date, has_entry_payment, entry_paid_at')
+        .eq('has_entry_payment', true)
+        .is('entry_paid_at', null)
+        .gte('entry_date', monthStart)
+        .lte('entry_date', monthEnd);
+
+      const receivableInstallmentsTotal = pendingInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+      const receivableEntriesTotal = pendingEntries?.reduce((acc, curr) => acc + Number(curr.entry_amount || 0), 0) || 0;
+      const receivableMonthInstallmentsTotal = pendingMonthInstallments?.reduce((acc, curr) => acc + Number(curr.amount || 0), 0) || 0;
+      const receivableMonthEntriesTotal = pendingMonthEntries?.reduce((acc, curr) => acc + Number(curr.entry_amount || 0), 0) || 0;
+
+      const receivableTotal = receivableInstallmentsTotal + receivableEntriesTotal;
+      const receivableMonthTotal = receivableMonthInstallmentsTotal + receivableMonthEntriesTotal;
+
+      const receivableContractIds = new Set<string>([
+        ...(pendingInstallments || []).map((row: any) => String(row.payment_id || '')),
+        ...(pendingEntries || []).map((row: any) => String(row.id || '')),
+      ].filter(Boolean));
 
       return {
         annual: annualTotal,
         monthly: monthlyTotal,
         receivable: receivableTotal,
         receivableMonth: receivableMonthTotal,
+        receivableContracts: receivableContractIds.size,
       };
     }
   });
@@ -273,6 +298,7 @@ const Dashboard = () => {
   const monthlyValue = kpis?.monthly || 0;
   const receivableValue = kpis?.receivable || 0;
   const receivableMonthValue = kpis?.receivableMonth || 0;
+  const receivableContracts = kpis?.receivableContracts || 0;
 
   const pipelineTotal = pipelineData?.reduce((acc, item) => acc + item.value, 0) || 0;
   const pipelineWon = pipelineData?.find((item) => item.name === 'Fechados')?.value || 0;
@@ -339,7 +365,7 @@ const Dashboard = () => {
     {
       label: 'A Receber Projetado',
       value: formatCurrency(receivableValue),
-      subValue: `${pipelineTotal} oportunidades ativas`,
+      subValue: `${receivableContracts} contratos com saldo`,
       icon: Clock,
       sensitive: true,
       cardClass: 'from-emerald-50 to-teal-50 border-emerald-200/50',
