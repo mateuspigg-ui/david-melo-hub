@@ -92,7 +92,8 @@ export default function RecebimentosPage() {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"bloco" | "lista">("bloco");
   const [sortMode, setSortMode] = useState<"next_due" | "highest_pending" | "client_az">("next_due");
-  const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
+  const [clientDetailsOpen, setClientDetailsOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
 
@@ -434,6 +435,11 @@ export default function RecebimentosPage() {
     }
     return Array.from(map.entries()).map(([clientId, value]) => ({ clientId, ...value }));
   }, [filteredPayments]);
+
+  const selectedClientGroup = useMemo(
+    () => groupedByClient.find((group) => group.clientId === selectedClientId) || null,
+    [groupedByClient, selectedClientId]
+  );
 
   const hasActiveFilters = search.trim() || statusFilter !== "all" || dateFilterMode !== "all" || dateFrom || dateTo || companyFilter !== "all";
   const resetFilters = () => {
@@ -1098,7 +1104,6 @@ export default function RecebimentosPage() {
       ) : (
         <div className={cn("space-y-4", viewMode === "lista" && "bg-white border border-border/30 rounded-2xl p-3 premium-shadow") }>
           {groupedByClient.map((group) => {
-            const clientExpanded = expandedClientId === group.clientId;
             const clientInstallments = group.payments.flatMap((p) => installmentsByPayment.get(p.id) || []);
             const clientPending = clientInstallments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
             const clientReceived = clientInstallments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
@@ -1106,7 +1111,11 @@ export default function RecebimentosPage() {
               <div key={group.clientId} className={cn("bg-white rounded-2xl border border-border/40 overflow-hidden", viewMode === "bloco" ? "premium-shadow" : "shadow-none border-border/20") }>
                 <button
                   className={cn("w-full flex items-center justify-between text-left", viewMode === "bloco" ? "p-6" : "p-4")}
-                  onClick={() => setExpandedClientId(clientExpanded ? null : group.clientId)}
+                  onClick={() => {
+                    setSelectedClientId(group.clientId);
+                    setExpandedPaymentId(null);
+                    setClientDetailsOpen(true);
+                  }}
                 >
                   <div className="space-y-2">
                     <h3 className="text-xl font-display uppercase">{group.clientName}</h3>
@@ -1133,226 +1142,83 @@ export default function RecebimentosPage() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     )}
-                    <ChevronDown className={cn("w-5 h-5 transition-transform", clientExpanded && "rotate-180")} />
+                    <ArrowDownCircle className="w-5 h-5 text-gold" />
                   </div>
                 </button>
-
-                {clientExpanded && (
-                  <div className="border-t border-border/20 p-5 space-y-4 bg-secondary/10">
-                    {group.payments.map((payment) => {
-                      const paymentExpanded = expandedPaymentId === payment.id;
-                      const paymentInstallments = installmentsByPayment.get(payment.id) || [];
-                      const invoice = invoiceByPaymentId.get(payment.id);
-                      const canIssueInvoice = !invoice || invoice.status === "rejected" || invoice.status === "cancelled";
-                      return (
-                        <div key={payment.id} className="bg-white border border-border/30 rounded-xl overflow-hidden">
-                          <button
-                            className="w-full flex items-center justify-between p-4 text-left"
-                            onClick={() => setExpandedPaymentId(paymentExpanded ? null : payment.id)}
-                          >
-                            <div>
-                              <p className="text-sm font-bold uppercase">{payment.events?.title || "Evento sem título"}</p>
-                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Total {currencyFmt(payment.total_event_value)}</p>
-                              <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] uppercase tracking-wider font-black", getInvoiceStatusClass(invoice?.status))}>
-                                  <FileText className="w-3 h-3 mr-1" /> NF {getInvoiceStatusLabel(invoice?.status)}
-                                </span>
-                                {invoice?.invoice_number && (
-                                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                                    Nº {invoice.invoice_number}
-                                  </span>
-                                )}
-                                {invoice?.status === "rejected" && invoice?.error_message && (
-                                  <span className="text-[9px] font-bold text-destructive/80 uppercase tracking-wider">
-                                    Motivo: {invoice.error_message}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                disabled={issueInvoiceMutation.isPending || !canIssueInvoice}
-                                className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border-gold/30 text-gold hover:bg-gold hover:text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  issueInvoiceMutation.mutate(payment);
-                                }}
-                              >
-                                {invoice?.status === "rejected" || invoice?.status === "cancelled" ? "Reemitir NF" : "Emitir NF"}
-                              </Button>
-                              {invoice?.status === "authorized" && invoice?.pdf_url && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(invoice.pdf_url!, "_blank", "noopener,noreferrer");
-                                  }}
-                                >
-                                  PDF
-                                </Button>
-                              )}
-                              {invoice?.status === "authorized" && invoice?.xml_url && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(invoice.xml_url!, "_blank", "noopener,noreferrer");
-                                  }}
-                                >
-                                  XML
-                                </Button>
-                              )}
-                              {invoice?.status === "authorized" && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={cancelInvoiceMutation.isPending}
-                                  className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border-destructive/30 text-destructive hover:bg-destructive hover:text-white"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const reason = window.prompt("Informe o motivo do cancelamento:", "Cancelamento solicitado pelo cliente") || "";
-                                    if (!reason.trim()) return;
-                                    if (!window.confirm("Confirmar cancelamento desta NF?")) return;
-                                    cancelInvoiceMutation.mutate({ invoice, reason: reason.trim() });
-                                  }}
-                                >
-                                  Cancelar NF
-                                </Button>
-                              )}
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-9 w-9 p-0 text-muted-foreground hover:text-gold"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditPayment(payment);
-                                }}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (window.confirm(`Excluir recebimento de ${payment.events?.title || "evento"}?`)) {
-                                    deletePaymentMutation.mutate(payment.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                              <ChevronDown className={cn("w-4 h-4 transition-transform", paymentExpanded && "rotate-180")} />
-                            </div>
-                          </button>
-
-                          {paymentExpanded && (
-                            <div className="border-t border-border/20 p-4 space-y-3">
-                              {payment.has_entry_payment && Number(payment.entry_amount || 0) > 0 && (
-                                <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                                  <div className="flex items-center gap-3">
-                                    <Calendar className="w-4 h-4 text-emerald-600" />
-                                    <div>
-                                      <p className="text-[10px] uppercase tracking-wider font-bold">Entrada</p>
-                                      <p className="text-xs text-muted-foreground">{payment.entry_date ? format(new Date(payment.entry_date + "T12:00:00"), "dd/MM/yyyy") : "-"}</p>
-                                      {payment.entry_paid_at && (
-                                        <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(payment.entry_paid_at), "dd/MM/yyyy")}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <p className="font-display">{currencyFmt(Number(payment.entry_amount || 0))}</p>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      disabled={!supportsEntryPaidAt}
-                                      className={cn(
-                                        "h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm",
-                                        payment.entry_paid_at
-                                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                          : "bg-white text-emerald-700 hover:bg-emerald-50"
-                                      )}
-                                      onClick={() => {
-                                        if (payment.entry_paid_at) {
-                                          toggleEntryMutation.mutate({ paymentId: payment.id, currentPaidAt: payment.entry_paid_at });
-                                          return;
-                                        }
-                                        openEntryAccountPicker(payment);
-                                      }}
-                                    >
-                                      {!supportsEntryPaidAt ? "Indisponível" : payment.entry_paid_at ? "Baixado" : "Validar"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {paymentInstallments.map((inst) => {
-                                const paid = isInstallmentPaid(inst.status, inst.paid_at);
-                                const overdue = !paid && isPast(new Date(inst.due_date + "T23:59:59")) && !isToday(new Date(inst.due_date + "T12:00:00"));
-                                return (
-                                  <div key={inst.id} className={cn("flex items-center justify-between p-4 rounded-xl border", overdue ? "border-destructive/30 bg-destructive/[0.03]" : "border-border/30") }>
-                                    <div>
-                                      <p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p>
-                                      <p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>
-                                      {paid && inst.paid_at && (
-                                        <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <p className="font-display">{currencyFmt(inst.amount)}</p>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className={cn(
-                                          "h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm",
-                                          paid
-                                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                            : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white"
-                                        )}
-                                        onClick={() => {
-                                          if (paid) {
-                                            toggleInstallmentMutation.mutate({ installment: inst });
-                                            return;
-                                          }
-                                          setPendingInstallment(inst);
-                                          setSelectedBankAccountId("");
-                                          setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at));
-                                          setSelectedInstallmentPaidAmount(maskCurrencyInput(String(inst.paid_amount ?? inst.amount ?? "")));
-                                          setSelectedInstallmentPaymentMethod(inst.payment_method || "");
-                                          setAccountPickerOpen(true);
-                                        }}
-                                      >
-                                        {paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       )}
+
+      <Dialog open={clientDetailsOpen} onOpenChange={setClientDetailsOpen}>
+        <DialogContent className="max-w-5xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{selectedClientGroup?.clientName || "Cliente"}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto pr-1 space-y-4">
+            {selectedClientGroup?.payments.map((payment) => {
+              const paymentExpanded = expandedPaymentId === payment.id;
+              const paymentInstallments = installmentsByPayment.get(payment.id) || [];
+              const invoice = invoiceByPaymentId.get(payment.id);
+              const canIssueInvoice = !invoice || invoice.status === "rejected" || invoice.status === "cancelled";
+              return (
+                <div key={payment.id} className="bg-white border border-border/30 rounded-xl overflow-hidden">
+                  <button
+                    className="w-full flex items-center justify-between p-4 text-left"
+                    onClick={() => setExpandedPaymentId(paymentExpanded ? null : payment.id)}
+                  >
+                    <div>
+                      <p className="text-sm font-bold uppercase">{payment.events?.title || "Evento sem título"}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Total {currencyFmt(payment.total_event_value)}</p>
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
+                        <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] uppercase tracking-wider font-black", getInvoiceStatusClass(invoice?.status))}>
+                          <FileText className="w-3 h-3 mr-1" /> NF {getInvoiceStatusLabel(invoice?.status)}
+                        </span>
+                        {invoice?.invoice_number && <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Nº {invoice.invoice_number}</span>}
+                        {invoice?.status === "rejected" && invoice?.error_message && <span className="text-[9px] font-bold text-destructive/80 uppercase tracking-wider">Motivo: {invoice.error_message}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button type="button" size="sm" variant="outline" disabled={issueInvoiceMutation.isPending || !canIssueInvoice} className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border-gold/30 text-gold hover:bg-gold hover:text-white" onClick={(e) => { e.stopPropagation(); issueInvoiceMutation.mutate(payment); }}>
+                        {invoice?.status === "rejected" || invoice?.status === "cancelled" ? "Reemitir NF" : "Emitir NF"}
+                      </Button>
+                      {invoice?.status === "authorized" && invoice?.pdf_url && <Button type="button" size="sm" variant="outline" className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider" onClick={(e) => { e.stopPropagation(); window.open(invoice.pdf_url!, "_blank", "noopener,noreferrer"); }}>PDF</Button>}
+                      {invoice?.status === "authorized" && invoice?.xml_url && <Button type="button" size="sm" variant="outline" className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider" onClick={(e) => { e.stopPropagation(); window.open(invoice.xml_url!, "_blank", "noopener,noreferrer"); }}>XML</Button>}
+                      {invoice?.status === "authorized" && <Button type="button" size="sm" variant="outline" disabled={cancelInvoiceMutation.isPending} className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border-destructive/30 text-destructive hover:bg-destructive hover:text-white" onClick={(e) => { e.stopPropagation(); const reason = window.prompt("Informe o motivo do cancelamento:", "Cancelamento solicitado pelo cliente") || ""; if (!reason.trim()) return; if (!window.confirm("Confirmar cancelamento desta NF?")) return; cancelInvoiceMutation.mutate({ invoice, reason: reason.trim() }); }}>Cancelar NF</Button>}
+                      <Button type="button" size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-gold" onClick={(e) => { e.stopPropagation(); openEditPayment(payment); }}><Pencil className="w-4 h-4" /></Button>
+                      <Button type="button" size="sm" variant="ghost" className="h-9 w-9 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); if (window.confirm(`Excluir recebimento de ${payment.events?.title || "evento"}?`)) { deletePaymentMutation.mutate(payment.id); } }}><Trash2 className="w-4 h-4" /></Button>
+                      <ChevronDown className={cn("w-4 h-4 transition-transform", paymentExpanded && "rotate-180")} />
+                    </div>
+                  </button>
+
+                  {paymentExpanded && (
+                    <div className="border-t border-border/20 p-4 space-y-3">
+                      {payment.has_entry_payment && Number(payment.entry_amount || 0) > 0 && (
+                        <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                          <div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-emerald-600" /><div><p className="text-[10px] uppercase tracking-wider font-bold">Entrada</p><p className="text-xs text-muted-foreground">{payment.entry_date ? format(new Date(payment.entry_date + "T12:00:00"), "dd/MM/yyyy") : "-"}</p>{payment.entry_paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(payment.entry_paid_at), "dd/MM/yyyy")}</p>}</div></div>
+                          <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(Number(payment.entry_amount || 0))}</p><Button size="sm" variant="outline" disabled={!supportsEntryPaidAt} className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", payment.entry_paid_at ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-white text-emerald-700 hover:bg-emerald-50")} onClick={() => { if (payment.entry_paid_at) { toggleEntryMutation.mutate({ paymentId: payment.id, currentPaidAt: payment.entry_paid_at }); return; } openEntryAccountPicker(payment); }}>{!supportsEntryPaidAt ? "Indisponível" : payment.entry_paid_at ? "Baixado" : "Validar"}</Button></div>
+                        </div>
+                      )}
+
+                      {paymentInstallments.map((inst) => {
+                        const paid = isInstallmentPaid(inst.status, inst.paid_at);
+                        const overdue = !paid && isPast(new Date(inst.due_date + "T23:59:59")) && !isToday(new Date(inst.due_date + "T12:00:00"));
+                        return (
+                          <div key={inst.id} className={cn("flex items-center justify-between p-4 rounded-xl border", overdue ? "border-destructive/30 bg-destructive/[0.03]" : "border-border/30") }>
+                            <div><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}</div>
+                            <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(inst.amount)}</p><Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white")} onClick={() => { if (paid) { toggleInstallmentMutation.mutate({ installment: inst }); return; } setPendingInstallment(inst); setSelectedBankAccountId(""); setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at)); setSelectedInstallmentPaidAmount(maskCurrencyInput(String(inst.paid_amount ?? inst.amount ?? ""))); setSelectedInstallmentPaymentMethod(inst.payment_method || ""); setAccountPickerOpen(true); }}>{paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}</Button></div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={contractOpen} onOpenChange={setContractOpen}>
         <DialogContent className="max-w-2xl rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
