@@ -1,6 +1,6 @@
 import { DollarSign, TrendingUp, Clock, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
 import { format, startOfYear, endOfYear, startOfMonth, endOfMonth } from 'date-fns';
@@ -21,6 +21,7 @@ const PIPELINE_COLORS: Record<string, string> = {
 const Dashboard = () => {
   const { isAdmin } = useAuth();
   const [dueDateFilter, setDueDateFilter] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [contractsYearFilter, setContractsYearFilter] = useState(String(new Date().getFullYear()));
   const currentMonthStart = startOfMonth(new Date());
   const yearStart = format(startOfYear(new Date()), 'yyyy-MM-dd');
   const yearEnd = format(endOfYear(new Date()), 'yyyy-MM-dd');
@@ -274,6 +275,54 @@ const Dashboard = () => {
     },
   });
 
+  const { data: contractsBase = [] } = useQuery({
+    queryKey: ['dashboard_contracts_by_year_base'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('id, total_event_value, created_at')
+        .not('total_event_value', 'is', null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const contractYearOptions = useMemo(() => {
+    const years = new Set<string>();
+    (contractsBase || []).forEach((row: any) => {
+      if (!row?.created_at) return;
+      const parsed = new Date(row.created_at);
+      if (Number.isNaN(parsed.getTime())) return;
+      years.add(String(parsed.getFullYear()));
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [contractsBase]);
+
+  useEffect(() => {
+    if (!contractYearOptions.length) return;
+    if (!contractYearOptions.includes(contractsYearFilter)) {
+      setContractsYearFilter(contractYearOptions[0]);
+    }
+  }, [contractYearOptions, contractsYearFilter]);
+
+  const contractsYearSummary = useMemo(() => {
+    const selectedYear = Number(contractsYearFilter);
+    if (!Number.isFinite(selectedYear)) return { total: 0, count: 0 };
+
+    let total = 0;
+    let count = 0;
+    (contractsBase || []).forEach((row: any) => {
+      if (!row?.created_at) return;
+      const parsed = new Date(row.created_at);
+      if (Number.isNaN(parsed.getTime())) return;
+      if (parsed.getFullYear() !== selectedYear) return;
+      total += Number(row.total_event_value || 0);
+      count += 1;
+    });
+
+    return { total, count };
+  }, [contractsBase, contractsYearFilter]);
+
   const formatCurrency = (val: number) => 
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
@@ -482,6 +531,36 @@ const Dashboard = () => {
             </div>
           );
         })}
+      </div>
+
+      <div className="px-2">
+        <div className="bg-white rounded-[28px] border border-border/40 premium-shadow p-6 md:p-7 flex flex-col md:flex-row md:items-end md:justify-between gap-5">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">Contratos Fechados por Ano</p>
+            <p className={cn('text-3xl md:text-4xl font-display tracking-tight mt-2', !isAdmin && 'blur-sm select-none')}>
+              {isAdmin ? formatCurrency(contractsYearSummary.total) : 'R$ ••••••••'}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/50 mt-2">
+              {contractsYearSummary.count} contrato{contractsYearSummary.count === 1 ? '' : 's'} no ano selecionado
+            </p>
+          </div>
+          <div className="space-y-1 min-w-[180px]">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Ano dos contratos</p>
+            <select
+              value={contractsYearFilter}
+              onChange={(e) => setContractsYearFilter(e.target.value)}
+              className="h-11 w-full rounded-xl border border-border/40 bg-white px-3 text-sm"
+            >
+              {contractYearOptions.length === 0 ? (
+                <option value={contractsYearFilter}>{contractsYearFilter}</option>
+              ) : (
+                contractYearOptions.map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))
+              )}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Main Stats Grid */}
