@@ -31,28 +31,52 @@ const Dashboard = () => {
   const { data: kpis, isLoading: isLoadingKPIs } = useQuery({
     queryKey: ['dashboard_kpis'],
     queryFn: async () => {
-      // Faturamento baseado nos contratos de Pagamentos
-      const { data: yearPayments } = await supabase
-        .from('payments')
-        .select('total_event_value, created_at')
-        .gte('created_at', `${yearStart}T00:00:00`)
-        .lte('created_at', `${yearEnd}T23:59:59`);
+      // Faturamento por recebimento efetivo (entrada/parcela baixada)
+      const { data: yearInstallments } = await supabase
+        .from('payment_installments')
+        .select('amount, paid_amount, paid_at')
+        .gte('paid_at', `${yearStart}T00:00:00`)
+        .lte('paid_at', `${yearEnd}T23:59:59`);
 
-      const annualTotal = (yearPayments || []).reduce(
-        (acc: number, curr: any) => acc + Number(curr.total_event_value || 0),
+      const { data: monthInstallments } = await supabase
+        .from('payment_installments')
+        .select('amount, paid_amount, paid_at')
+        .gte('paid_at', `${monthStart}T00:00:00`)
+        .lte('paid_at', `${monthEnd}T23:59:59`);
+
+      const { data: yearEntries } = await supabase
+        .from('payments')
+        .select('entry_amount, entry_paid_amount, entry_paid_at, has_entry_payment')
+        .eq('has_entry_payment', true)
+        .gte('entry_paid_at', `${yearStart}T00:00:00`)
+        .lte('entry_paid_at', `${yearEnd}T23:59:59`);
+
+      const { data: monthEntries } = await supabase
+        .from('payments')
+        .select('entry_amount, entry_paid_amount, entry_paid_at, has_entry_payment')
+        .eq('has_entry_payment', true)
+        .gte('entry_paid_at', `${monthStart}T00:00:00`)
+        .lte('entry_paid_at', `${monthEnd}T23:59:59`);
+
+      const annualInstallmentsTotal = (yearInstallments || []).reduce(
+        (acc: number, curr: any) => acc + Number(curr.paid_amount ?? curr.amount ?? 0),
+        0
+      );
+      const monthlyInstallmentsTotal = (monthInstallments || []).reduce(
+        (acc: number, curr: any) => acc + Number(curr.paid_amount ?? curr.amount ?? 0),
+        0
+      );
+      const annualEntriesTotal = (yearEntries || []).reduce(
+        (acc: number, curr: any) => acc + Number(curr.entry_paid_amount ?? curr.entry_amount ?? 0),
+        0
+      );
+      const monthlyEntriesTotal = (monthEntries || []).reduce(
+        (acc: number, curr: any) => acc + Number(curr.entry_paid_amount ?? curr.entry_amount ?? 0),
         0
       );
 
-      const { data: monthPayments } = await supabase
-        .from('payments')
-        .select('total_event_value, created_at')
-        .gte('created_at', `${monthStart}T00:00:00`)
-        .lte('created_at', `${monthEnd}T23:59:59`);
-
-      const monthlyTotal = (monthPayments || []).reduce(
-        (acc: number, curr: any) => acc + Number(curr.total_event_value || 0),
-        0
-      );
+      const annualTotal = annualInstallmentsTotal + annualEntriesTotal;
+      const monthlyTotal = monthlyInstallmentsTotal + monthlyEntriesTotal;
 
       // Contas a receber projetadas (mesma base da tela de Recebimentos)
       const { data: pendingInstallments } = await supabase
