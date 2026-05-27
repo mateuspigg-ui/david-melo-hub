@@ -29,6 +29,8 @@ type Payment = {
   entry_date: string | null;
   entry_paid_at: string | null;
   entry_bank_account_id?: string | null;
+  entry_paid_amount?: number | null;
+  entry_payment_method?: string | null;
   client_id: string | null;
   event_id: string | null;
   company_id?: string | null;
@@ -45,6 +47,16 @@ type Installment = {
   status: string;
   paid_at: string | null;
   bank_account_id?: string | null;
+  paid_amount?: number | null;
+  payment_method?: string | null;
+};
+
+const PAYMENT_METHOD_OPTIONS = ["pix", "dinheiro", "cartao_credito", "transferencia"] as const;
+const PAYMENT_METHOD_LABEL: Record<(typeof PAYMENT_METHOD_OPTIONS)[number], string> = {
+  pix: "Pix",
+  dinheiro: "Dinheiro",
+  cartao_credito: "Cartao de credito",
+  transferencia: "Transferencia",
 };
 
 type InstallmentPlanItem = {
@@ -88,10 +100,14 @@ export default function RecebimentosPage() {
   const [pendingInstallment, setPendingInstallment] = useState<Installment | null>(null);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState("");
   const [selectedInstallmentPaidDate, setSelectedInstallmentPaidDate] = useState("");
+  const [selectedInstallmentPaidAmount, setSelectedInstallmentPaidAmount] = useState("");
+  const [selectedInstallmentPaymentMethod, setSelectedInstallmentPaymentMethod] = useState("");
   const [entryAccountPickerOpen, setEntryAccountPickerOpen] = useState(false);
   const [pendingEntryPayment, setPendingEntryPayment] = useState<Payment | null>(null);
   const [selectedEntryBankAccountId, setSelectedEntryBankAccountId] = useState("");
   const [selectedEntryPaidDate, setSelectedEntryPaidDate] = useState("");
+  const [selectedEntryPaidAmount, setSelectedEntryPaidAmount] = useState("");
+  const [selectedEntryPaymentMethod, setSelectedEntryPaymentMethod] = useState("");
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
   const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
 
@@ -180,6 +196,10 @@ export default function RecebimentosPage() {
   const isMissingEntryPaidAtColumnError = (error: any) => /entry_paid_at.*does not exist|schema cache|could not find.*entry_paid_at/i.test(String(error?.message || ""));
   const isMissingEntryBankAccountColumnError = (error: any) => /entry_bank_account_id.*does not exist|schema cache|could not find.*entry_bank_account_id/i.test(String(error?.message || ""));
   const isMissingInstallmentBankAccountColumnError = (error: any) => /bank_account_id.*does not exist|schema cache|could not find.*bank_account_id/i.test(String(error?.message || ""));
+  const isMissingEntryPaidAmountColumnError = (error: any) => /entry_paid_amount.*does not exist|schema cache|could not find.*entry_paid_amount/i.test(String(error?.message || ""));
+  const isMissingEntryPaymentMethodColumnError = (error: any) => /entry_payment_method.*does not exist|schema cache|could not find.*entry_payment_method/i.test(String(error?.message || ""));
+  const isMissingInstallmentPaidAmountColumnError = (error: any) => /paid_amount.*does not exist|schema cache|could not find.*paid_amount/i.test(String(error?.message || ""));
+  const isMissingInstallmentPaymentMethodColumnError = (error: any) => /payment_method.*does not exist|schema cache|could not find.*payment_method/i.test(String(error?.message || ""));
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
 
   const { data: payments = [], isLoading } = useQuery({
@@ -388,16 +408,55 @@ export default function RecebimentosPage() {
     let received = 0;
     for (const inst of installments) {
       if (!filteredPayments.some((p) => p.id === inst.payment_id)) continue;
-      if (isInstallmentPaid(inst.status, inst.paid_at)) received += inst.amount;
+      if (isInstallmentPaid(inst.status, inst.paid_at)) received += Number(inst.paid_amount ?? inst.amount ?? 0);
       else pending += inst.amount;
     }
     for (const p of filteredPayments) {
       if (!p.has_entry_payment || !p.entry_amount) continue;
-      if (p.entry_paid_at) received += p.entry_amount;
+      if (p.entry_paid_at) received += Number(p.entry_paid_amount ?? p.entry_amount ?? 0);
       else pending += p.entry_amount;
     }
     return { pending, received };
   }, [filteredPayments, installments]);
+
+  const recalculateOpenInstallments = async (paymentId: string) => {
+    const payment = payments.find((item) => item.id === paymentId);
+    if (!payment) return;
+
+    const { data: rows, error } = await supabase
+      .from("payment_installments")
+      .select("id, amount, status, paid_at, paid_amount")
+      .eq("payment_id", paymentId)
+      .order("installment_number", { ascending: true });
+    if (error) throw error;
+
+    const allInstallments = (rows || []) as Installment[];
+    const openInstallments = allInstallments.filter((inst) => !isInstallmentPaid(inst.status, inst.paid_at));
+    if (!openInstallments.length) return;
+
+    const paidInstallmentsTotal = allInstallments
+      .filter((inst) => isInstallmentPaid(inst.status, inst.paid_at))
+      .reduce((sum, inst) => sum + Number(inst.paid_amount ?? inst.amount ?? 0), 0);
+
+    const entryPaidValue = payment.has_entry_payment && payment.entry_paid_at
+      ? Number(payment.entry_paid_amount ?? payment.entry_amount ?? 0)
+      : 0;
+
+    const remainingValue = Math.max(0, Number(payment.total_event_value || 0) - entryPaidValue - paidInstallmentsTotal);
+    const totalCents = Math.round(remainingValue * 100);
+    const baseCents = Math.floor(totalCents / openInstallments.length);
+    const remainderCents = totalCents - (baseCents * openInstallments.length);
+
+    for (let index = 0; index < openInstallments.length; index += 1) {
+      const inst = openInstallments[index];
+      const cents = baseCents + (index === openInstallments.length - 1 ? remainderCents : 0);
+      const { error: updateError } = await supabase
+        .from("payment_installments")
+        .update({ amount: cents / 100 } as any)
+        .eq("id", inst.id);
+      if (updateError) throw updateError;
+    }
+  };
 
   const buildDefaultInstallments = (count: number, remaining: number, baseDate?: string) => {
     const anchor = baseDate ? new Date(`${baseDate}T12:00:00`) : new Date();
@@ -680,18 +739,18 @@ export default function RecebimentosPage() {
   });
 
   const toggleEntryMutation = useMutation({
-    mutationFn: async ({ paymentId, currentPaidAt, bankAccountId, paidDate }: { paymentId: string; currentPaidAt: string | null; bankAccountId?: string | null; paidDate?: string }) => {
+    mutationFn: async ({ paymentId, currentPaidAt, bankAccountId, paidDate, paidAmount, paymentMethod }: { paymentId: string; currentPaidAt: string | null; bankAccountId?: string | null; paidDate?: string; paidAmount?: number | null; paymentMethod?: string | null }) => {
       const paidAt = toIsoFromDateInput(paidDate);
       const payload = currentPaidAt
-        ? { entry_paid_at: null, entry_bank_account_id: null }
-        : { entry_paid_at: paidAt, entry_bank_account_id: bankAccountId || null };
+        ? { entry_paid_at: null, entry_bank_account_id: null, entry_paid_amount: null, entry_payment_method: null }
+        : { entry_paid_at: paidAt, entry_bank_account_id: bankAccountId || null, entry_paid_amount: paidAmount ?? null, entry_payment_method: paymentMethod || null };
 
       let { error } = await supabase
         .from("payments")
         .update(payload as any)
         .eq("id", paymentId);
 
-      if (error && isMissingEntryBankAccountColumnError(error)) {
+      if (error && (isMissingEntryBankAccountColumnError(error) || isMissingEntryPaidAmountColumnError(error) || isMissingEntryPaymentMethodColumnError(error))) {
           const retry = await supabase
             .from("payments")
             .update({ entry_paid_at: currentPaidAt ? null : paidAt } as any)
@@ -725,19 +784,19 @@ export default function RecebimentosPage() {
   });
 
   const toggleInstallmentMutation = useMutation({
-    mutationFn: async ({ installment, bankAccountId, paidDate }: { installment: Installment; bankAccountId?: string | null; paidDate?: string }) => {
+    mutationFn: async ({ installment, bankAccountId, paidDate, paidAmount, paymentMethod }: { installment: Installment; bankAccountId?: string | null; paidDate?: string; paidAmount?: number | null; paymentMethod?: string | null }) => {
       const currentlyPaid = isInstallmentPaid(installment.status, installment.paid_at);
       if (currentlyPaid) {
         let lastError: any = null;
         for (const fallbackStatus of PENDING_STATUS_VALUES) {
           const { error } = await supabase
             .from("payment_installments")
-            .update({ status: fallbackStatus, paid_at: null, bank_account_id: null } as any)
+            .update({ status: fallbackStatus, paid_at: null, bank_account_id: null, paid_amount: null, payment_method: null } as any)
             .eq("id", installment.id);
           if (!error) return;
           lastError = error;
         }
-        if (lastError && isMissingInstallmentBankAccountColumnError(lastError)) {
+        if (lastError && (isMissingInstallmentBankAccountColumnError(lastError) || isMissingInstallmentPaidAmountColumnError(lastError) || isMissingInstallmentPaymentMethodColumnError(lastError))) {
           for (const fallbackStatus of PENDING_STATUS_VALUES) {
             const { error } = await supabase
               .from("payment_installments")
@@ -756,12 +815,15 @@ export default function RecebimentosPage() {
       for (const fallbackStatus of PAID_STATUS_VALUES) {
         const { error } = await supabase
           .from("payment_installments")
-          .update({ status: fallbackStatus, paid_at: paidAt, bank_account_id: bankAccountId || null } as any)
+          .update({ status: fallbackStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, paid_amount: paidAmount ?? null, payment_method: paymentMethod || null } as any)
           .eq("id", installment.id);
-        if (!error) return;
+        if (!error) {
+          await recalculateOpenInstallments(installment.payment_id);
+          return;
+        }
         lastError = error;
       }
-      if (lastError && isMissingInstallmentBankAccountColumnError(lastError)) {
+      if (lastError && (isMissingInstallmentBankAccountColumnError(lastError) || isMissingInstallmentPaidAmountColumnError(lastError) || isMissingInstallmentPaymentMethodColumnError(lastError))) {
         for (const fallbackStatus of PAID_STATUS_VALUES) {
           const { error } = await supabase
             .from("payment_installments")
@@ -842,6 +904,8 @@ export default function RecebimentosPage() {
     setPendingEntryPayment(payment);
     setSelectedEntryBankAccountId(payment.entry_bank_account_id || "");
     setSelectedEntryPaidDate(toDateInputValue(payment.entry_paid_at));
+    setSelectedEntryPaidAmount(maskCurrencyInput(String(payment.entry_paid_amount ?? payment.entry_amount ?? "")));
+    setSelectedEntryPaymentMethod(payment.entry_payment_method || "");
     setEntryAccountPickerOpen(true);
   };
 
@@ -1187,6 +1251,8 @@ export default function RecebimentosPage() {
                                           setPendingInstallment(inst);
                                           setSelectedBankAccountId("");
                                           setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at));
+                                          setSelectedInstallmentPaidAmount(maskCurrencyInput(String(inst.paid_amount ?? inst.amount ?? "")));
+                                          setSelectedInstallmentPaymentMethod(inst.payment_method || "");
                                           setAccountPickerOpen(true);
                                         }}
                                       >
@@ -1313,7 +1379,16 @@ export default function RecebimentosPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={accountPickerOpen} onOpenChange={setAccountPickerOpen}>
+      <Dialog open={accountPickerOpen} onOpenChange={(open) => {
+        setAccountPickerOpen(open);
+        if (!open) {
+          setPendingInstallment(null);
+          setSelectedBankAccountId("");
+          setSelectedInstallmentPaidDate("");
+          setSelectedInstallmentPaidAmount("");
+          setSelectedInstallmentPaymentMethod("");
+        }
+      }}>
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader><DialogTitle>Conta de recebimento</DialogTitle></DialogHeader>
           <div className="space-y-2">
@@ -1330,18 +1405,41 @@ export default function RecebimentosPage() {
               <Label>Data do pagamento</Label>
               <Input type="date" value={selectedInstallmentPaidDate} onChange={(e) => setSelectedInstallmentPaidDate(e.target.value)} />
             </div>
+            <div className="space-y-1 pt-2">
+              <Label>Valor pago</Label>
+              <Input value={selectedInstallmentPaidAmount} onChange={(e) => setSelectedInstallmentPaidAmount(maskCurrencyInput(e.target.value))} placeholder="0,00" inputMode="numeric" />
+            </div>
+            <div className="space-y-1 pt-2">
+              <Label>Forma de pagamento</Label>
+              <Select value={selectedInstallmentPaymentMethod} onValueChange={setSelectedInstallmentPaymentMethod}>
+                <SelectTrigger><SelectValue placeholder="Escolher forma" /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHOD_OPTIONS.map((method) => (
+                    <SelectItem key={method} value={method}>{PAYMENT_METHOD_LABEL[method]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingInstallment || !selectedInstallmentPaidDate || (bankAccounts.length > 0 && !selectedBankAccountId)}
+              disabled={!pendingInstallment || !selectedInstallmentPaidDate || parseCurrencyInput(selectedInstallmentPaidAmount) <= 0 || !selectedInstallmentPaymentMethod || (bankAccounts.length > 0 && !selectedBankAccountId)}
               onClick={() => {
                 if (!pendingInstallment) return;
-                toggleInstallmentMutation.mutate({ installment: pendingInstallment, bankAccountId: selectedBankAccountId || null, paidDate: selectedInstallmentPaidDate });
+                toggleInstallmentMutation.mutate({
+                  installment: pendingInstallment,
+                  bankAccountId: selectedBankAccountId || null,
+                  paidDate: selectedInstallmentPaidDate,
+                  paidAmount: parseCurrencyInput(selectedInstallmentPaidAmount),
+                  paymentMethod: selectedInstallmentPaymentMethod,
+                });
                 setAccountPickerOpen(false);
                 setPendingInstallment(null);
                 setSelectedBankAccountId("");
                 setSelectedInstallmentPaidDate("");
+                setSelectedInstallmentPaidAmount("");
+                setSelectedInstallmentPaymentMethod("");
               }}
             >
               Confirmar baixa
@@ -1356,6 +1454,8 @@ export default function RecebimentosPage() {
           setPendingEntryPayment(null);
           setSelectedEntryBankAccountId("");
           setSelectedEntryPaidDate("");
+          setSelectedEntryPaidAmount("");
+          setSelectedEntryPaymentMethod("");
         }
       }}>
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -1374,11 +1474,26 @@ export default function RecebimentosPage() {
               <Label>Data do pagamento</Label>
               <Input type="date" value={selectedEntryPaidDate} onChange={(e) => setSelectedEntryPaidDate(e.target.value)} />
             </div>
+            <div className="space-y-1 pt-2">
+              <Label>Valor pago</Label>
+              <Input value={selectedEntryPaidAmount} onChange={(e) => setSelectedEntryPaidAmount(maskCurrencyInput(e.target.value))} placeholder="0,00" inputMode="numeric" />
+            </div>
+            <div className="space-y-1 pt-2">
+              <Label>Forma de pagamento</Label>
+              <Select value={selectedEntryPaymentMethod} onValueChange={setSelectedEntryPaymentMethod}>
+                <SelectTrigger><SelectValue placeholder="Escolher forma" /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHOD_OPTIONS.map((method) => (
+                    <SelectItem key={method} value={method}>{PAYMENT_METHOD_LABEL[method]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setEntryAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingEntryPayment || !selectedEntryPaidDate || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}
+              disabled={!pendingEntryPayment || !selectedEntryPaidDate || parseCurrencyInput(selectedEntryPaidAmount) <= 0 || !selectedEntryPaymentMethod || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}
               onClick={() => {
                 if (!pendingEntryPayment) return;
                 toggleEntryMutation.mutate({
@@ -1386,11 +1501,15 @@ export default function RecebimentosPage() {
                   currentPaidAt: pendingEntryPayment.entry_paid_at,
                   bankAccountId: selectedEntryBankAccountId || null,
                   paidDate: selectedEntryPaidDate,
+                  paidAmount: parseCurrencyInput(selectedEntryPaidAmount),
+                  paymentMethod: selectedEntryPaymentMethod,
                 });
                 setEntryAccountPickerOpen(false);
                 setPendingEntryPayment(null);
                 setSelectedEntryBankAccountId("");
                 setSelectedEntryPaidDate("");
+                setSelectedEntryPaidAmount("");
+                setSelectedEntryPaymentMethod("");
               }}
             >
               Confirmar baixa
