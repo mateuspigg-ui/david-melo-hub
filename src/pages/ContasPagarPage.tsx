@@ -530,15 +530,16 @@ export default function ContasPagarPage() {
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] p-0 rounded-2xl shadow-2xl border-border/40 bg-background overflow-hidden flex flex-col">
-          <div className="bg-gradient-gold p-8 text-white">
+        <DialogContent className="max-w-5xl max-h-[92vh] p-0 rounded-[28px] shadow-2xl border-border/40 bg-background overflow-hidden flex flex-col">
+          <div className="bg-gradient-gold p-8 md:p-10 text-white">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-display text-white">Programar Despesa</DialogTitle>
+              <DialogTitle className="text-2xl md:text-3xl font-display text-white">Programar Despesa</DialogTitle>
               <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Insira os detalhes técnicos para auditoria financeira.</p>
             </DialogHeader>
           </div>
-          <div className="p-6 md:p-8 space-y-6 overflow-y-auto min-h-0">
-            <div className="space-y-2">
+          <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0 bg-gradient-to-b from-background to-secondary/10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-2 lg:col-span-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Título *</Label>
               <Textarea 
                 value={form.description} 
@@ -548,7 +549,7 @@ export default function ContasPagarPage() {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor do Título *</Label>
                 <Input 
@@ -600,7 +601,7 @@ export default function ContasPagarPage() {
             </div>
 
             {form.expense_type === "recurring" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-gold/20 bg-gold/5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Modelo</Label>
                   <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
@@ -661,7 +662,9 @@ export default function ContasPagarPage() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-6 border-t border-border/10">
+            </div>
+
+            <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-6 border-t border-border/10 bg-background/95 backdrop-blur">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
               <Button onClick={() => createMutation.mutate()} disabled={!form.description || !form.amount || !form.due_date} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
                 Efetuar Registro
