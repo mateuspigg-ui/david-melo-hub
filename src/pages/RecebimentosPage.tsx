@@ -1034,8 +1034,8 @@ export default function RecebimentosPage() {
           </div>
         </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_220px_220px_220px_180px_180px] gap-3 items-end">
-        <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3 items-end">
+        <div className="relative md:col-span-2 xl:col-span-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar cliente ou evento..."
@@ -1045,7 +1045,7 @@ export default function RecebimentosPage() {
           />
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 xl:col-span-2">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Situação</Label>
           <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
             <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
@@ -1059,7 +1059,7 @@ export default function RecebimentosPage() {
           </Select>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 xl:col-span-2">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Período</Label>
           <Select value={dateFilterMode} onValueChange={(v: any) => setDateFilterMode(v)}>
             <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
@@ -1072,7 +1072,7 @@ export default function RecebimentosPage() {
         </div>
 
         {companies.length > 0 && (
-          <div className="space-y-1">
+          <div className="space-y-1 xl:col-span-2">
             <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Empresa / CNPJ</Label>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
@@ -1086,7 +1086,7 @@ export default function RecebimentosPage() {
           </div>
         )}
 
-        <div className="space-y-1">
+        <div className="space-y-1 xl:col-span-1">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Ordenar por</Label>
           <Select value={sortMode} onValueChange={(v: any) => setSortMode(v)}>
             <SelectTrigger className="h-12 rounded-xl bg-white border-border/30"><SelectValue /></SelectTrigger>
@@ -1098,12 +1098,12 @@ export default function RecebimentosPage() {
           </Select>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 xl:col-span-1">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</Label>
           <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} disabled={dateFilterMode !== "custom"} className="h-12 rounded-xl bg-white border-border/30" />
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-1 xl:col-span-1">
           <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Até</Label>
           <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} disabled={dateFilterMode !== "custom"} className="h-12 rounded-xl bg-white border-border/30" />
         </div>
