@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, Receipt, Trash2, Check } from "lucide-react";
+import { Plus, Search, Receipt, MoreVertical } from "lucide-react";
 import { addMonths, differenceInCalendarDays, format, startOfDay } from "date-fns";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
@@ -552,28 +553,71 @@ export default function ContasPagarPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {isAccountPaid(item.payment_status, item.paid_at) ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-10 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-xl shadow-sm transition-all px-4 text-[9px] font-bold uppercase tracking-widest"
-                        onClick={() => togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status })}
-                      >
-                        Desfazer Baixa
-                      </Button>
-                    ) : (
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-10 w-10 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded-xl shadow-sm transition-all shadow-emerald-500/10"
-                        onClick={() => togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status })}
-                      >
-                        <Check className="w-5 h-5" />
-                      </Button>
-                    )}
-                    <Button size="icon" variant="ghost" className="h-10 w-10 text-destructive/40 hover:text-destructive hover:bg-destructive/5 rounded-xl transition-colors" onClick={() => deleteMutation.mutate(item.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl border border-border/30 bg-white hover:bg-secondary/60">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setForm({
+                              description: item.description || "",
+                              amount: maskCurrencyInput(String(item.amount || "")),
+                              due_date: item.due_date || "",
+                              supplier_id: item.supplier_id || "",
+                              company_id: item.company_id || "",
+                              category_id: item.category_id || "",
+                              cost_center_id: item.cost_center_id || "",
+                              expense_type: "single",
+                              recurrence_mode: "repeat",
+                              recurrence_months: "2",
+                            });
+                            setDialogOpen(true);
+                            toast({ title: "Dados carregados para edição" });
+                          }}
+                        >
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status })}>
+                          {isAccountPaid(item.payment_status, item.paid_at) ? "Desfazer baixa" : "Baixar"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setForm((prev) => ({
+                              ...prev,
+                              description: item.description || "",
+                              amount: maskCurrencyInput(String(item.amount || "")),
+                              due_date: item.due_date || "",
+                              supplier_id: item.supplier_id || "",
+                              company_id: item.company_id || "",
+                              category_id: item.category_id || "",
+                              cost_center_id: item.cost_center_id || "",
+                              expense_type: "single",
+                              recurrence_mode: "repeat",
+                              recurrence_months: "2",
+                            }));
+                            setDialogOpen(true);
+                            toast({ title: "Despesa duplicada para novo registro" });
+                          }}
+                        >
+                          Duplicar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toast({ title: "Anexos em breve" })}>Anexos</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => window.print()}>Imprimir</DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            if (window.confirm(`Excluir a despesa de ${item.suppliers?.company_name || "fornecedor"}?`)) {
+                              deleteMutation.mutate(item.id);
+                            }
+                          }}
+                        >
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
