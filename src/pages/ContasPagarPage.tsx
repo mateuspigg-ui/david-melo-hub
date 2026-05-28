@@ -105,6 +105,8 @@ export default function ContasPagarPage() {
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [attachmentsTarget, setAttachmentsTarget] = useState<AccountPayable | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentTypeFilter, setAttachmentTypeFilter] = useState("all");
+  const [attachmentSortBy, setAttachmentSortBy] = useState("date_desc");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -224,6 +226,24 @@ export default function ContasPagarPage() {
     () => attachments.reduce((sum, file) => sum + Number(file.file_size || 0), 0),
     [attachments]
   );
+
+  const filteredAttachments = useMemo(() => {
+    const byType = attachments.filter((file) => {
+      const type = String(file.content_type || "").toLowerCase();
+      if (attachmentTypeFilter === "image") return type.startsWith("image/");
+      if (attachmentTypeFilter === "pdf") return type === "application/pdf";
+      return true;
+    });
+
+    const sorted = [...byType].sort((a, b) => {
+      if (attachmentSortBy === "date_asc") return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (attachmentSortBy === "name_asc") return String(a.file_name || "").localeCompare(String(b.file_name || ""), "pt-BR");
+      if (attachmentSortBy === "size_desc") return Number(b.file_size || 0) - Number(a.file_size || 0);
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    return sorted;
+  }, [attachments, attachmentSortBy, attachmentTypeFilter]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -617,6 +637,13 @@ export default function ContasPagarPage() {
     }
   };
 
+  const openAttachmentsModal = (item: AccountPayable) => {
+    setAttachmentsTarget(item);
+    setAttachmentTypeFilter("all");
+    setAttachmentSortBy("date_desc");
+    setAttachmentsOpen(true);
+  };
+
   const totalPending = items
     .filter((i) => isAccountPending(i.payment_status, i.paid_at))
     .reduce((s, i) => s + i.amount, 0);
@@ -779,8 +806,7 @@ export default function ContasPagarPage() {
                          variant="ghost"
                          className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
                          onClick={() => {
-                           setAttachmentsTarget(item);
-                           setAttachmentsOpen(true);
+                           openAttachmentsModal(item);
                          }}
                        >
                          <Paperclip className="w-3 h-3 mr-1" /> {count} anexo{count === 1 ? "" : "s"}
@@ -852,7 +878,7 @@ export default function ContasPagarPage() {
                         >
                           Duplicar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setAttachmentsTarget(item); setAttachmentsOpen(true); }}>Anexos</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openAttachmentsModal(item)}>Anexos</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handlePrintPayable(item)}>Imprimir</DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
@@ -1148,10 +1174,29 @@ export default function ContasPagarPage() {
               </div>
             </div>
 
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Button type="button" size="sm" variant={attachmentTypeFilter === "all" ? "default" : "outline"} onClick={() => setAttachmentTypeFilter("all")}>Todos</Button>
+                <Button type="button" size="sm" variant={attachmentTypeFilter === "image" ? "default" : "outline"} onClick={() => setAttachmentTypeFilter("image")}>Imagens</Button>
+                <Button type="button" size="sm" variant={attachmentTypeFilter === "pdf" ? "default" : "outline"} onClick={() => setAttachmentTypeFilter("pdf")}>PDF</Button>
+              </div>
+              <Select value={attachmentSortBy} onValueChange={setAttachmentSortBy}>
+                <SelectTrigger className="w-[220px] h-9 bg-secondary/20 border-border/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date_desc">Mais recentes</SelectItem>
+                  <SelectItem value="date_asc">Mais antigos</SelectItem>
+                  <SelectItem value="name_asc">Nome (A-Z)</SelectItem>
+                  <SelectItem value="size_desc">Maior arquivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-              {attachments.length === 0 ? (
+              {filteredAttachments.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhum anexo enviado.</p>
-              ) : attachments.map((file) => {
+              ) : filteredAttachments.map((file) => {
                 const isImage = String(file.content_type || "").startsWith("image/");
                 return (
                   <div key={file.id} className="flex items-center justify-between p-3 rounded-xl border border-border/30 bg-white gap-3">
