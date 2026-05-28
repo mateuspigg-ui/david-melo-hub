@@ -91,6 +91,7 @@ type UploadQueueItem = {
   id: string;
   fileName: string;
   status: "waiting" | "uploading" | "saving" | "done" | "error" | "cancelled";
+  progress: number;
   message?: string;
   file?: File;
 };
@@ -120,6 +121,7 @@ export default function ContasPagarPage() {
   const attachmentSearchRef = useRef<HTMLInputElement | null>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const cancelUploadRef = useRef(false);
+  const progressTimersRef = useRef<Record<string, any>>({});
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -616,7 +618,28 @@ export default function ContasPagarPage() {
   };
 
   const uploadOneAttachment = async (file: File, targetId: string, queueId: string) => {
+    const clearProgressTimer = () => {
+      const timer = progressTimersRef.current[queueId];
+      if (timer) {
+        clearInterval(timer);
+        delete progressTimersRef.current[queueId];
+      }
+    };
+
+    const runProgress = (start: number, end: number, step: number, ms: number) => {
+      clearProgressTimer();
+      setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, progress: Math.max(item.progress, start) } : item)));
+      progressTimersRef.current[queueId] = setInterval(() => {
+        setUploadQueue((prev) => prev.map((item) => {
+          if (item.id !== queueId) return item;
+          const next = Math.min(end, item.progress + step);
+          return { ...item, progress: next };
+        }));
+      }, ms);
+    };
+
     try {
+      runProgress(8, 72, 4, 180);
       const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${targetId}/${Date.now()}_${sanitized}`;
       const { error: uploadError } = await (supabase as any).storage.from("payable-attachments").upload(path, file, {
@@ -625,6 +648,7 @@ export default function ContasPagarPage() {
       });
       if (uploadError) throw uploadError;
 
+      runProgress(76, 94, 3, 120);
       setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "saving" } : item)));
 
       const { data: publicData } = (supabase as any).storage.from("payable-attachments").getPublicUrl(path);
@@ -640,9 +664,11 @@ export default function ContasPagarPage() {
       });
       if (insertError) throw insertError;
 
-      setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "done" } : item)));
+      clearProgressTimer();
+      setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "done", progress: 100 } : item)));
       return true;
     } catch (error: any) {
+      clearProgressTimer();
       setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "error", message: error?.message || "Falha no envio" } : item)));
       return false;
     }
@@ -667,7 +693,7 @@ export default function ContasPagarPage() {
 
     cancelUploadRef.current = false;
     setUploadingAttachment(true);
-    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "waiting" as const, file }));
+    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "waiting" as const, progress: 0, file }));
     setUploadQueue(queued);
     let sentCount = 0;
     let cancelledCount = 0;
@@ -686,7 +712,7 @@ export default function ContasPagarPage() {
 
       if (cancelUploadRef.current) {
         setUploadQueue((prev) => prev.map((item) => (
-          item.status === "waiting" ? { ...item, status: "cancelled", message: "Cancelado pelo usuario" } : item
+          item.status === "waiting" ? { ...item, status: "cancelled", message: "Cancelado pelo usuario", progress: 0 } : item
         )));
       }
 
@@ -697,6 +723,10 @@ export default function ContasPagarPage() {
       toast({ title: "Erro ao enviar anexo", description: e?.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setUploadingAttachment(false);
+      Object.keys(progressTimersRef.current).forEach((key) => {
+        clearInterval(progressTimersRef.current[key]);
+        delete progressTimersRef.current[key];
+      });
       setTimeout(() => setUploadQueue([]), 1800);
     }
   };
@@ -706,7 +736,7 @@ export default function ContasPagarPage() {
     const queueItem = uploadQueue.find((item) => item.id === queueId);
     if (!queueItem?.file) return;
     setUploadingAttachment(true);
-    setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading", message: undefined } : item)));
+    setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading", message: undefined, progress: 4 } : item)));
     const ok = await uploadOneAttachment(queueItem.file, attachmentsTarget.id, queueId);
     if (ok) {
       await refetchAttachments();
@@ -1306,7 +1336,12 @@ export default function ContasPagarPage() {
                 <div className="mt-3 space-y-1.5">
                   {uploadQueue.map((item) => (
                     <div key={item.id} className="text-[11px] flex items-center justify-between bg-secondary/20 rounded-md px-2 py-1">
-                      <span className="truncate pr-2">{item.fileName}</span>
+                      <div className="min-w-0 pr-2 flex-1">
+                        <span className="truncate block">{item.fileName}</span>
+                        <div className="h-1.5 rounded-full bg-secondary/40 mt-1 overflow-hidden">
+                          <div className="h-full bg-gold transition-all duration-200" style={{ width: `${item.progress}%` }} />
+                        </div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className={item.status === "error" ? "text-destructive" : "text-muted-foreground"}>
                           {item.status === "uploading" && "Enviando"}
@@ -1316,6 +1351,7 @@ export default function ContasPagarPage() {
                           {item.status === "error" && "Falha"}
                           {item.status === "cancelled" && "Cancelado"}
                         </span>
+                        <span className="text-muted-foreground w-10 text-right">{item.progress}%</span>
                         {(item.status === "error" || item.status === "cancelled") && (
                           <Button
                             type="button"
