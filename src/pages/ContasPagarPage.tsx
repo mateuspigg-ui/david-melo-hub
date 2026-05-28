@@ -90,7 +90,7 @@ type PayableAttachment = {
 type UploadQueueItem = {
   id: string;
   fileName: string;
-  status: "uploading" | "saving" | "done" | "error";
+  status: "waiting" | "uploading" | "saving" | "done" | "error" | "cancelled";
   message?: string;
   file?: File;
 };
@@ -119,6 +119,7 @@ export default function ContasPagarPage() {
   const [attachmentsVisibleCount, setAttachmentsVisibleCount] = useState(12);
   const attachmentSearchRef = useRef<HTMLInputElement | null>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+  const cancelUploadRef = useRef(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -664,20 +665,34 @@ export default function ContasPagarPage() {
     }
     if (validFiles.length === 0) return;
 
+    cancelUploadRef.current = false;
     setUploadingAttachment(true);
-    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "uploading" as const, file }));
+    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "waiting" as const, file }));
     setUploadQueue(queued);
     let sentCount = 0;
+    let cancelledCount = 0;
     try {
       for (let index = 0; index < validFiles.length; index += 1) {
+        if (cancelUploadRef.current) {
+          cancelledCount += 1;
+          continue;
+        }
         const file = validFiles[index];
         const queueId = queued[index].id;
+        setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading" } : item)));
         const ok = await uploadOneAttachment(file, attachmentsTarget.id, queueId);
         if (ok) sentCount += 1;
       }
 
+      if (cancelUploadRef.current) {
+        setUploadQueue((prev) => prev.map((item) => (
+          item.status === "waiting" ? { ...item, status: "cancelled", message: "Cancelado pelo usuario" } : item
+        )));
+      }
+
       await refetchAttachments();
       if (sentCount > 0) toast({ title: `${sentCount} anexo(s) enviado(s)` });
+      if (cancelledCount > 0 || cancelUploadRef.current) toast({ title: "Envio cancelado", description: "Os proximos arquivos da fila foram interrompidos." });
     } catch (e: any) {
       toast({ title: "Erro ao enviar anexo", description: e?.message || "Tente novamente.", variant: "destructive" });
     } finally {
@@ -698,6 +713,10 @@ export default function ContasPagarPage() {
       toast({ title: "Anexo reenviado" });
     }
     setUploadingAttachment(false);
+  };
+
+  const cancelAttachmentQueue = () => {
+    cancelUploadRef.current = true;
   };
 
   const handleDeleteAttachment = async (file: PayableAttachment) => {
@@ -1277,6 +1296,11 @@ export default function ContasPagarPage() {
                     <Upload className="w-4 h-4 mr-2" /> {uploadingAttachment ? "Enviando..." : "Adicionar arquivos"}
                   </Button>
                 </label>
+                {uploadingAttachment && (
+                  <Button type="button" variant="ghost" className="h-10" onClick={cancelAttachmentQueue}>
+                    Cancelar fila
+                  </Button>
+                )}
               </div>
               {uploadQueue.length > 0 && (
                 <div className="mt-3 space-y-1.5">
@@ -1286,11 +1310,13 @@ export default function ContasPagarPage() {
                       <div className="flex items-center gap-2">
                         <span className={item.status === "error" ? "text-destructive" : "text-muted-foreground"}>
                           {item.status === "uploading" && "Enviando"}
+                          {item.status === "waiting" && "Na fila"}
                           {item.status === "saving" && "Salvando"}
                           {item.status === "done" && "Concluido"}
                           {item.status === "error" && "Falha"}
+                          {item.status === "cancelled" && "Cancelado"}
                         </span>
-                        {item.status === "error" && (
+                        {(item.status === "error" || item.status === "cancelled") && (
                           <Button
                             type="button"
                             size="sm"
