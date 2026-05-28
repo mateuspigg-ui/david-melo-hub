@@ -84,6 +84,8 @@ export default function ContasPagarPage() {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("due_date");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -314,13 +316,15 @@ export default function ContasPagarPage() {
   });
 
   const filtered = items.filter((item) => {
-    const matchSearch = `${item.description} ${item.suppliers?.company_name || ""} ${item.accounts_payable_categories?.name || ""} ${item.accounts_payable_cost_centers?.name || ""}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = `${item.description} ${item.suppliers?.company_name || ""} ${item.suppliers?.cpf_cnpj || ""} ${item.accounts_payable_categories?.name || ""} ${item.accounts_payable_cost_centers?.name || ""}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all"
       || (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
       || (statusFilter === "nao_pago" && isAccountPending(item.payment_status, item.paid_at));
     const matchCompany = companyFilter === "all" || String((item as any).company_id || "") === companyFilter;
     const matchCategory = categoryFilter === "all" || String(item.category_id || "") === categoryFilter;
-    return matchSearch && matchStatus && matchCompany && matchCategory;
+    const matchDateFrom = !dateFrom || String(item.due_date || "") >= dateFrom;
+    const matchDateTo = !dateTo || String(item.due_date || "") <= dateTo;
+    return matchSearch && matchStatus && matchCompany && matchCategory && matchDateFrom && matchDateTo;
   }).sort((a, b) => {
     if (sortBy === "category") {
       const categoryA = String(a.accounts_payable_categories?.name || "");
@@ -330,6 +334,30 @@ export default function ContasPagarPage() {
     }
     return String(a.due_date || "").localeCompare(String(b.due_date || ""));
   });
+
+  const handleExportPayablesCsv = () => {
+    const header = ["fornecedor", "documento", "descricao", "categoria", "centro_de_custo", "vencimento", "valor", "status"];
+    const rows = filtered.map((item) => [
+      item.suppliers?.company_name || "",
+      item.suppliers?.cpf_cnpj || "",
+      item.description || "",
+      item.accounts_payable_categories?.name || "",
+      item.accounts_payable_cost_centers?.name || "",
+      item.due_date || "",
+      Number(item.amount || 0).toFixed(2),
+      isAccountPaid(item.payment_status, item.paid_at) ? "pago" : "nao_pago",
+    ]);
+    const csv = [header, ...rows].map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `contas_pagar_${format(new Date(), "yyyyMMdd_HHmm")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const createSupplierMutation = useMutation({
     mutationFn: async () => {
@@ -518,38 +546,48 @@ export default function ContasPagarPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar por descrição ou fornecedor..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            className="pl-11 bg-white border-border/30 focus:border-gold h-11 rounded-xl premium-shadow" 
-          />
+      <div className="bg-white border border-border/30 rounded-2xl p-3 md:p-4 premium-shadow">
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_auto_180px_180px_minmax(220px,1fr)_220px] gap-3 items-center">
+          <div className="inline-flex rounded-xl border border-border/40 overflow-hidden">
+            <Button type="button" variant="ghost" className="rounded-none h-11 px-5" onClick={() => window.print()}>Imprimir</Button>
+            <Button type="button" variant="ghost" className="rounded-none h-11 px-5 border-l border-border/40" onClick={handleExportPayablesCsv}>Exportar</Button>
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full bg-secondary/20 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-border/40 shadow-2xl">
+              <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todos os Status</SelectItem>
+              <SelectItem value="nao_pago" className="font-medium text-xs font-bold uppercase text-gold">Pendentes</SelectItem>
+              <SelectItem value="pago" className="font-medium text-xs font-bold uppercase text-emerald-500">Pagos</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-secondary/20 border-border/40 h-11 rounded-xl" />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-secondary/20 border-border/40 h-11 rounded-xl" />
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Pessoa ou N. Documento"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-11 bg-secondary/20 border-border/40 h-11 rounded-xl"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full bg-secondary/20 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+              <SelectValue placeholder="Filtrar" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border-border/40 shadow-2xl">
+              <SelectItem value="due_date" className="font-medium text-xs font-bold uppercase">Ordenar por vencimento</SelectItem>
+              <SelectItem value="category" className="font-medium text-xs font-bold uppercase">Ordenar por categoria</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-border/40 shadow-2xl">
-            <SelectItem value="all" className="font-medium text-xs font-bold uppercase">Todos os Status</SelectItem>
-            <SelectItem value="nao_pago" className="font-medium text-xs font-bold uppercase text-gold">Pendentes</SelectItem>
-            <SelectItem value="pago" className="font-medium text-xs font-bold uppercase text-emerald-500">Pagos</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-52 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-border/40 shadow-2xl">
-            <SelectItem value="due_date" className="font-medium text-xs font-bold uppercase">Ordenar por vencimento</SelectItem>
-            <SelectItem value="category" className="font-medium text-xs font-bold uppercase">Ordenar por categoria</SelectItem>
-          </SelectContent>
-        </Select>
+
         {companies.length > 0 && (
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
-            <SelectTrigger className="w-64 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+            <SelectTrigger className="w-full bg-secondary/20 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border-border/40 shadow-2xl">
@@ -561,10 +599,10 @@ export default function ContasPagarPage() {
               ))}
             </SelectContent>
           </Select>
-        )}
+
         {categories.length > 0 && (
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-56 bg-secondary/30 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
+            <SelectTrigger className="w-full bg-secondary/20 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white border-border/40 shadow-2xl">
@@ -576,6 +614,8 @@ export default function ContasPagarPage() {
               ))}
             </SelectContent>
           </Select>
+        )}
+          </div>
         )}
       </div>
 
