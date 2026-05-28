@@ -269,6 +269,16 @@ export default function ContasPagarPage() {
     [filteredAttachments, attachmentsVisibleCount]
   );
 
+  const uploadSummary = useMemo(() => {
+    const total = uploadQueue.length;
+    const done = uploadQueue.filter((item) => item.status === "done").length;
+    const failed = uploadQueue.filter((item) => item.status === "error").length;
+    const cancelled = uploadQueue.filter((item) => item.status === "cancelled").length;
+    const active = uploadQueue.filter((item) => item.status === "uploading" || item.status === "saving").length;
+    const waiting = uploadQueue.filter((item) => item.status === "waiting").length;
+    return { total, done, failed, cancelled, active, waiting };
+  }, [uploadQueue]);
+
   useEffect(() => {
     if (!attachmentsOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1343,6 +1353,12 @@ export default function ContasPagarPage() {
               </div>
               {uploadQueue.length > 0 && (
                 <div className="mt-3 space-y-1.5">
+                  <div className="text-[11px] text-muted-foreground bg-secondary/30 rounded-md px-2 py-1.5 flex items-center justify-between">
+                    <span>Lote: {uploadSummary.done}/{uploadSummary.total} concluido(s)</span>
+                    <span>
+                      {uploadSummary.active} em envio • {uploadSummary.waiting} na fila • {uploadSummary.failed} falha(s) • {uploadSummary.cancelled} cancelado(s)
+                    </span>
+                  </div>
                   {uploadQueue.map((item) => (
                     <div key={item.id} className="text-[11px] flex items-center justify-between bg-secondary/20 rounded-md px-2 py-1">
                       <div className="min-w-0 pr-2 flex-1">
