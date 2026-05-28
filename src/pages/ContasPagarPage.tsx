@@ -87,6 +87,13 @@ type PayableAttachment = {
   created_at: string;
 };
 
+type UploadQueueItem = {
+  id: string;
+  fileName: string;
+  status: "uploading" | "saving" | "done" | "error";
+  message?: string;
+};
+
 export default function ContasPagarPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -110,6 +117,7 @@ export default function ContasPagarPage() {
   const [attachmentSearch, setAttachmentSearch] = useState("");
   const [attachmentsVisibleCount, setAttachmentsVisibleCount] = useState(12);
   const attachmentSearchRef = useRef<HTMLInputElement | null>(null);
+  const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -605,48 +613,69 @@ export default function ContasPagarPage() {
     }, 300);
   };
 
-  const handleAttachmentUpload = async (file: File | null) => {
-    if (!file || !attachmentsTarget?.id) return;
+  const handleAttachmentUpload = async (incomingFiles: FileList | File[] | null) => {
+    if (!incomingFiles || !attachmentsTarget?.id) return;
+    const files = Array.from(incomingFiles);
+    if (files.length === 0) return;
     const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      toast({ title: "Arquivo maior que 5MB", description: "Envie PDF ou imagem com no maximo 5MB.", variant: "destructive" });
-      return;
-    }
     const allowed = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
-    if (!allowed.includes(file.type)) {
-      toast({ title: "Formato nao permitido", description: "Use apenas PDF, PNG, JPG ou WEBP.", variant: "destructive" });
-      return;
+    const validFiles = files.filter((file) => file.size <= maxSize && allowed.includes(file.type));
+    const invalidCount = files.length - validFiles.length;
+    if (invalidCount > 0) {
+      toast({
+        title: "Alguns arquivos foram ignorados",
+        description: `${invalidCount} arquivo(s) fora do limite de 5MB ou formato permitido.`,
+        variant: "destructive",
+      });
     }
+    if (validFiles.length === 0) return;
 
     setUploadingAttachment(true);
+    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "uploading" as const }));
+    setUploadQueue(queued);
+    let sentCount = 0;
     try {
-      const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${attachmentsTarget.id}/${Date.now()}_${sanitized}`;
-      const { error: uploadError } = await (supabase as any).storage.from("payable-attachments").upload(path, file, {
-        upsert: false,
-        contentType: file.type,
-      });
-      if (uploadError) throw uploadError;
+      for (let index = 0; index < validFiles.length; index += 1) {
+        const file = validFiles[index];
+        const queueId = queued[index].id;
+        try {
+          const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const path = `${attachmentsTarget.id}/${Date.now()}_${sanitized}`;
+          const { error: uploadError } = await (supabase as any).storage.from("payable-attachments").upload(path, file, {
+            upsert: false,
+            contentType: file.type,
+          });
+          if (uploadError) throw uploadError;
 
-      const { data: publicData } = (supabase as any).storage.from("payable-attachments").getPublicUrl(path);
-      const fileUrl = publicData?.publicUrl;
-      if (!fileUrl) throw new Error("Nao foi possivel obter URL do anexo.");
+          setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "saving" } : item)));
 
-      const { error: insertError } = await (supabase as any).from("accounts_payable_attachments").insert({
-        account_payable_id: attachmentsTarget.id,
-        file_name: file.name,
-        file_url: fileUrl,
-        file_size: file.size,
-        content_type: file.type,
-      });
-      if (insertError) throw insertError;
+          const { data: publicData } = (supabase as any).storage.from("payable-attachments").getPublicUrl(path);
+          const fileUrl = publicData?.publicUrl;
+          if (!fileUrl) throw new Error("Nao foi possivel obter URL do anexo.");
+
+          const { error: insertError } = await (supabase as any).from("accounts_payable_attachments").insert({
+            account_payable_id: attachmentsTarget.id,
+            file_name: file.name,
+            file_url: fileUrl,
+            file_size: file.size,
+            content_type: file.type,
+          });
+          if (insertError) throw insertError;
+
+          sentCount += 1;
+          setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "done" } : item)));
+        } catch (error: any) {
+          setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "error", message: error?.message || "Falha no envio" } : item)));
+        }
+      }
 
       await refetchAttachments();
-      toast({ title: "Anexo enviado" });
+      if (sentCount > 0) toast({ title: `${sentCount} anexo(s) enviado(s)` });
     } catch (e: any) {
       toast({ title: "Erro ao enviar anexo", description: e?.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setUploadingAttachment(false);
+      setTimeout(() => setUploadQueue([]), 1800);
     }
   };
 
@@ -1214,20 +1243,35 @@ export default function ContasPagarPage() {
                 <label className="inline-flex">
                   <input
                     type="file"
+                    multiple
                     accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
                     className="hidden"
                     onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      void handleAttachmentUpload(file);
+                      void handleAttachmentUpload(e.target.files || null);
                       e.currentTarget.value = "";
                     }}
                     disabled={uploadingAttachment}
                   />
                   <Button type="button" variant="outline" className="h-10" disabled={uploadingAttachment}>
-                    <Upload className="w-4 h-4 mr-2" /> {uploadingAttachment ? "Enviando..." : "Adicionar arquivo"}
+                    <Upload className="w-4 h-4 mr-2" /> {uploadingAttachment ? "Enviando..." : "Adicionar arquivos"}
                   </Button>
                 </label>
               </div>
+              {uploadQueue.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {uploadQueue.map((item) => (
+                    <div key={item.id} className="text-[11px] flex items-center justify-between bg-secondary/20 rounded-md px-2 py-1">
+                      <span className="truncate pr-2">{item.fileName}</span>
+                      <span className={item.status === "error" ? "text-destructive" : "text-muted-foreground"}>
+                        {item.status === "uploading" && "Enviando"}
+                        {item.status === "saving" && "Salvando"}
+                        {item.status === "done" && "Concluido"}
+                        {item.status === "error" && "Falha"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between gap-3 flex-wrap">
