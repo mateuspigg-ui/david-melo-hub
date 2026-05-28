@@ -70,7 +70,7 @@ type AccountPayable = {
   supplier_id: string | null;
   category_id: string | null;
   created_at: string;
-  suppliers?: { company_name: string } | null;
+  suppliers?: { company_name: string; cpf_cnpj?: string | null; address?: string | null; phone?: string | null; pix_details?: string | null } | null;
   accounts_payable_categories?: { name: string } | null;
   accounts_payable_cost_centers?: { name: string } | null;
   company_id?: string | null;
@@ -88,6 +88,8 @@ export default function ContasPagarPage() {
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [costCenterDialogOpen, setCostCenterDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<AccountPayable | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -111,7 +113,7 @@ export default function ContasPagarPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("accounts_payable")
-        .select("*, suppliers(company_name), accounts_payable_categories(name), accounts_payable_cost_centers(name)")
+        .select("*, suppliers(company_name, cpf_cnpj, address, phone, pix_details), accounts_payable_categories(name), accounts_payable_cost_centers(name)")
         .order("due_date", { ascending: true });
       if (error) throw error;
       return data as AccountPayable[];
@@ -305,6 +307,8 @@ export default function ContasPagarPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      setDeleteConfirmOpen(false);
+      setPendingDeleteItem(null);
       toast({ title: "Conta excluída" });
     },
   });
@@ -394,6 +398,84 @@ export default function ContasPagarPage() {
     },
     onError: (e: any) => toast({ title: "Erro ao cadastrar centro de custo", description: e?.message || "Não foi possível cadastrar centro de custo.", variant: "destructive" }),
   });
+
+  const handlePrintPayable = (item: AccountPayable) => {
+    const supplierName = item.suppliers?.company_name || "Sem fornecedor";
+    const supplierDoc = item.suppliers?.cpf_cnpj || "-";
+    const supplierAddress = item.suppliers?.address || "-";
+    const supplierPhone = item.suppliers?.phone || "-";
+    const categoryName = item.accounts_payable_categories?.name || "Sem categoria";
+    const costCenterName = item.accounts_payable_cost_centers?.name || "Sem centro de custo";
+    const dueDate = item.due_date ? format(new Date(`${item.due_date}T12:00:00`), "dd/MM/yyyy") : "-";
+    const issueDate = format(new Date(), "dd/MM/yyyy");
+    const issuedAt = format(new Date(), "dd/MM/yyyy HH:mm:ss");
+    const titleNumber = String(item.id || "").slice(0, 8).toUpperCase();
+    const observations = item.description || "Sem observacoes.";
+
+    const printWindow = window.open("", "_blank", "width=980,height=720");
+    if (!printWindow) {
+      toast({ title: "Nao foi possivel abrir visualizacao de impressao", variant: "destructive" });
+      return;
+    }
+
+    const html = `
+      <!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Lancamento - ${titleNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+            .block { border: 2px solid #222; padding: 14px; margin-bottom: 16px; }
+            .header { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; }
+            .title { text-align: center; font-size: 40px; margin: 20px 0 24px; }
+            .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+            .label { font-weight: 700; }
+            .obs { min-height: 160px; white-space: pre-wrap; }
+            @media print { body { margin: 12mm; } }
+          </style>
+        </head>
+        <body>
+          <div class="block header">
+            <div><span class="label">EMPRESA/PESSOA:</span> ${supplierName}</div>
+            <div><span class="label">EMITIDO EM:</span> ${issuedAt}</div>
+            <div><span class="label">CPF/CNPJ:</span> ${supplierDoc}</div>
+            <div><span class="label">TELEFONE:</span> ${supplierPhone}</div>
+            <div style="grid-column: 1 / -1;"><span class="label">ENDERECO:</span> ${supplierAddress}</div>
+          </div>
+
+          <div class="title">Lancamento</div>
+
+          <div class="block">
+            <div class="label">Dados do titulo:</div>
+            <div class="row">
+              <div><span class="label">Numero do titulo:</span> ${titleNumber}</div>
+              <div><span class="label">Data emissao:</span> ${issueDate}</div>
+            </div>
+            <div class="row">
+              <div><span class="label">Pessoa:</span> ${supplierName}</div>
+              <div><span class="label">Data vencimento:</span> ${dueDate}</div>
+            </div>
+            <div style="margin-top: 8px;"><span class="label">Categoria / Centro de Custo:</span> ${categoryName} / ${costCenterName}</div>
+            <div style="margin-top: 8px;"><span class="label">Valor do titulo:</span> ${currencyFmt(Number(item.amount || 0))}</div>
+          </div>
+
+          <div class="block obs">
+            <div class="label">Observacoes:</div>
+            <div style="margin-top: 12px;">${observations}</div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 300);
+  };
 
   const totalPending = items
     .filter((i) => isAccountPending(i.payment_status, i.paid_at))
@@ -605,13 +687,12 @@ export default function ContasPagarPage() {
                           Duplicar
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => toast({ title: "Anexos em breve" })}>Anexos</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => window.print()}>Imprimir</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handlePrintPayable(item)}>Imprimir</DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
-                            if (window.confirm(`Excluir a despesa de ${item.suppliers?.company_name || "fornecedor"}?`)) {
-                              deleteMutation.mutate(item.id);
-                            }
+                            setPendingDeleteItem(item);
+                            setDeleteConfirmOpen(true);
                           }}
                         >
                           Excluir
@@ -834,6 +915,33 @@ export default function ContasPagarPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCostCenterDialogOpen(false)}>Cancelar</Button>
             <Button onClick={() => createCostCenterMutation.mutate()} disabled={!newCostCenterName.trim()}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p>
+              Deseja realmente excluir a despesa de <strong>{pendingDeleteItem?.suppliers?.company_name || "fornecedor"}</strong>?
+            </p>
+            <p className="text-muted-foreground">Essa ação não pode ser desfeita.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setDeleteConfirmOpen(false); setPendingDeleteItem(null); }}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (!pendingDeleteItem) return;
+                deleteMutation.mutate(pendingDeleteItem.id);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
