@@ -71,7 +71,9 @@ type AccountPayable = {
   created_at: string;
   suppliers?: { company_name: string } | null;
   accounts_payable_categories?: { name: string } | null;
+  accounts_payable_cost_centers?: { name: string } | null;
   company_id?: string | null;
+  cost_center_id?: string | null;
 };
 
 export default function ContasPagarPage() {
@@ -84,7 +86,9 @@ export default function ContasPagarPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [costCenterDialogOpen, setCostCenterDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
   const [form, setForm] = useState({
     description: "",
@@ -93,18 +97,20 @@ export default function ContasPagarPage() {
     supplier_id: "",
     company_id: "",
     category_id: "",
+    cost_center_id: "",
     expense_type: "single",
     recurrence_mode: "repeat",
     recurrence_months: "2",
   });
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
+  const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["accounts_payable"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("accounts_payable")
-        .select("*, suppliers(company_name), accounts_payable_categories(name)")
+        .select("*, suppliers(company_name), accounts_payable_categories(name), accounts_payable_cost_centers(name)")
         .order("due_date", { ascending: true });
       if (error) throw error;
       return data as AccountPayable[];
@@ -139,6 +145,21 @@ export default function ContasPagarPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("accounts_payable_categories")
+        .select("id, name")
+        .order("name", { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["accounts-payable-cost-centers"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("accounts_payable_cost_centers")
         .select("id, name")
         .order("name", { ascending: true });
       if (error) {
@@ -187,18 +208,23 @@ export default function ContasPagarPage() {
           description: nextDescription,
           amount: amountCents / 100,
           due_date: dueDate,
-          supplier_id: form.supplier_id || null,
-          category_id: form.category_id || null,
-          company_id: form.company_id || null,
-          payment_status: "nao_pago",
-          paid_at: null,
-        };
+        supplier_id: form.supplier_id || null,
+        category_id: form.category_id || null,
+        company_id: form.company_id || null,
+        cost_center_id: form.cost_center_id || null,
+        payment_status: "nao_pago",
+        paid_at: null,
+      };
       });
 
       let { error } = await supabase.from("accounts_payable").insert(payloads as any);
       if (error && isMissingCompanyIdColumnError(error)) {
         const retryNoCompany = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, company_id: undefined })) as any);
         error = retryNoCompany.error;
+      }
+      if (error && isMissingCostCenterIdColumnError(error)) {
+        const retryNoCostCenter = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, cost_center_id: undefined })) as any);
+        error = retryNoCostCenter.error;
       }
       if (!error) return;
 
@@ -220,7 +246,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
+      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -283,7 +309,7 @@ export default function ContasPagarPage() {
   });
 
   const filtered = items.filter((item) => {
-    const matchSearch = `${item.description} ${item.suppliers?.company_name || ""} ${item.accounts_payable_categories?.name || ""}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = `${item.description} ${item.suppliers?.company_name || ""} ${item.accounts_payable_categories?.name || ""} ${item.accounts_payable_cost_centers?.name || ""}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all"
       || (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
       || (statusFilter === "nao_pago" && isAccountPending(item.payment_status, item.paid_at));
@@ -344,6 +370,28 @@ export default function ContasPagarPage() {
       toast({ title: "Categoria cadastrada" });
     },
     onError: (e: any) => toast({ title: "Erro ao cadastrar categoria", description: e?.message || "Não foi possível cadastrar categoria.", variant: "destructive" }),
+  });
+
+  const createCostCenterMutation = useMutation({
+    mutationFn: async () => {
+      const name = newCostCenterName.trim();
+      if (!name) throw new Error("Informe o nome do centro de custo.");
+      const { data, error } = await (supabase as any)
+        .from("accounts_payable_cost_centers")
+        .insert({ name })
+        .select("id, name")
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["accounts-payable-cost-centers"] });
+      setForm((prev) => ({ ...prev, cost_center_id: data?.id || prev.cost_center_id }));
+      setCostCenterDialogOpen(false);
+      setNewCostCenterName("");
+      toast({ title: "Centro de custo cadastrado" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao cadastrar centro de custo", description: e?.message || "Não foi possível cadastrar centro de custo.", variant: "destructive" }),
   });
 
   const totalPending = items
@@ -477,10 +525,14 @@ export default function ContasPagarPage() {
                          {item.suppliers?.company_name || "Sem fornecedor"}
                        </p>
                        <span className="text-muted-foreground/30 text-[10px]">•</span>
-                       <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
-                         {item.accounts_payable_categories?.name || "Sem categoria"}
-                       </p>
-                       <span className="text-muted-foreground/30 text-[10px]">•</span>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
+                          {item.accounts_payable_categories?.name || "Sem categoria"}
+                        </p>
+                        <span className="text-muted-foreground/30 text-[10px]">•</span>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
+                          {item.accounts_payable_cost_centers?.name || "Sem centro de custo"}
+                        </p>
+                        <span className="text-muted-foreground/30 text-[10px]">•</span>
                        <p className={`text-[10px] font-bold uppercase tracking-wider ${overdue ? "text-destructive" : "text-muted-foreground opacity-70"}`}>
                          Vencimento: {format(new Date(item.due_date + "T12:00:00"), "dd MMM yyyy")}
                       </p>
@@ -645,6 +697,22 @@ export default function ContasPagarPage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Centro de Custo</Label>
+              <div className="flex gap-2">
+                <Select value={form.cost_center_id || "none"} onValueChange={(v) => setForm({ ...form, cost_center_id: v === "none" ? "" : v })}>
+                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg flex-1">
+                    <SelectValue placeholder="Selecionar centro de custo" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white shadow-2xl border-border/40">
+                    <SelectItem value="none" className="font-bold text-xs uppercase">Sem centro de custo</SelectItem>
+                    {costCenters.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setCostCenterDialogOpen(true)}>Novo</Button>
+              </div>
+            </div>
+
             {companies.length > 0 && (
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa / CNPJ</Label>
@@ -706,6 +774,22 @@ export default function ContasPagarPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCategoryDialogOpen(false)}>Cancelar</Button>
             <Button onClick={() => createCategoryMutation.mutate()} disabled={!newCategoryName.trim()}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={costCenterDialogOpen} onOpenChange={setCostCenterDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo Centro de Custo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Nome do centro de custo</Label>
+            <Input value={newCostCenterName} onChange={(e) => setNewCostCenterName(e.target.value)} placeholder="Ex: Operacional, Marketing, Comercial" />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCostCenterDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => createCostCenterMutation.mutate()} disabled={!newCostCenterName.trim()}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
