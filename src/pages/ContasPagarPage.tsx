@@ -92,6 +92,7 @@ type UploadQueueItem = {
   fileName: string;
   status: "uploading" | "saving" | "done" | "error";
   message?: string;
+  file?: File;
 };
 
 export default function ContasPagarPage() {
@@ -613,6 +614,39 @@ export default function ContasPagarPage() {
     }, 300);
   };
 
+  const uploadOneAttachment = async (file: File, targetId: string, queueId: string) => {
+    try {
+      const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${targetId}/${Date.now()}_${sanitized}`;
+      const { error: uploadError } = await (supabase as any).storage.from("payable-attachments").upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
+      if (uploadError) throw uploadError;
+
+      setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "saving" } : item)));
+
+      const { data: publicData } = (supabase as any).storage.from("payable-attachments").getPublicUrl(path);
+      const fileUrl = publicData?.publicUrl;
+      if (!fileUrl) throw new Error("Nao foi possivel obter URL do anexo.");
+
+      const { error: insertError } = await (supabase as any).from("accounts_payable_attachments").insert({
+        account_payable_id: targetId,
+        file_name: file.name,
+        file_url: fileUrl,
+        file_size: file.size,
+        content_type: file.type,
+      });
+      if (insertError) throw insertError;
+
+      setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "done" } : item)));
+      return true;
+    } catch (error: any) {
+      setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "error", message: error?.message || "Falha no envio" } : item)));
+      return false;
+    }
+  };
+
   const handleAttachmentUpload = async (incomingFiles: FileList | File[] | null) => {
     if (!incomingFiles || !attachmentsTarget?.id) return;
     const files = Array.from(incomingFiles);
@@ -631,42 +665,15 @@ export default function ContasPagarPage() {
     if (validFiles.length === 0) return;
 
     setUploadingAttachment(true);
-    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "uploading" as const }));
+    const queued = validFiles.map((file, index) => ({ id: `${Date.now()}-${index}-${file.name}`, fileName: file.name, status: "uploading" as const, file }));
     setUploadQueue(queued);
     let sentCount = 0;
     try {
       for (let index = 0; index < validFiles.length; index += 1) {
         const file = validFiles[index];
         const queueId = queued[index].id;
-        try {
-          const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const path = `${attachmentsTarget.id}/${Date.now()}_${sanitized}`;
-          const { error: uploadError } = await (supabase as any).storage.from("payable-attachments").upload(path, file, {
-            upsert: false,
-            contentType: file.type,
-          });
-          if (uploadError) throw uploadError;
-
-          setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "saving" } : item)));
-
-          const { data: publicData } = (supabase as any).storage.from("payable-attachments").getPublicUrl(path);
-          const fileUrl = publicData?.publicUrl;
-          if (!fileUrl) throw new Error("Nao foi possivel obter URL do anexo.");
-
-          const { error: insertError } = await (supabase as any).from("accounts_payable_attachments").insert({
-            account_payable_id: attachmentsTarget.id,
-            file_name: file.name,
-            file_url: fileUrl,
-            file_size: file.size,
-            content_type: file.type,
-          });
-          if (insertError) throw insertError;
-
-          sentCount += 1;
-          setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "done" } : item)));
-        } catch (error: any) {
-          setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "error", message: error?.message || "Falha no envio" } : item)));
-        }
+        const ok = await uploadOneAttachment(file, attachmentsTarget.id, queueId);
+        if (ok) sentCount += 1;
       }
 
       await refetchAttachments();
@@ -677,6 +684,20 @@ export default function ContasPagarPage() {
       setUploadingAttachment(false);
       setTimeout(() => setUploadQueue([]), 1800);
     }
+  };
+
+  const retryAttachmentUpload = async (queueId: string) => {
+    if (!attachmentsTarget?.id) return;
+    const queueItem = uploadQueue.find((item) => item.id === queueId);
+    if (!queueItem?.file) return;
+    setUploadingAttachment(true);
+    setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading", message: undefined } : item)));
+    const ok = await uploadOneAttachment(queueItem.file, attachmentsTarget.id, queueId);
+    if (ok) {
+      await refetchAttachments();
+      toast({ title: "Anexo reenviado" });
+    }
+    setUploadingAttachment(false);
   };
 
   const handleDeleteAttachment = async (file: PayableAttachment) => {
@@ -1262,12 +1283,26 @@ export default function ContasPagarPage() {
                   {uploadQueue.map((item) => (
                     <div key={item.id} className="text-[11px] flex items-center justify-between bg-secondary/20 rounded-md px-2 py-1">
                       <span className="truncate pr-2">{item.fileName}</span>
-                      <span className={item.status === "error" ? "text-destructive" : "text-muted-foreground"}>
-                        {item.status === "uploading" && "Enviando"}
-                        {item.status === "saving" && "Salvando"}
-                        {item.status === "done" && "Concluido"}
-                        {item.status === "error" && "Falha"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={item.status === "error" ? "text-destructive" : "text-muted-foreground"}>
+                          {item.status === "uploading" && "Enviando"}
+                          {item.status === "saving" && "Salvando"}
+                          {item.status === "done" && "Concluido"}
+                          {item.status === "error" && "Falha"}
+                        </span>
+                        {item.status === "error" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-[10px]"
+                            onClick={() => void retryAttachmentUpload(item.id)}
+                            disabled={uploadingAttachment}
+                          >
+                            Tentar novamente
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
