@@ -519,11 +519,11 @@ export default function ContasPagarPage() {
                     <Receipt className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-foreground text-sm tracking-tight leading-tight uppercase line-clamp-1">{item.description}</h4>
+                    <h4 className="font-bold text-foreground text-sm tracking-tight leading-tight uppercase line-clamp-1">{item.suppliers?.company_name || "Sem fornecedor"}</h4>
                     <div className="flex items-center gap-2 mt-1.5">
                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
-                         {item.suppliers?.company_name || "Sem fornecedor"}
-                       </p>
+                         {item.description || "Sem titulo"}
+                        </p>
                        <span className="text-muted-foreground/30 text-[10px]">•</span>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider opacity-70">
                           {item.accounts_payable_categories?.name || "Sem categoria"}
