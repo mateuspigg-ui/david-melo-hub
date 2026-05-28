@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,8 @@ export default function ContasPagarPage() {
   const [attachmentTypeFilter, setAttachmentTypeFilter] = useState("all");
   const [attachmentSortBy, setAttachmentSortBy] = useState("date_desc");
   const [attachmentSearch, setAttachmentSearch] = useState("");
+  const [attachmentsVisibleCount, setAttachmentsVisibleCount] = useState(12);
+  const attachmentSearchRef = useRef<HTMLInputElement | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -248,6 +250,30 @@ export default function ContasPagarPage() {
 
     return sorted;
   }, [attachments, attachmentSortBy, attachmentTypeFilter, attachmentSearch]);
+
+  const visibleAttachments = useMemo(
+    () => filteredAttachments.slice(0, attachmentsVisibleCount),
+    [filteredAttachments, attachmentsVisibleCount]
+  );
+
+  useEffect(() => {
+    if (!attachmentsOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "/") return;
+      const target = event.target as HTMLElement | null;
+      const isTypingField = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (isTypingField) return;
+      event.preventDefault();
+      attachmentSearchRef.current?.focus();
+      attachmentSearchRef.current?.select();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [attachmentsOpen]);
+
+  useEffect(() => {
+    setAttachmentsVisibleCount(12);
+  }, [attachmentSearch, attachmentTypeFilter, attachmentSortBy, attachmentsTarget?.id]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -646,6 +672,7 @@ export default function ContasPagarPage() {
     setAttachmentTypeFilter("all");
     setAttachmentSortBy("date_desc");
     setAttachmentSearch("");
+    setAttachmentsVisibleCount(12);
     setAttachmentsOpen(true);
   };
 
@@ -653,6 +680,7 @@ export default function ContasPagarPage() {
     setAttachmentSearch("");
     setAttachmentTypeFilter("all");
     setAttachmentSortBy("date_desc");
+    setAttachmentsVisibleCount(12);
   };
 
   const renderAttachmentName = (fileName: string) => {
@@ -1205,9 +1233,10 @@ export default function ContasPagarPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="w-full">
                 <Input
+                  ref={attachmentSearchRef}
                   value={attachmentSearch}
                   onChange={(e) => setAttachmentSearch(e.target.value)}
-                  placeholder="Buscar anexo por nome"
+                  placeholder="Buscar anexo por nome (atalho: /)"
                   className="h-9 bg-secondary/20 border-border/40"
                 />
               </div>
@@ -1240,7 +1269,7 @@ export default function ContasPagarPage() {
                 <p className="text-sm text-muted-foreground text-center py-6">
                   {attachments.length === 0 ? "Nenhum anexo enviado." : "Nenhum anexo encontrado com os filtros atuais."}
                 </p>
-              ) : filteredAttachments.map((file) => {
+              ) : visibleAttachments.map((file) => {
                 const isImage = String(file.content_type || "").startsWith("image/");
                 return (
                   <div key={file.id} className="flex items-center justify-between p-3 rounded-xl border border-border/30 bg-white gap-3">
@@ -1271,6 +1300,14 @@ export default function ContasPagarPage() {
                 );
               })}
             </div>
+
+            {filteredAttachments.length > visibleAttachments.length && (
+              <div className="flex justify-center">
+                <Button type="button" variant="outline" onClick={() => setAttachmentsVisibleCount((prev) => prev + 12)}>
+                  Mostrar mais ({filteredAttachments.length - visibleAttachments.length} restantes)
+                </Button>
+              </div>
+            )}
 
             <div className="text-[11px] text-muted-foreground">Total anexado: {(attachmentsTotalSize / 1024 / 1024).toFixed(2)} MB</div>
           </div>
