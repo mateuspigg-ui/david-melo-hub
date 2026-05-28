@@ -547,7 +547,7 @@ export default function ContasPagarPage() {
 
       {/* Filters */}
       <div className="bg-white border border-border/30 rounded-2xl p-3 md:p-4 premium-shadow">
-        <div className="grid grid-cols-1 lg:grid-cols-[auto_auto_180px_180px_minmax(220px,1fr)_220px] gap-3 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-[auto_minmax(170px,190px)_180px_180px_minmax(240px,1fr)_minmax(220px,260px)] gap-3 items-center">
           <div className="inline-flex rounded-xl border border-border/40 overflow-hidden">
             <Button type="button" variant="ghost" className="rounded-none h-11 px-5" onClick={() => window.print()}>Imprimir</Button>
             <Button type="button" variant="ghost" className="rounded-none h-11 px-5 border-l border-border/40" onClick={handleExportPayablesCsv}>Exportar</Button>
@@ -585,7 +585,7 @@ export default function ContasPagarPage() {
         </div>
 
         {companies.length > 0 && (
-          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="mt-3 grid grid-cols-1 xl:grid-cols-[minmax(360px,1.3fr)_minmax(260px,1fr)] gap-3">
           <Select value={companyFilter} onValueChange={setCompanyFilter}>
             <SelectTrigger className="w-full bg-secondary/20 border-border/40 h-11 rounded-xl font-medium focus:ring-gold">
               <SelectValue />
