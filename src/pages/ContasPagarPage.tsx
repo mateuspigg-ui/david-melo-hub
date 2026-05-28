@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, Receipt, MoreVertical } from "lucide-react";
+import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
 import { addMonths, differenceInCalendarDays, format, startOfDay } from "date-fns";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
@@ -77,6 +77,16 @@ type AccountPayable = {
   cost_center_id?: string | null;
 };
 
+type PayableAttachment = {
+  id: string;
+  account_payable_id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  content_type: string | null;
+  created_at: string;
+};
+
 export default function ContasPagarPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -92,6 +102,9 @@ export default function ContasPagarPage() {
   const [costCenterDialogOpen, setCostCenterDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [pendingDeleteItem, setPendingDeleteItem] = useState<AccountPayable | null>(null);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [attachmentsTarget, setAttachmentsTarget] = useState<AccountPayable | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -174,6 +187,43 @@ export default function ContasPagarPage() {
       return data || [];
     },
   });
+
+  const { data: attachments = [], refetch: refetchAttachments } = useQuery({
+    queryKey: ["accounts_payable_attachments", attachmentsTarget?.id || "none"],
+    enabled: !!attachmentsTarget?.id,
+    queryFn: async () => {
+      if (!attachmentsTarget?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from("accounts_payable_attachments")
+        .select("*")
+        .eq("account_payable_id", attachmentsTarget.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as PayableAttachment[];
+    },
+  });
+
+  const { data: attachmentCounts = {} } = useQuery({
+    queryKey: ["accounts_payable_attachments_counts"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("accounts_payable_attachments")
+        .select("account_payable_id");
+      if (error) throw error;
+      const next: Record<string, number> = {};
+      for (const row of data || []) {
+        const key = String(row.account_payable_id || "");
+        if (!key) continue;
+        next[key] = (next[key] || 0) + 1;
+      }
+      return next;
+    },
+  });
+
+  const attachmentsTotalSize = useMemo(
+    () => attachments.reduce((sum, file) => sum + Number(file.file_size || 0), 0),
+    [attachments]
+  );
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -505,6 +555,68 @@ export default function ContasPagarPage() {
     }, 300);
   };
 
+  const handleAttachmentUpload = async (file: File | null) => {
+    if (!file || !attachmentsTarget?.id) return;
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "Arquivo maior que 5MB", description: "Envie PDF ou imagem com no maximo 5MB.", variant: "destructive" });
+      return;
+    }
+    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      toast({ title: "Formato nao permitido", description: "Use apenas PDF, PNG, JPG ou WEBP.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAttachment(true);
+    try {
+      const sanitized = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${attachmentsTarget.id}/${Date.now()}_${sanitized}`;
+      const { error: uploadError } = await (supabase as any).storage.from("payable-attachments").upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = (supabase as any).storage.from("payable-attachments").getPublicUrl(path);
+      const fileUrl = publicData?.publicUrl;
+      if (!fileUrl) throw new Error("Nao foi possivel obter URL do anexo.");
+
+      const { error: insertError } = await (supabase as any).from("accounts_payable_attachments").insert({
+        account_payable_id: attachmentsTarget.id,
+        file_name: file.name,
+        file_url: fileUrl,
+        file_size: file.size,
+        content_type: file.type,
+      });
+      if (insertError) throw insertError;
+
+      await refetchAttachments();
+      toast({ title: "Anexo enviado" });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar anexo", description: e?.message || "Tente novamente.", variant: "destructive" });
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (file: PayableAttachment) => {
+    const publicPrefix = "/storage/v1/object/public/payable-attachments/";
+    const idx = file.file_url.indexOf(publicPrefix);
+    const storagePath = idx >= 0 ? file.file_url.slice(idx + publicPrefix.length) : null;
+    try {
+      if (storagePath) {
+        await (supabase as any).storage.from("payable-attachments").remove([storagePath]);
+      }
+      const { error } = await (supabase as any).from("accounts_payable_attachments").delete().eq("id", file.id);
+      if (error) throw error;
+      await refetchAttachments();
+      toast({ title: "Anexo removido" });
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir anexo", description: e?.message || "Tente novamente.", variant: "destructive" });
+    }
+  };
+
   const totalPending = items
     .filter((i) => isAccountPending(i.payment_status, i.paid_at))
     .reduce((s, i) => s + i.amount, 0);
@@ -635,6 +747,7 @@ export default function ContasPagarPage() {
             const overdueDays = getDaysOverdue(item.due_date);
             const overdue = isAccountPending(item.payment_status, item.paid_at) && overdueDays > 0;
             const updatedAmount = getUpdatedAmount(item.amount, item.due_date, isAccountPaid(item.payment_status, item.paid_at));
+            const count = attachmentCounts[item.id] || 0;
             return (
               <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border transition-all duration-300 hover:scale-[1.01] hover:shadow-xl group ${overdue ? "border-destructive/30 bg-destructive/[0.02]" : "border-border/40 premium-shadow"}`}>
                 <div className="flex items-center gap-4">
@@ -659,9 +772,22 @@ export default function ContasPagarPage() {
                        <p className={`text-[10px] font-bold uppercase tracking-wider ${overdue ? "text-destructive" : "text-muted-foreground opacity-70"}`}>
                          Vencimento: {format(new Date(item.due_date + "T12:00:00"), "dd MMM yyyy")}
                       </p>
-                    </div>
-                  </div>
-                </div>
+                     </div>
+                     <div className="mt-2">
+                       <Button
+                         type="button"
+                         variant="ghost"
+                         className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+                         onClick={() => {
+                           setAttachmentsTarget(item);
+                           setAttachmentsOpen(true);
+                         }}
+                       >
+                         <Paperclip className="w-3 h-3 mr-1" /> {count} anexo{count === 1 ? "" : "s"}
+                       </Button>
+                     </div>
+                   </div>
+                 </div>
                 
                 <div className="flex items-center justify-between sm:justify-end gap-6 mt-4 sm:mt-0">
                   <div className="text-right">
@@ -726,7 +852,7 @@ export default function ContasPagarPage() {
                         >
                           Duplicar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast({ title: "Anexos em breve" })}>Anexos</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { setAttachmentsTarget(item); setAttachmentsOpen(true); }}>Anexos</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handlePrintPayable(item)}>Imprimir</DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
@@ -982,6 +1108,85 @@ export default function ContasPagarPage() {
             >
               {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={attachmentsOpen} onOpenChange={setAttachmentsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Anexos da Despesa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border/40 p-4 bg-secondary/10">
+              <p className="text-xs font-bold uppercase tracking-wider">{attachmentsTarget?.suppliers?.company_name || "Fornecedor"}</p>
+              <p className="text-xs text-muted-foreground mt-1">{attachmentsTarget?.description || "Sem titulo"}</p>
+            </div>
+
+            <div className="rounded-xl border border-dashed border-border/50 p-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-sm font-bold">Enviar arquivo</p>
+                  <p className="text-xs text-muted-foreground">PDF ou imagem ate 5MB (recibo, extrato, comprovante)</p>
+                </div>
+                <label className="inline-flex">
+                  <input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      void handleAttachmentUpload(file);
+                      e.currentTarget.value = "";
+                    }}
+                    disabled={uploadingAttachment}
+                  />
+                  <Button type="button" variant="outline" className="h-10" disabled={uploadingAttachment}>
+                    <Upload className="w-4 h-4 mr-2" /> {uploadingAttachment ? "Enviando..." : "Adicionar arquivo"}
+                  </Button>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+              {attachments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum anexo enviado.</p>
+              ) : attachments.map((file) => {
+                const isImage = String(file.content_type || "").startsWith("image/");
+                return (
+                  <div key={file.id} className="flex items-center justify-between p-3 rounded-xl border border-border/30 bg-white gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isImage ? (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden border border-border/30 bg-secondary/20 shrink-0">
+                          <img src={file.file_url} alt={file.file_name} className="w-full h-full object-cover" loading="lazy" />
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-secondary/30 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{file.file_name}</p>
+                        <p className="text-[11px] text-muted-foreground">{file.file_size ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB` : "-"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => window.open(file.file_url, "_blank", "noopener,noreferrer")}>
+                        <Paperclip className="w-4 h-4 mr-1" /> Abrir
+                      </Button>
+                      <Button type="button" size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDeleteAttachment(file)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="text-[11px] text-muted-foreground">Total anexado: {(attachmentsTotalSize / 1024 / 1024).toFixed(2)} MB</div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAttachmentsOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
