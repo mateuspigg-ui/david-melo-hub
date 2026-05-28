@@ -107,6 +107,7 @@ export default function ContasPagarPage() {
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentTypeFilter, setAttachmentTypeFilter] = useState("all");
   const [attachmentSortBy, setAttachmentSortBy] = useState("date_desc");
+  const [attachmentSearch, setAttachmentSearch] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
@@ -229,6 +230,9 @@ export default function ContasPagarPage() {
 
   const filteredAttachments = useMemo(() => {
     const byType = attachments.filter((file) => {
+      const name = String(file.file_name || "").toLowerCase();
+      const term = attachmentSearch.trim().toLowerCase();
+      if (term && !name.includes(term)) return false;
       const type = String(file.content_type || "").toLowerCase();
       if (attachmentTypeFilter === "image") return type.startsWith("image/");
       if (attachmentTypeFilter === "pdf") return type === "application/pdf";
@@ -243,7 +247,7 @@ export default function ContasPagarPage() {
     });
 
     return sorted;
-  }, [attachments, attachmentSortBy, attachmentTypeFilter]);
+  }, [attachments, attachmentSortBy, attachmentTypeFilter, attachmentSearch]);
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -641,6 +645,7 @@ export default function ContasPagarPage() {
     setAttachmentsTarget(item);
     setAttachmentTypeFilter("all");
     setAttachmentSortBy("date_desc");
+    setAttachmentSearch("");
     setAttachmentsOpen(true);
   };
 
@@ -1175,6 +1180,14 @@ export default function ContasPagarPage() {
             </div>
 
             <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="w-full">
+                <Input
+                  value={attachmentSearch}
+                  onChange={(e) => setAttachmentSearch(e.target.value)}
+                  placeholder="Buscar anexo por nome"
+                  className="h-9 bg-secondary/20 border-border/40"
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <Button type="button" size="sm" variant={attachmentTypeFilter === "all" ? "default" : "outline"} onClick={() => setAttachmentTypeFilter("all")}>Todos</Button>
                 <Button type="button" size="sm" variant={attachmentTypeFilter === "image" ? "default" : "outline"} onClick={() => setAttachmentTypeFilter("image")}>Imagens</Button>
