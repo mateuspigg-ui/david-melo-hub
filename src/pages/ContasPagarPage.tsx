@@ -120,6 +120,7 @@ export default function ContasPagarPage() {
   const [attachmentSearch, setAttachmentSearch] = useState("");
   const [attachmentsVisibleCount, setAttachmentsVisibleCount] = useState(12);
   const attachmentSearchRef = useRef<HTMLInputElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
   const cancelUploadRef = useRef(false);
   const progressTimersRef = useRef<Record<string, any>>({});
@@ -1329,22 +1330,27 @@ export default function ContasPagarPage() {
                   <p className="text-sm font-bold">Enviar arquivo</p>
                   <p className="text-xs text-muted-foreground">PDF ou imagem ate 5MB (recibo, extrato, comprovante)</p>
                 </div>
-                <label className="inline-flex">
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
-                    className="hidden"
-                    onChange={(e) => {
-                      void handleAttachmentUpload(e.target.files || null);
-                      e.currentTarget.value = "";
-                    }}
-                    disabled={uploadingAttachment}
-                  />
-                  <Button type="button" variant="outline" className="h-10" disabled={uploadingAttachment}>
-                    <Upload className="w-4 h-4 mr-2" /> {uploadingAttachment ? "Enviando..." : "Adicionar arquivos"}
-                  </Button>
-                </label>
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleAttachmentUpload(e.target.files || null);
+                    e.currentTarget.value = "";
+                  }}
+                  disabled={uploadingAttachment}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10"
+                  disabled={uploadingAttachment}
+                  onClick={() => attachmentInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" /> {uploadingAttachment ? "Enviando..." : "Adicionar arquivos"}
+                </Button>
                 {uploadingAttachment && (
                   <Button type="button" variant="ghost" className="h-10" onClick={cancelAttachmentQueue}>
                     Cancelar fila
