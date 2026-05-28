@@ -92,6 +92,7 @@ type UploadQueueItem = {
   fileName: string;
   status: "waiting" | "uploading" | "saving" | "done" | "error" | "cancelled";
   progress: number;
+  startedAt?: number;
   message?: string;
   file?: File;
 };
@@ -705,7 +706,7 @@ export default function ContasPagarPage() {
         }
         const file = validFiles[index];
         const queueId = queued[index].id;
-        setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading" } : item)));
+        setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading", startedAt: Date.now() } : item)));
         const ok = await uploadOneAttachment(file, attachmentsTarget.id, queueId);
         if (ok) sentCount += 1;
       }
@@ -736,7 +737,7 @@ export default function ContasPagarPage() {
     const queueItem = uploadQueue.find((item) => item.id === queueId);
     if (!queueItem?.file) return;
     setUploadingAttachment(true);
-    setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading", message: undefined, progress: 4 } : item)));
+    setUploadQueue((prev) => prev.map((item) => (item.id === queueId ? { ...item, status: "uploading", message: undefined, progress: 4, startedAt: Date.now() } : item)));
     const ok = await uploadOneAttachment(queueItem.file, attachmentsTarget.id, queueId);
     if (ok) {
       await refetchAttachments();
@@ -797,6 +798,14 @@ export default function ContasPagarPage() {
         {fileName.slice(end)}
       </>
     );
+  };
+
+  const formatEta = (seconds: number) => {
+    if (!Number.isFinite(seconds) || seconds <= 0) return "< 1s";
+    if (seconds < 60) return `~${Math.ceil(seconds)}s`;
+    const min = Math.floor(seconds / 60);
+    const sec = Math.ceil(seconds % 60);
+    return `~${min}m ${sec}s`;
   };
 
   const totalPending = items
@@ -1351,6 +1360,11 @@ export default function ContasPagarPage() {
                           {item.status === "error" && "Falha"}
                           {item.status === "cancelled" && "Cancelado"}
                         </span>
+                        {item.status === "uploading" && item.startedAt && item.progress > 0 && item.progress < 100 && (
+                          <span className="text-muted-foreground/80">
+                            ETA {formatEta(((Date.now() - item.startedAt) / 1000) * ((100 - item.progress) / item.progress))}
+                          </span>
+                        )}
                         <span className="text-muted-foreground w-10 text-right">{item.progress}%</span>
                         {(item.status === "error" || item.status === "cancelled") && (
                           <Button
