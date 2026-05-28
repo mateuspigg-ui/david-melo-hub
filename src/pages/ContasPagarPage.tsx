@@ -191,7 +191,7 @@ export default function ContasPagarPage() {
     },
   });
 
-  const { data: attachments = [], refetch: refetchAttachments } = useQuery({
+  const { data: attachments = [], refetch: refetchAttachments, isFetching: isFetchingAttachments } = useQuery({
     queryKey: ["accounts_payable_attachments", attachmentsTarget?.id || "none"],
     enabled: !!attachmentsTarget?.id,
     queryFn: async () => {
@@ -647,6 +647,29 @@ export default function ContasPagarPage() {
     setAttachmentSortBy("date_desc");
     setAttachmentSearch("");
     setAttachmentsOpen(true);
+  };
+
+  const clearAttachmentFilters = () => {
+    setAttachmentSearch("");
+    setAttachmentTypeFilter("all");
+    setAttachmentSortBy("date_desc");
+  };
+
+  const renderAttachmentName = (fileName: string) => {
+    const term = attachmentSearch.trim();
+    if (!term) return fileName;
+    const lowerName = fileName.toLowerCase();
+    const lowerTerm = term.toLowerCase();
+    const start = lowerName.indexOf(lowerTerm);
+    if (start < 0) return fileName;
+    const end = start + term.length;
+    return (
+      <>
+        {fileName.slice(0, start)}
+        <span className="bg-gold/20 text-foreground px-0.5 rounded">{fileName.slice(start, end)}</span>
+        {fileName.slice(end)}
+      </>
+    );
   };
 
   const totalPending = items
@@ -1204,11 +1227,19 @@ export default function ContasPagarPage() {
                   <SelectItem value="size_desc">Maior arquivo</SelectItem>
                 </SelectContent>
               </Select>
+              <Button type="button" size="sm" variant="ghost" onClick={clearAttachmentFilters}>Limpar</Button>
+            </div>
+
+            <div className="text-[11px] text-muted-foreground flex items-center justify-between">
+              <span>{filteredAttachments.length} de {attachments.length} anexo(s)</span>
+              {isFetchingAttachments ? <span>Atualizando lista...</span> : <span>Ordenado por: {attachmentSortBy === "date_desc" ? "mais recentes" : attachmentSortBy === "date_asc" ? "mais antigos" : attachmentSortBy === "name_asc" ? "nome" : "tamanho"}</span>}
             </div>
 
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
               {filteredAttachments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Nenhum anexo enviado.</p>
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  {attachments.length === 0 ? "Nenhum anexo enviado." : "Nenhum anexo encontrado com os filtros atuais."}
+                </p>
               ) : filteredAttachments.map((file) => {
                 const isImage = String(file.content_type || "").startsWith("image/");
                 return (
@@ -1224,7 +1255,7 @@ export default function ContasPagarPage() {
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{file.file_name}</p>
+                        <p className="text-sm font-medium truncate">{renderAttachmentName(file.file_name)}</p>
                         <p className="text-[11px] text-muted-foreground">{file.file_size ? `${(file.file_size / 1024 / 1024).toFixed(2)} MB` : "-"}</p>
                       </div>
                     </div>
