@@ -147,8 +147,7 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
 
   const formatDayTotal = (v: number) => {
     if (v === 0) return null;
-    const abs = currencyFmt(Math.abs(v));
-    return v > 0 ? `+ ${abs}` : `- ${abs}`;
+    return currencyFmt(v);
   };
 
   const handleEntryClick = (entry: CalendarEntry) => {
@@ -232,17 +231,17 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
               <div
                 key={idx}
                 className={cn(
-                  "min-h-[120px] border-r border-b border-border/10 last:border-r-0 p-2 transition-colors relative",
+                  "min-h-[130px] border-r border-b border-border/10 last:border-r-0 p-2.5 transition-colors relative",
                   !inMonth && "bg-muted/30",
                   inMonth && "bg-white hover:bg-gold/[0.02]",
                   today && "bg-gold/[0.04]",
                 )}
               >
-                {/* Day number + balance */}
-                <div className="flex items-start justify-between mb-1">
+                {/* Day number + SALDO */}
+                <div className="flex items-start justify-between mb-1.5">
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold",
+                      "inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold",
                       today && "bg-gold text-white shadow-gold-sm",
                       !today && inMonth && "text-foreground/80",
                       !inMonth && "text-muted-foreground/30",
@@ -250,59 +249,64 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
                   >
                     {format(day, "d")}
                   </span>
-                  {dayItems.length > 0 && (
-                    <span
-                      className={cn(
-                        "text-[9px] font-black tabular-nums mt-0.5",
-                        balance > 0 && "text-emerald-600",
-                        balance < 0 && "text-red-500",
-                        balance === 0 && "text-muted-foreground/40",
-                      )}
-                    >
-                      {formatDayTotal(balance)}
-                    </span>
-                  )}
                 </div>
 
+                {/* SALDO */}
+                {dayItems.length > 0 && (
+                  <div className={cn(
+                    "text-[10px] font-black mb-2 pb-1.5 border-b border-dashed",
+                    balance > 0 && "text-blue-600 border-blue-200",
+                    balance < 0 && "text-red-500 border-red-200",
+                    balance === 0 && "text-muted-foreground/50 border-border/20",
+                  )}>
+                    <span className="uppercase tracking-wider opacity-60">Saldo: </span>
+                    <span className="tabular-nums">{formatDayTotal(balance)}</span>
+                  </div>
+                )}
+
                 {/* Entries */}
-                <div className="space-y-0.5">
-                  {showEntradas.slice(0, 2).map((item) => (
+                <div className="space-y-1">
+                  {showEntradas.slice(0, 3).map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleEntryClick(item)}
                       className={cn(
-                        "w-full flex items-center gap-1 px-1.5 py-0.5 rounded text-left transition-all",
-                        editMode && "cursor-pointer hover:bg-emerald-50 ring-1 ring-emerald-200",
+                        "w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-left transition-all",
+                        editMode && "cursor-pointer hover:bg-blue-50 ring-1 ring-blue-200",
                         !editMode && "cursor-default",
-                        item.status === "paid" && "opacity-60",
+                        item.status === "paid" && "opacity-50",
                       )}
                     >
-                      <ArrowUpCircle size={10} className="text-emerald-500 shrink-0" />
-                      <span className="text-[9px] font-bold text-emerald-600 tabular-nums truncate">
+                      <div className="w-4 h-4 rounded bg-blue-500 flex items-center justify-center shrink-0">
+                        <ArrowUpCircle size={10} className="text-white" />
+                      </div>
+                      <span className="text-[10px] font-bold text-blue-600 tabular-nums truncate">
                         {currencyFmt(item.amount)}
                       </span>
                     </button>
                   ))}
-                  {showSaidas.slice(0, 2).map((item) => (
+                  {showSaidas.slice(0, 3).map((item) => (
                     <button
                       key={item.id}
                       onClick={() => handleEntryClick(item)}
                       className={cn(
-                        "w-full flex items-center gap-1 px-1.5 py-0.5 rounded text-left transition-all",
+                        "w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-left transition-all",
                         editMode && "cursor-pointer hover:bg-red-50 ring-1 ring-red-200",
                         !editMode && "cursor-default",
-                        item.status === "paid" && "opacity-60",
+                        item.status === "paid" && "opacity-50",
                       )}
                     >
-                      <ArrowDownCircle size={10} className="text-red-400 shrink-0" />
-                      <span className="text-[9px] font-bold text-red-500 tabular-nums truncate">
+                      <div className="w-4 h-4 rounded bg-red-500 flex items-center justify-center shrink-0">
+                        <ArrowDownCircle size={10} className="text-white" />
+                      </div>
+                      <span className="text-[10px] font-bold text-red-500 tabular-nums truncate">
                         {currencyFmt(item.amount)}
                       </span>
                     </button>
                   ))}
-                  {dayItems.length > 4 && (
-                    <span className="text-[8px] font-bold text-gold px-1.5">
-                      mais +{dayItems.length - 4}
+                  {dayItems.length > 6 && (
+                    <span className="text-[9px] font-bold text-gold px-1">
+                      mais +{dayItems.length - 6}
                     </span>
                   )}
                 </div>
@@ -313,18 +317,26 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-6 px-2">
+      <div className="flex flex-wrap items-center gap-6 px-2">
         <div className="flex items-center gap-2">
-          <ArrowUpCircle size={12} className="text-emerald-500" />
+          <div className="w-4 h-4 rounded bg-blue-500 flex items-center justify-center">
+            <ArrowUpCircle size={10} className="text-white" />
+          </div>
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Entradas (Recebimentos)</span>
         </div>
         <div className="flex items-center gap-2">
-          <ArrowDownCircle size={12} className="text-red-400" />
+          <div className="w-4 h-4 rounded bg-red-500 flex items-center justify-center">
+            <ArrowDownCircle size={10} className="text-white" />
+          </div>
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Saídas (Contas a Pagar)</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-gold shadow-gold-sm" />
+          <div className="w-2.5 h-2.5 rounded-full bg-gold shadow-gold-sm" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Hoje</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Saldo</span>
+          <span className="text-[10px] font-bold text-muted-foreground/40">= Entradas - Saídas</span>
         </div>
       </div>
 
