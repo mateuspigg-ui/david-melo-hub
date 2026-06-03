@@ -204,11 +204,11 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white rounded-[28px] border border-border/20 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.08)] overflow-hidden">
+      <div className="bg-white rounded-[28px] border border-gold/10 shadow-[0_12px_48px_-16px_rgba(0,0,0,0.1)] overflow-hidden">
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 bg-gradient-to-r from-gold via-gold-light to-gold">
+        <div className="grid grid-cols-7 bg-gradient-to-r from-[#1A1A1A] via-[#2A2A2A] to-[#1A1A1A]">
           {weekDays.map((d) => (
-            <div key={d} className="py-3.5 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/90 border-r border-white/10 last:border-r-0">
+            <div key={d} className="py-4 text-center text-[11px] font-black uppercase tracking-[0.25em] text-gold/90 border-r border-white/5 last:border-r-0">
               {d}
             </div>
           ))}
@@ -224,83 +224,84 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
             const balance = dayBalance(dateStr);
             const showEntradas = dayItems.filter((i) => i.type === "entrada");
             const showSaidas = dayItems.filter((i) => i.type === "saida");
-            const totalItems = showEntradas.length + showSaidas.length;
-            const visibleItems = 4;
+            const totalItems = dayItems.length;
 
             return (
               <div
                 key={idx}
                 className={cn(
-                  "min-h-[140px] border-r border-b border-border/[0.06] last:border-r-0 p-3 transition-all duration-200 relative group",
-                  !inMonth && "bg-stone-50/80",
-                  inMonth && "bg-white hover:bg-gold/[0.015]",
-                  today && "bg-gradient-to-br from-gold/[0.04] to-gold/[0.08] ring-1 ring-inset ring-gold/10",
+                  "min-h-[150px] border-r-2 border-b-2 border-border/20 last:border-r-0 p-3.5 transition-all duration-200 relative",
+                  !inMonth && "bg-stone-50/60",
+                  inMonth && "bg-white",
+                  today && "bg-gradient-to-br from-gold/[0.06] via-gold/[0.03] to-transparent ring-2 ring-inset ring-gold/20 shadow-[inset_0_0_20px_rgba(197,160,89,0.05)]",
                 )}
               >
-                {/* Day number */}
-                <div className="flex items-center justify-between mb-2">
+                {/* Day number + Saldo badge */}
+                <div className="flex items-center justify-between mb-3">
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all",
-                      today && "bg-gold text-white shadow-[0_2px_8px_rgba(197,160,89,0.4)]",
-                      !today && inMonth && "text-foreground/70 group-hover:text-foreground",
-                      !inMonth && "text-muted-foreground/25",
+                      "inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-black transition-all",
+                      today && "bg-gradient-to-br from-gold to-gold-light text-white shadow-[0_3px_12px_rgba(197,160,89,0.4)]",
+                      !today && inMonth && "text-foreground/70 bg-secondary/30",
+                      !inMonth && "text-muted-foreground/20 bg-transparent",
                     )}
                   >
                     {format(day, "d")}
                   </span>
                   {dayItems.length > 0 && (
-                    <span className={cn(
-                      "text-[9px] font-black tabular-nums px-1.5 py-0.5 rounded-md",
-                      balance > 0 && "text-emerald-600 bg-emerald-50",
-                      balance < 0 && "text-red-500 bg-red-50",
-                      balance === 0 && "text-muted-foreground/40 bg-muted/30",
+                    <div className={cn(
+                      "px-2.5 py-1 rounded-lg text-[10px] font-black tabular-nums",
+                      balance > 0 && "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+                      balance < 0 && "bg-red-50 text-red-600 border border-red-200/60",
+                      balance === 0 && "bg-muted/40 text-muted-foreground/50 border border-border/20",
                     )}>
                       {currencyFmt(balance)}
-                    </span>
+                    </div>
                   )}
                 </div>
 
                 {/* Entries */}
                 {dayItems.length > 0 && (
-                  <div className="space-y-0.5">
-                    {showEntradas.slice(0, 2).map((item) => (
+                  <div className="space-y-1">
+                    {showEntradas.slice(0, 3).map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleEntryClick(item)}
                         className={cn(
-                          "w-full flex items-center gap-1 px-1.5 py-[3px] rounded-md text-left transition-all duration-150",
-                          editMode && "cursor-pointer hover:bg-blue-50/80 hover:shadow-sm",
+                          "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-all duration-150",
+                          "bg-blue-50/70 border border-blue-100/80",
+                          editMode && "cursor-pointer hover:bg-blue-100 hover:border-blue-200 hover:shadow-sm active:scale-[0.98]",
                           !editMode && "cursor-default",
                           item.status === "paid" && "opacity-40",
                         )}
                       >
-                        <div className="w-[5px] h-[5px] rounded-full bg-blue-500 shrink-0" />
-                        <span className="text-[9px] font-semibold text-blue-600/80 tabular-nums truncate">
+                        <ArrowUpCircle size={13} className="text-blue-500 shrink-0" />
+                        <span className="text-[10px] font-bold text-blue-600 tabular-nums truncate">
                           {currencyFmt(item.amount)}
                         </span>
                       </button>
                     ))}
-                    {showSaidas.slice(0, 2).map((item) => (
+                    {showSaidas.slice(0, 3).map((item) => (
                       <button
                         key={item.id}
                         onClick={() => handleEntryClick(item)}
                         className={cn(
-                          "w-full flex items-center gap-1 px-1.5 py-[3px] rounded-md text-left transition-all duration-150",
-                          editMode && "cursor-pointer hover:bg-red-50/80 hover:shadow-sm",
+                          "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-all duration-150",
+                          "bg-red-50/70 border border-red-100/80",
+                          editMode && "cursor-pointer hover:bg-red-100 hover:border-red-200 hover:shadow-sm active:scale-[0.98]",
                           !editMode && "cursor-default",
                           item.status === "paid" && "opacity-40",
                         )}
                       >
-                        <div className="w-[5px] h-[5px] rounded-full bg-red-400 shrink-0" />
-                        <span className="text-[9px] font-semibold text-red-400/80 tabular-nums truncate">
+                        <ArrowDownCircle size={13} className="text-red-400 shrink-0" />
+                        <span className="text-[10px] font-bold text-red-500 tabular-nums truncate">
                           {currencyFmt(item.amount)}
                         </span>
                       </button>
                     ))}
-                    {totalItems > visibleItems && (
-                      <span className="text-[8px] font-bold text-gold/70 px-1.5 block">
-                        +{totalItems - visibleItems} mais
+                    {totalItems > 6 && (
+                      <span className="text-[9px] font-black text-gold px-2 block pt-0.5">
+                        +{totalItems - 6} mais
                       </span>
                     )}
                   </div>
@@ -312,20 +313,30 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-5 px-1">
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">Entradas</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">Saidas</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-4 h-4 rounded-full bg-gold flex items-center justify-center">
-            <span className="text-[7px] font-bold text-white">3</span>
+      <div className="flex flex-wrap items-center gap-6 px-3 py-4 bg-white rounded-2xl border border-border/20 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center">
+            <ArrowUpCircle size={14} className="text-blue-500" />
           </div>
-          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">Hoje</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-foreground/50">Entradas</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center">
+            <ArrowDownCircle size={14} className="text-red-400" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-foreground/50">Saidas</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-gold to-gold-light flex items-center justify-center shadow-[0_2px_6px_rgba(197,160,89,0.3)]">
+            <span className="text-[9px] font-black text-white">Hoje</span>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-foreground/50">Hoje</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200/60">
+            <span className="text-[9px] font-black text-emerald-700 tabular-nums">+ R$ 0,00</span>
+          </div>
+          <span className="text-[9px] font-bold text-muted-foreground/40">= Saldo do dia</span>
         </div>
       </div>
 
