@@ -1125,24 +1125,24 @@ export default function ContasPagarPage() {
                           Vencimento: {format(new Date(item.due_date + "T12:00:00"), "dd MMM yyyy")}
                        </p>
                        {isAccountPaid(item.payment_status, item.paid_at) && (item.bank_account_id || item.payment_method) && (
-                         <div className="flex items-center gap-2 mt-2">
-                           {item.payment_method && (
-                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
-                               {item.payment_method === "pix" && "PIX"}
-                               {item.payment_method === "cartao" && "Cartao"}
-                               {item.payment_method === "dinheiro" && "Dinheiro"}
-                             </span>
-                           )}
-                           {item.bank_account_id && (
-                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700">
-                               {bankAccounts.find((b: any) => b.id === item.bank_account_id)?.bank_name || "Conta bancaria"}
-                             </span>
-                           )}
-                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gold/10 text-gold">
-                             Baixado
-                           </span>
-                         </div>
-                       )}
+                          <div className="flex items-center gap-2 mt-2">
+                            {item.payment_method && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700">
+                                {item.payment_method === "pix" && "PIX"}
+                                {item.payment_method === "cartao" && "Cartao"}
+                                {item.payment_method === "dinheiro" && "Dinheiro"}
+                              </span>
+                            )}
+                            {item.bank_account_id && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-sky-100 text-sky-700">
+                                {bankAccounts.find((b: any) => b.id === item.bank_account_id)?.bank_name || "Conta bancaria"}
+                              </span>
+                            )}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gold/10 text-gold">
+                              Baixado
+                            </span>
+                          </div>
+                        )}
                      </div>
                      <div className="mt-2">
                        <Button
