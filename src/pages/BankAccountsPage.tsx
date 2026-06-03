@@ -180,13 +180,6 @@ const BankAccountsPage = () => {
         </div>
         <div className="flex gap-3">
           <Button
-            onClick={() => { setTransferFrom(null); setTransferOpen(true); }}
-            variant="outline"
-            className="h-12 px-6 rounded-xl border-gold/30 text-gold font-black uppercase text-[10px] tracking-[0.2em] hover:bg-gold/5"
-          >
-            <ArrowRightLeft size={16} className="mr-2" /> Transferencia
-          </Button>
-          <Button
             onClick={() => { setEditingAccount(null); resetForm(); setDialogOpen(true); }}
             className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
           >
