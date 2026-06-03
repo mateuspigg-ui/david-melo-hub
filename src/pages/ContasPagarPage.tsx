@@ -188,7 +188,7 @@ export default function ContasPagarPage() {
         .select("*, suppliers(company_name, cpf_cnpj, address, phone, pix_details), accounts_payable_categories(name), accounts_payable_cost_centers(name)")
         .order("due_date", { ascending: true });
       if (error) throw error;
-      return data as AccountPayable[];
+      return data as unknown as AccountPayable[];
     },
   });
 
