@@ -46,6 +46,7 @@ const CRMPage = lazyWithRetry(() => import("@/pages/CRMPage"));
 const ClientesPage = lazyWithRetry(() => import("@/pages/ClientesPage"));
 const BankAccountsPage = lazyWithRetry(() => import("@/pages/BankAccountsPage"));
 const FinancialDashboard = lazyWithRetry(() => import("@/pages/FinancialDashboard"));
+const CalendarioFinanceiroPage = lazyWithRetry(() => import("@/pages/CalendarioFinanceiroPage"));
 const EmpresasPage = lazyWithRetry(() => import("@/pages/EmpresasPage"));
 const EquipePage = lazyWithRetry(() => import("@/pages/EquipePage"));
 const InvitePage = lazyWithRetry(() => import("@/pages/InvitePage"));
@@ -129,6 +130,7 @@ const App = () => (
                 <Route path="/pagamentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
                 <Route path="/conciliacao" element={<ModuleRoute module="financeiro" element={<ConciliacaoPage />} />} />
                 <Route path="/financeiro-dashboard" element={<ModuleRoute module="financeiro" element={<FinancialDashboard />} />} />
+                <Route path="/calendario-financeiro" element={<ModuleRoute module="financeiro" element={<CalendarioFinanceiroPage />} />} />
                 <Route path="/empresas" element={<ModuleRoute module="financeiro" element={<EmpresasPage />} />} />
                 <Route path="/contas-bancarias" element={<ModuleRoute module="financeiro" element={<BankAccountsPage />} />} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="financeiro" element={<ContasPagarPage />} />} />
