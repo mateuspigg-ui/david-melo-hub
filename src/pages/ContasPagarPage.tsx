@@ -144,7 +144,7 @@ export default function ContasPagarPage() {
   type Installment = { id: number; due_date: string; amount: string; description: string };
   const [installments, setInstallments] = useState<Installment[]>([]);
 
-  const generateInstallments = () => {
+  const generateInstallments = useCallback(() => {
     const parsedAmount = parseCurrencyInput(form.amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !form.due_date) return;
     const count = form.expense_type === "recurring"
@@ -163,7 +163,7 @@ export default function ContasPagarPage() {
       description: isSplit ? `${desc} (${i + 1}/${count})` : desc,
     }));
     setInstallments(newInstallments);
-  };
+  }, [form.amount, form.due_date, form.expense_type, form.recurrence_mode, form.recurrence_months, form.description]);
 
   const updateInstallment = (id: number, field: keyof Installment, value: string | number) => {
     setInstallments((prev) => prev.map((inst) => inst.id === id ? { ...inst, [field]: value } : inst));
@@ -174,6 +174,14 @@ export default function ContasPagarPage() {
   };
 
   const installmentTotal = installments.reduce((sum, inst) => sum + parseCurrencyInput(inst.amount), 0);
+
+  useEffect(() => {
+    if (form.expense_type !== "recurring" || !form.amount || !form.due_date || !form.recurrence_months) {
+      setInstallments([]);
+      return;
+    }
+    generateInstallments();
+  }, [form.expense_type, form.amount, form.due_date, form.recurrence_months, form.recurrence_mode, form.description, generateInstallments]);
 
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
   const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
