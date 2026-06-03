@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
 import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
@@ -909,12 +910,12 @@ export default function ContasPagarPage() {
         </div>
         <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-2 h-full bg-amber-500/40" />
-          <p className="text-[10px] uppercase tracking-widest text-amber-700 font-bold">Pendente {format(now, "MMMM/yyyy")}</p>
+          <p className="text-[10px] uppercase tracking-widest text-amber-700 font-bold">Pendente {format(now, "MMMM/yyyy", { locale: ptBR })}</p>
           <p className="text-3xl font-display text-foreground mt-1 group-hover:text-amber-600 transition-colors">{currencyFmt(monthPending)}</p>
         </div>
         <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/40" />
-          <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Pago {format(now, "MMMM/yyyy")}</p>
+          <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Pago {format(now, "MMMM/yyyy", { locale: ptBR })}</p>
           <p className="text-3xl font-display text-foreground mt-1 group-hover:text-emerald-600 transition-colors">{currencyFmt(monthPaid)}</p>
         </div>
       </div>
@@ -1203,7 +1204,7 @@ export default function ContasPagarPage() {
             {form.expense_type === "recurring" && installmentPreview.length > 0 && (
               <div className="lg:col-span-2 p-4 rounded-2xl border border-gold/20 bg-gold/5 space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">
-                  Previa das Parcelas ({installmentPreview.length}x)
+                  Prévia das Parcelas ({installmentPreview.length}x)
                 </Label>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
