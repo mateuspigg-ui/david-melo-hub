@@ -17,7 +17,6 @@ export type Database = {
       accounts_payable: {
         Row: {
           amount: number
-          category_id: string | null
           created_at: string
           description: string
           due_date: string
@@ -28,7 +27,6 @@ export type Database = {
         }
         Insert: {
           amount: number
-          category_id?: string | null
           created_at?: string
           description: string
           due_date: string
@@ -39,7 +37,6 @@ export type Database = {
         }
         Update: {
           amount?: number
-          category_id?: string | null
           created_at?: string
           description?: string
           due_date?: string
@@ -50,13 +47,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "accounts_payable_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "accounts_payable_categories"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "accounts_payable_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -64,24 +54,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      accounts_payable_categories: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-        }
-        Relationships: []
       }
       bank_reconciliation: {
         Row: {
@@ -121,8 +93,6 @@ export type Database = {
       }
       clients: {
         Row: {
-          address_number: string | null
-          birth_date: string | null
           created_at: string
           email: string | null
           first_name: string
@@ -132,8 +102,6 @@ export type Database = {
           phone: string | null
         }
         Insert: {
-          address_number?: string | null
-          birth_date?: string | null
           created_at?: string
           email?: string | null
           first_name: string
@@ -143,8 +111,6 @@ export type Database = {
           phone?: string | null
         }
         Update: {
-          address_number?: string | null
-          birth_date?: string | null
           created_at?: string
           email?: string | null
           first_name?: string
@@ -407,7 +373,6 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string | null
-          due_time: string | null
           id: string
           lead_id: string
           status: string
@@ -418,7 +383,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
-          due_time?: string | null
           id?: string
           lead_id: string
           status?: string
@@ -429,7 +393,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string | null
-          due_time?: string | null
           id?: string
           lead_id?: string
           status?: string
@@ -663,9 +626,7 @@ export type Database = {
       }
       suppliers: {
         Row: {
-          address: string | null
           company_name: string
-          cpf_cnpj: string | null
           created_at: string
           id: string
           instagram: string | null
@@ -673,9 +634,7 @@ export type Database = {
           pix_details: string | null
         }
         Insert: {
-          address?: string | null
           company_name: string
-          cpf_cnpj?: string | null
           created_at?: string
           id?: string
           instagram?: string | null
@@ -683,9 +642,7 @@ export type Database = {
           pix_details?: string | null
         }
         Update: {
-          address?: string | null
           company_name?: string
-          cpf_cnpj?: string | null
           created_at?: string
           id?: string
           instagram?: string | null
