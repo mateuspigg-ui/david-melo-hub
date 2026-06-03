@@ -130,6 +130,10 @@ export default function ContasPagarPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<AccountPayable | null>(null);
+  const [paymentBankAccount, setPaymentBankAccount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("pix");
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -256,6 +260,22 @@ export default function ContasPagarPage() {
         .from("accounts_payable_cost_centers")
         .select("id, name")
         .order("name", { ascending: true });
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ["bank-accounts-select"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bank_accounts")
+        .select("id, bank_name, account_number, account_digit, description")
+        .eq("status", "active")
+        .order("bank_name", { ascending: true });
       if (error) {
         if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
         throw error;
@@ -463,14 +483,14 @@ export default function ContasPagarPage() {
   });
 
   const togglePaidMutation = useMutation({
-    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+    mutationFn: async ({ id, currentStatus, bankAccountId, paymentMethod }: { id: string; currentStatus: string; bankAccountId?: string; paymentMethod?: string }) => {
       if (isAccountPaid(currentStatus)) {
         let lastError: any = null;
 
         for (const pendingStatus of PENDING_STATUS_VALUES) {
           const { error } = await supabase
             .from("accounts_payable")
-            .update({ payment_status: pendingStatus, paid_at: null } as any)
+            .update({ payment_status: pendingStatus, paid_at: null, bank_account_id: null, payment_method: null } as any)
             .eq("id", id);
           if (!error) return;
           lastError = error;
@@ -486,7 +506,7 @@ export default function ContasPagarPage() {
       for (const paidStatus of PAID_STATUS_VALUES) {
         const { error } = await supabase
           .from("accounts_payable")
-          .update({ payment_status: paidStatus, paid_at: paidAt } as any)
+          .update({ payment_status: paidStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null } as any)
           .eq("id", id);
         if (!error) return;
         lastError = error;
@@ -1137,7 +1157,16 @@ export default function ContasPagarPage() {
                         >
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status })}>
+                        <DropdownMenuItem onClick={() => {
+                          if (isAccountPaid(item.payment_status, item.paid_at)) {
+                            togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status });
+                          } else {
+                            setPaymentTarget(item);
+                            setPaymentBankAccount("");
+                            setPaymentMethod("pix");
+                            setPaymentModalOpen(true);
+                          }
+                        }}>
                           {isAccountPaid(item.payment_status, item.paid_at) ? "Desfazer baixa" : "Baixar"}
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -1551,6 +1580,88 @@ export default function ContasPagarPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCostCenterDialogOpen(false)}>Cancelar</Button>
             <Button onClick={() => createCostCenterMutation.mutate()} disabled={!newCostCenterName.trim()}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-display">Baixar Pagamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {paymentTarget && (
+              <div className="bg-secondary/30 rounded-xl p-4 space-y-1">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Pagamento</p>
+                <p className="font-bold text-foreground">{paymentTarget.suppliers?.company_name || "Fornecedor"}</p>
+                <p className="text-sm text-muted-foreground">{paymentTarget.description}</p>
+                <p className="text-lg font-bold text-gold">{currencyFmt(paymentTarget.amount)}</p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Conta Bancaria</Label>
+              <Select value={paymentBankAccount} onValueChange={setPaymentBankAccount}>
+                <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl transition-all hover:border-gold/40">
+                  <SelectValue placeholder="Selecionar conta" />
+                </SelectTrigger>
+                <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                  {bankAccounts.length === 0 && (
+                    <SelectItem value="none" disabled className="rounded-lg">Nenhuma conta cadastrada</SelectItem>
+                  )}
+                  {bankAccounts.map((b: any) => (
+                    <SelectItem key={b.id} value={b.id} className="font-bold text-xs rounded-lg">
+                      {b.bank_name} - {b.account_number}{b.account_digit ? `-${b.account_digit}` : ''}{b.description ? ` (${b.description})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Forma de Pagamento</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: "pix", label: "PIX" },
+                  { value: "cartao", label: "Cartao" },
+                  { value: "dinheiro", label: "Dinheiro" },
+                ].map((m) => (
+                  <Button
+                    key={m.value}
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPaymentMethod(m.value)}
+                    className={`h-11 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${
+                      paymentMethod === m.value
+                        ? "bg-gold text-white border-gold shadow-gold"
+                        : "bg-secondary/50 border-border/40 hover:border-gold/40"
+                    }`}
+                  >
+                    {m.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPaymentModalOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl">Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (!paymentTarget) return;
+                togglePaidMutation.mutate({
+                  id: paymentTarget.id,
+                  currentStatus: paymentTarget.payment_status,
+                  bankAccountId: paymentBankAccount || undefined,
+                  paymentMethod: paymentMethod,
+                });
+                setPaymentModalOpen(false);
+                setPaymentTarget(null);
+              }}
+              disabled={!paymentBankAccount}
+              className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30"
+            >
+              Confirmar Baixa
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
