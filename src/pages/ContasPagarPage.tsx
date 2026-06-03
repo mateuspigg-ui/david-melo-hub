@@ -200,6 +200,7 @@ export default function ContasPagarPage() {
 
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
   const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
+  const isMissingBankAccountIdColumnError = (error: any) => /bank_account_id.*does not exist|schema cache|could not find.*bank_account_id/i.test(String(error?.message || ""));
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["accounts_payable"],
@@ -488,35 +489,34 @@ export default function ContasPagarPage() {
 
   const togglePaidMutation = useMutation({
     mutationFn: async ({ id, currentStatus, bankAccountId, paymentMethod }: { id: string; currentStatus: string; bankAccountId?: string; paymentMethod?: string }) => {
-      if (isAccountPaid(currentStatus)) {
-        let lastError: any = null;
-
-        for (const pendingStatus of PENDING_STATUS_VALUES) {
-          const { error } = await supabase
-            .from("accounts_payable")
-            .update({ payment_status: pendingStatus, paid_at: null, bank_account_id: null, payment_method: null } as any)
-            .eq("id", id);
-          if (!error) return;
-          lastError = error;
+      const tryUpdate = async (payload: any) => {
+        let { error } = await supabase.from("accounts_payable").update(payload).eq("id", id);
+        if (error && isMissingBankAccountIdColumnError(error)) {
+          const { bank_account_id, payment_method, ...rest } = payload;
+          ({ error } = await supabase.from("accounts_payable").update(rest).eq("id", id));
         }
+        return error;
+      };
 
-        if (lastError) throw lastError;
+      if (isAccountPaid(currentStatus)) {
+        let error = await tryUpdate({ payment_status: "nao_pago", paid_at: null, bank_account_id: null, payment_method: null });
+        if (!error) return;
+        for (const pendingStatus of PENDING_STATUS_VALUES) {
+          error = await tryUpdate({ payment_status: pendingStatus, paid_at: null, bank_account_id: null, payment_method: null });
+          if (!error) return;
+        }
+        if (error) throw error;
         return;
       }
 
       const paidAt = new Date().toISOString();
-      let lastError: any = null;
-
+      let error = await tryUpdate({ payment_status: "pago", paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null });
+      if (!error) return;
       for (const paidStatus of PAID_STATUS_VALUES) {
-        const { error } = await supabase
-          .from("accounts_payable")
-          .update({ payment_status: paidStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null } as any)
-          .eq("id", id);
+        error = await tryUpdate({ payment_status: paidStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null });
         if (!error) return;
-        lastError = error;
       }
-
-      if (lastError) throw lastError;
+      if (error) throw error;
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
