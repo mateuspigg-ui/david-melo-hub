@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
 import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
@@ -76,6 +77,9 @@ type AccountPayable = {
   accounts_payable_cost_centers?: { name: string } | null;
   company_id?: string | null;
   cost_center_id?: string | null;
+  bank_account_id?: string | null;
+  payment_method?: string | null;
+  issue_date?: string | null;
 };
 
 type PayableAttachment = {
@@ -130,10 +134,10 @@ export default function ContasPagarPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentTarget, setPaymentTarget] = useState<AccountPayable | null>(null);
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [modalTab, setModalTab] = useState("dados");
+  const [editingItem, setEditingItem] = useState<AccountPayable | null>(null);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -957,7 +961,7 @@ export default function ContasPagarPage() {
           </div>
           <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Controle de Despesas</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">
+        <Button onClick={() => { setEditingItem(null); setModalTab("dados"); setDialogOpen(true); }} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">
           <Plus className="w-4 h-4 mr-2" /> Programar Despesa
         </Button>
       </div>
@@ -1161,10 +1165,11 @@ export default function ContasPagarPage() {
                           if (isAccountPaid(item.payment_status, item.paid_at)) {
                             togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status });
                           } else {
-                            setPaymentTarget(item);
-                            setPaymentBankAccount("");
-                            setPaymentMethod("pix");
-                            setPaymentModalOpen(true);
+                            setEditingItem(item);
+                            setPaymentBankAccount(item.bank_account_id || "");
+                            setPaymentMethod(item.payment_method || "pix");
+                            setModalTab("baixa");
+                            setDialogOpen(true);
                           }
                         }}>
                           {isAccountPaid(item.payment_status, item.paid_at) ? "Desfazer baixa" : "Baixar"}
@@ -1229,9 +1234,15 @@ export default function ContasPagarPage() {
           </div>
 
           {/* Body */}
-          <div className="p-6 md:p-8 space-y-8 overflow-y-auto min-h-0">
+          <div className="p-6 md:p-8 overflow-y-auto min-h-0">
+            <Tabs value={modalTab} onValueChange={setModalTab}>
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-secondary/50 rounded-xl p-1">
+                <TabsTrigger value="dados" className="rounded-lg font-bold uppercase text-[10px] tracking-widest data-[state=active]:bg-gold data-[state=active]:text-white transition-all">Dados da Despesa</TabsTrigger>
+                <TabsTrigger value="baixa" className="rounded-lg font-bold uppercase text-[10px] tracking-widest data-[state=active]:bg-gold data-[state=active]:text-white transition-all">Baixa</TabsTrigger>
+              </TabsList>
 
-            {/* Seção: Dados Gerais */}
+              <TabsContent value="dados" className="space-y-8 mt-0">
+                {/* Seção: Dados Gerais */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-5 w-1 bg-gold rounded-full" />
@@ -1523,13 +1534,108 @@ export default function ContasPagarPage() {
               </div>
             )}
 
-            {/* Footer */}
+            {/* Footer dentro do dados */}
             <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-6 border-t border-border/10 bg-background/95 backdrop-blur">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl hover:bg-secondary/50">Cancelar</Button>
+              <Button variant="ghost" onClick={() => { setDialogOpen(false); setEditingItem(null); setModalTab("dados"); }} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl hover:bg-secondary/50">Cancelar</Button>
               <Button onClick={() => createMutation.mutate()} disabled={!form.amount || !form.due_date || (form.expense_type === "recurring" && installments.length === 0)} className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-10 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30 hover:-translate-y-0.5">
                 Efetuar Registro
               </Button>
             </div>
+              </TabsContent>
+
+              <TabsContent value="baixa" className="space-y-6 mt-0">
+                {editingItem ? (
+                  <>
+                    <div className="bg-secondary/30 rounded-2xl p-5 space-y-2">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Pagamento</p>
+                      <p className="font-bold text-foreground">{editingItem.suppliers?.company_name || "Fornecedor"}</p>
+                      <p className="text-sm text-muted-foreground">{editingItem.description}</p>
+                      <div className="flex items-center gap-3 pt-1">
+                        <span className="text-2xl font-bold text-gold">{currencyFmt(editingItem.amount)}</span>
+                        <span className="text-xs text-muted-foreground">Venc: {format(new Date(editingItem.due_date + "T12:00:00"), "dd/MM/yyyy")}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-5 w-1 bg-gold rounded-full" />
+                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Dados do Pagamento</h3>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Conta Bancaria *</Label>
+                        <Select value={paymentBankAccount} onValueChange={setPaymentBankAccount}>
+                          <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl transition-all hover:border-gold/40">
+                            <SelectValue placeholder="Selecionar conta que realizou o pagamento" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                            {bankAccounts.length === 0 && (
+                              <SelectItem value="none" disabled className="rounded-lg">Nenhuma conta cadastrada</SelectItem>
+                            )}
+                            {bankAccounts.map((b: any) => (
+                              <SelectItem key={b.id} value={b.id} className="font-bold text-xs rounded-lg">
+                                {b.bank_name} - {b.account_number}{b.account_digit ? `-${b.account_digit}` : ''}{b.description ? ` (${b.description})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Forma de Pagamento *</Label>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { value: "pix", label: "PIX" },
+                            { value: "cartao", label: "Cartao" },
+                            { value: "dinheiro", label: "Dinheiro" },
+                          ].map((m) => (
+                            <Button
+                              key={m.value}
+                              type="button"
+                              variant="outline"
+                              onClick={() => setPaymentMethod(m.value)}
+                              className={`h-12 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${
+                                paymentMethod === m.value
+                                  ? "bg-gold text-white border-gold shadow-gold"
+                                  : "bg-secondary/50 border-border/40 hover:border-gold/40"
+                              }`}
+                            >
+                              {m.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
+                      <Button variant="ghost" onClick={() => { setDialogOpen(false); setEditingItem(null); setModalTab("dados"); }} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl hover:bg-secondary/50">Cancelar</Button>
+                      <Button
+                        onClick={() => {
+                          if (!editingItem) return;
+                          togglePaidMutation.mutate({
+                            id: editingItem.id,
+                            currentStatus: editingItem.payment_status,
+                            bankAccountId: paymentBankAccount || undefined,
+                            paymentMethod: paymentMethod,
+                          });
+                          setDialogOpen(false);
+                          setEditingItem(null);
+                          setModalTab("dados");
+                        }}
+                        disabled={!paymentBankAccount}
+                        className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30"
+                      >
+                        Confirmar Baixa
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <p className="text-sm">Selecione uma despesa na lista para realizar a baixa.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>
@@ -1580,88 +1686,6 @@ export default function ContasPagarPage() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCostCenterDialogOpen(false)}>Cancelar</Button>
             <Button onClick={() => createCostCenterMutation.mutate()} disabled={!newCostCenterName.trim()}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-display">Baixar Pagamento</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            {paymentTarget && (
-              <div className="bg-secondary/30 rounded-xl p-4 space-y-1">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Pagamento</p>
-                <p className="font-bold text-foreground">{paymentTarget.suppliers?.company_name || "Fornecedor"}</p>
-                <p className="text-sm text-muted-foreground">{paymentTarget.description}</p>
-                <p className="text-lg font-bold text-gold">{currencyFmt(paymentTarget.amount)}</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Conta Bancaria</Label>
-              <Select value={paymentBankAccount} onValueChange={setPaymentBankAccount}>
-                <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl transition-all hover:border-gold/40">
-                  <SelectValue placeholder="Selecionar conta" />
-                </SelectTrigger>
-                <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
-                  {bankAccounts.length === 0 && (
-                    <SelectItem value="none" disabled className="rounded-lg">Nenhuma conta cadastrada</SelectItem>
-                  )}
-                  {bankAccounts.map((b: any) => (
-                    <SelectItem key={b.id} value={b.id} className="font-bold text-xs rounded-lg">
-                      {b.bank_name} - {b.account_number}{b.account_digit ? `-${b.account_digit}` : ''}{b.description ? ` (${b.description})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Forma de Pagamento</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: "pix", label: "PIX" },
-                  { value: "cartao", label: "Cartao" },
-                  { value: "dinheiro", label: "Dinheiro" },
-                ].map((m) => (
-                  <Button
-                    key={m.value}
-                    type="button"
-                    variant="outline"
-                    onClick={() => setPaymentMethod(m.value)}
-                    className={`h-11 rounded-xl font-bold uppercase text-[10px] tracking-widest transition-all ${
-                      paymentMethod === m.value
-                        ? "bg-gold text-white border-gold shadow-gold"
-                        : "bg-secondary/50 border-border/40 hover:border-gold/40"
-                    }`}
-                  >
-                    {m.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPaymentModalOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl">Cancelar</Button>
-            <Button
-              onClick={() => {
-                if (!paymentTarget) return;
-                togglePaidMutation.mutate({
-                  id: paymentTarget.id,
-                  currentStatus: paymentTarget.payment_status,
-                  bankAccountId: paymentBankAccount || undefined,
-                  paymentMethod: paymentMethod,
-                });
-                setPaymentModalOpen(false);
-                setPaymentTarget(null);
-              }}
-              disabled={!paymentBankAccount}
-              className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-8 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30"
-            >
-              Confirmar Baixa
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
