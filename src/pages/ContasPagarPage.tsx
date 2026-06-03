@@ -1141,187 +1141,244 @@ export default function ContasPagarPage() {
 
       {/* Create Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-5xl max-h-[92vh] p-0 rounded-[28px] shadow-2xl border-border/40 bg-background overflow-hidden flex flex-col">
-          <div className="bg-gradient-gold p-8 md:p-10 text-white">
-            <DialogHeader>
-              <DialogTitle className="text-2xl md:text-3xl font-display text-white">Programar Despesa</DialogTitle>
-              <p className="text-white/80 text-xs mt-1 font-medium font-body tracking-wide uppercase">Insira os detalhes técnicos para auditoria financeira.</p>
-            </DialogHeader>
+        <DialogContent className="max-w-4xl max-h-[92vh] p-0 rounded-3xl shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25)] border border-border/30 bg-background overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-gold via-gold-light to-gold p-8 md:p-10 text-white overflow-hidden">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djZoNnYtNmgtNnptMC0zMHY2aDZ2LTZoLTZ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
+            <div className="relative flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-2xl md:text-3xl font-display text-white tracking-tight">Programar Despesa</DialogTitle>
+                <p className="text-white/70 text-xs mt-2 font-medium tracking-wide uppercase">Preencha os dados para registrar uma nova despesa</p>
+              </div>
+              <div className="hidden md:flex h-14 w-14 rounded-2xl bg-white/10 backdrop-blur-sm items-center justify-center border border-white/20">
+                <Receipt className="h-7 w-7 text-white" />
+              </div>
+            </div>
           </div>
-          <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0 bg-gradient-to-b from-background to-secondary/10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa / Fornecedor</Label>
-              <div className="flex gap-2">
-                <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
-                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg flex-1">
-                    <SelectValue placeholder="Selecionar da base de dados" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white shadow-2xl border-border/40">
-                    {suppliers.map((s) => <SelectItem key={s.id} value={s.id} className="font-bold text-xs uppercase">{s.company_name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setSupplierDialogOpen(true)}>Novo</Button>
+
+          {/* Body */}
+          <div className="p-6 md:p-8 space-y-8 overflow-y-auto min-h-0">
+
+            {/* Seção: Dados Gerais */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-5 w-1 bg-gold rounded-full" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Dados Gerais</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Empresa / Fornecedor</Label>
+                  <div className="flex gap-2">
+                    <Select value={form.supplier_id} onValueChange={(v) => setForm({ ...form, supplier_id: v })}>
+                      <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl flex-1 transition-all hover:border-gold/40">
+                        <SelectValue placeholder="Selecionar fornecedor" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                        {suppliers.map((s) => <SelectItem key={s.id} value={s.id} className="font-bold text-xs uppercase rounded-lg">{s.company_name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" className="h-12 px-4 rounded-xl border-dashed hover:bg-gold/5 hover:border-gold/40 transition-all" onClick={() => setSupplierDialogOpen(true)}>Novo</Button>
+                  </div>
+                </div>
+                {companies.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Empresa / CNPJ</Label>
+                    <Select value={form.company_id || "none"} onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}>
+                      <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl transition-all hover:border-gold/40">
+                        <SelectValue placeholder="Selecionar empresa" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                        <SelectItem value="none" className="font-bold text-xs uppercase rounded-lg">Sem vinculo</SelectItem>
+                        {companies.map((company: any) => (
+                          <SelectItem key={company.id} value={company.id} className="font-bold text-xs rounded-lg">
+                            {company.trade_name || company.legal_name || "Empresa"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Tipo da Despesa</Label>
-              <Select value={form.expense_type} onValueChange={(v) => setForm({ ...form, expense_type: v })}>
-                <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white shadow-2xl border-border/40">
-                  <SelectItem value="single" className="font-bold text-xs uppercase">Unica</SelectItem>
-                  <SelectItem value="recurring" className="font-bold text-xs uppercase">Recorrente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {form.expense_type === "recurring" && (
-              <div className="grid grid-cols-1 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
+            {/* Seção: Tipo e Recorrencia */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-5 w-1 bg-gold rounded-full" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Tipo de Despesa</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Modelo</Label>
-                  <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
-                    <SelectTrigger className="bg-white border-border/40 focus:ring-gold h-11 rounded-lg">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Classificacao</Label>
+                  <Select value={form.expense_type} onValueChange={(v) => setForm({ ...form, expense_type: v })}>
+                    <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl transition-all hover:border-gold/40">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white shadow-2xl border-border/40">
-                      <SelectItem value="repeat" className="font-bold text-xs uppercase">Repete todo mes</SelectItem>
-                      <SelectItem value="split" className="font-bold text-xs uppercase">Dividida em meses</SelectItem>
+                    <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                      <SelectItem value="single" className="font-bold text-xs uppercase rounded-lg">Unica</SelectItem>
+                      <SelectItem value="recurring" className="font-bold text-xs uppercase rounded-lg">Recorrente</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {form.recurrence_mode === "split" && (
+                {form.expense_type === "recurring" && (
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Quantidade de meses</Label>
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Modelo</Label>
+                    <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
+                      <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl transition-all hover:border-gold/40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                        <SelectItem value="repeat" className="font-bold text-xs uppercase rounded-lg">Repete todo mes</SelectItem>
+                        <SelectItem value="split" className="font-bold text-xs uppercase rounded-lg">Dividida em meses</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              {form.expense_type === "recurring" && form.recurrence_mode === "split" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Quantidade de meses</Label>
                     <Input
                       type="number"
                       min="2"
                       value={form.recurrence_months}
                       onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
-                      className="bg-white border-border/40 focus:border-gold h-11 font-medium"
+                      className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
                     />
                   </div>
-                )}
-              </div>
-            )}
-
-            <div className="space-y-2 lg:col-span-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Título</Label>
-              <Textarea 
-                value={form.description} 
-                onChange={(e) => setForm({ ...form, description: e.target.value })} 
-                placeholder="Opcional. Ex: Pagamento de serviço de buffet"
-                className="bg-secondary/30 border-border/40 focus:border-gold min-h-[80px] py-3 shadow-inner" 
-              />
+                </div>
+              )}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:col-span-2">
+
+            {/* Seção: Valores */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-5 w-1 bg-gold rounded-full" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Valores e Datas</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Valor do Titulo *</Label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gold font-bold text-sm">R$</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={form.amount}
+                      onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })}
+                      className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-gold text-lg pl-12 transition-all hover:border-gold/40"
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Data Vencimento *</Label>
+                  <Input
+                    type="date"
+                    value={form.due_date}
+                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                    className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Seção: Classificacao */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-5 w-1 bg-gold rounded-full" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Classificacao</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Categoria</Label>
+                  <div className="flex gap-2">
+                    <Select value={form.category_id || "none"} onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? "" : v })}>
+                      <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl flex-1 transition-all hover:border-gold/40">
+                        <SelectValue placeholder="Selecionar categoria" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                        <SelectItem value="none" className="font-bold text-xs uppercase rounded-lg">Sem categoria</SelectItem>
+                        {categories.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase rounded-lg">{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" className="h-12 px-4 rounded-xl border-dashed hover:bg-gold/5 hover:border-gold/40 transition-all" onClick={() => setCategoryDialogOpen(true)}>Novo</Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Centro de Custo</Label>
+                  <div className="flex gap-2">
+                    <Select value={form.cost_center_id || "none"} onValueChange={(v) => setForm({ ...form, cost_center_id: v === "none" ? "" : v })}>
+                      <SelectTrigger className="bg-secondary/50 border-border/40 focus:ring-gold h-12 rounded-xl flex-1 transition-all hover:border-gold/40">
+                        <SelectValue placeholder="Selecionar centro de custo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
+                        <SelectItem value="none" className="font-bold text-xs uppercase rounded-lg">Sem centro de custo</SelectItem>
+                        {costCenters.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase rounded-lg">{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" className="h-12 px-4 rounded-xl border-dashed hover:bg-gold/5 hover:border-gold/40 transition-all" onClick={() => setCostCenterDialogOpen(true)}>Novo</Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Seção: Descricao */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="h-5 w-1 bg-gold rounded-full" />
+                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Observacoes</h3>
+              </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor do Título *</Label>
-                <Input 
-                  type="text"
-                  inputMode="numeric"
-                  value={form.amount} 
-                  onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })} 
-                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-bold text-gold" 
-                  placeholder="0,00"
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Descricao do Titulo</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Opcional. Ex: Pagamento de servico de buffet"
+                  className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold min-h-[80px] py-3 px-4 rounded-xl shadow-inner transition-all hover:border-gold/40 resize-none"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Data Vencimento *</Label>
-                <Input 
-                  type="date" 
-                  value={form.due_date} 
-                  onChange={(e) => setForm({ ...form, due_date: e.target.value })} 
-                  className="bg-secondary/30 border-border/40 focus:border-gold h-11 font-medium" 
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Categoria</Label>
-              <div className="flex gap-2">
-                <Select value={form.category_id || "none"} onValueChange={(v) => setForm({ ...form, category_id: v === "none" ? "" : v })}>
-                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg flex-1">
-                    <SelectValue placeholder="Selecionar categoria" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white shadow-2xl border-border/40">
-                    <SelectItem value="none" className="font-bold text-xs uppercase">Sem categoria</SelectItem>
-                    {categories.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setCategoryDialogOpen(true)}>Novo</Button>
-              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Centro de Custo</Label>
-              <div className="flex gap-2">
-                <Select value={form.cost_center_id || "none"} onValueChange={(v) => setForm({ ...form, cost_center_id: v === "none" ? "" : v })}>
-                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg flex-1">
-                    <SelectValue placeholder="Selecionar centro de custo" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white shadow-2xl border-border/40">
-                    <SelectItem value="none" className="font-bold text-xs uppercase">Sem centro de custo</SelectItem>
-                    {costCenters.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bold text-xs uppercase">{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button type="button" variant="outline" className="h-11 px-4" onClick={() => setCostCenterDialogOpen(true)}>Novo</Button>
-              </div>
-            </div>
-
-            {companies.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Empresa / CNPJ</Label>
-                <Select value={form.company_id || "none"} onValueChange={(v) => setForm({ ...form, company_id: v === "none" ? "" : v })}>
-                  <SelectTrigger className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg">
-                    <SelectValue placeholder="Selecionar empresa" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white shadow-2xl border-border/40">
-                    <SelectItem value="none" className="font-bold text-xs uppercase">Sem vínculo</SelectItem>
-                    {companies.map((company: any) => (
-                      <SelectItem key={company.id} value={company.id} className="font-bold text-xs">
-                        {company.trade_name || company.legal_name || "Empresa"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            </div>
-
+            {/* Previa das Parcelas */}
             {form.expense_type === "recurring" && installmentPreview.length > 0 && (
-              <div className="lg:col-span-2 p-4 rounded-2xl border border-gold/20 bg-gold/5 space-y-3">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">
-                  Prévia das Parcelas ({installmentPreview.length}x)
-                </Label>
+              <div className="rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/5 to-gold/10 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gold/10 bg-gold/5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-gold animate-pulse" />
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-gold">
+                        Previa das Parcelas
+                      </Label>
+                    </div>
+                    <span className="text-xs font-bold text-gold bg-gold/10 px-3 py-1 rounded-full">{installmentPreview.length}x parcelas</span>
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b border-gold/20">
-                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">#</th>
-                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">Vencimento</th>
-                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">Descricao</th>
-                        <th className="text-right py-2 font-bold text-gold/70 uppercase tracking-wider">Valor</th>
+                      <tr className="border-b border-gold/10">
+                        <th className="text-left py-3 px-6 font-bold text-gold/60 uppercase tracking-wider">#</th>
+                        <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Vencimento</th>
+                        <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Descricao</th>
+                        <th className="text-right py-3 px-6 font-bold text-gold/60 uppercase tracking-wider">Valor</th>
                       </tr>
                     </thead>
                     <tbody>
                       {installmentPreview.map((p) => (
-                        <tr key={p.index} className="border-b border-gold/10 last:border-0">
-                          <td className="py-1.5 font-bold text-gold">{p.index}</td>
-                          <td className="py-1.5 font-medium">{format(p.due_date, "dd/MM/yyyy")}</td>
-                          <td className="py-1.5 text-muted-foreground truncate max-w-[200px]">{p.description}</td>
-                          <td className="py-1.5 text-right font-bold text-gold">{currencyFmt(p.amount)}</td>
+                        <tr key={p.index} className="border-b border-gold/5 last:border-0 hover:bg-gold/5 transition-colors">
+                          <td className="py-3 px-6 font-bold text-gold">{String(p.index).padStart(2, '0')}</td>
+                          <td className="py-3 px-4 font-medium text-foreground">{format(p.due_date, "dd/MM/yyyy")}</td>
+                          <td className="py-3 px-4 text-muted-foreground truncate max-w-[200px]">{p.description}</td>
+                          <td className="py-3 px-6 text-right font-bold text-gold">{currencyFmt(p.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t border-gold/30 font-bold">
-                        <td colSpan={3} className="py-2 text-gold uppercase tracking-wider text-[10px]">Total</td>
-                        <td className="py-2 text-right text-gold">{currencyFmt(installmentPreview.reduce((sum, p) => sum + p.amount, 0))}</td>
+                      <tr className="bg-gold/5">
+                        <td colSpan={3} className="py-3 px-6 text-gold uppercase tracking-wider text-[10px] font-bold">Total Geral</td>
+                        <td className="py-3 px-6 text-right font-bold text-gold text-sm">{currencyFmt(installmentPreview.reduce((sum, p) => sum + p.amount, 0))}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -1329,9 +1386,10 @@ export default function ContasPagarPage() {
               </div>
             )}
 
+            {/* Footer */}
             <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-6 border-t border-border/10 bg-background/95 backdrop-blur">
-              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!form.amount || !form.due_date} className="bg-gold hover:bg-gold-light text-white font-bold h-11 px-10 rounded-lg shadow-gold uppercase text-[11px] tracking-widest">
+              <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl hover:bg-secondary/50">Cancelar</Button>
+              <Button onClick={() => createMutation.mutate()} disabled={!form.amount || !form.due_date} className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-10 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30 hover:-translate-y-0.5">
                 Efetuar Registro
               </Button>
             </div>
