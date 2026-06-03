@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import EditContaPagarDialog from "@/components/EditContaPagarDialog";
+import EditRecebimentoDialog from "@/components/EditRecebimentoDialog";
 import {
   startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   addDays, addMonths, subMonths, format, isSameMonth, isSameDay, isToday,
@@ -37,7 +38,10 @@ const weekDays = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editMode, setEditMode] = useState(false);
-  const navigate = useNavigate();
+  const [editPagarOpen, setEditPagarOpen] = useState(false);
+  const [editPagarId, setEditPagarId] = useState("");
+  const [editRecOpen, setEditRecOpen] = useState(false);
+  const [editRecPaymentId, setEditRecPaymentId] = useState("");
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -142,9 +146,11 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
     if (!editMode) return;
 
     if (entry.source === "conta_pagar") {
-      navigate(`/contas-pagar?edit=${entry.entityId}`);
+      setEditPagarId(entry.entityId);
+      setEditPagarOpen(true);
     } else if (entry.source === "recebimento" && entry.paymentId) {
-      navigate(`/recebimentos?edit=${entry.paymentId}`);
+      setEditRecPaymentId(entry.paymentId);
+      setEditRecOpen(true);
     }
   };
 
@@ -331,6 +337,13 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
           <span className="text-[10px] font-bold text-muted-foreground/40">= Entradas - Saídas</span>
         </div>
       </div>
+
+      {editPagarId && (
+        <EditContaPagarDialog open={editPagarOpen} onOpenChange={setEditPagarOpen} itemId={editPagarId} />
+      )}
+      {editRecPaymentId && (
+        <EditRecebimentoDialog open={editRecOpen} onOpenChange={setEditRecOpen} paymentId={editRecPaymentId} />
+      )}
     </div>
   );
 };
