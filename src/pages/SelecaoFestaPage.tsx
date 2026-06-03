@@ -307,7 +307,7 @@ const SelecaoFestaPage = () => {
         queryClient.invalidateQueries({ queryKey: ['event_inventory_reservations'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory_items_for_reservation'] }),
       ]);
-      setItemForm({ itemId: '', quantity: 1, notes: '' });
+      setItemForm({ itemId: '', model: '', quantity: 1, notes: '' });
       setRentalForm({ pieceName: '', supplier: '', quantity: 1, unit: 'unidade', notes: '' });
       setPendingItems([]);
       setAddOpen(false);
@@ -358,13 +358,13 @@ const SelecaoFestaPage = () => {
   const deleteEventMutation = useMutation({
     mutationFn: async ({ reservationId, eventId }: { reservationId: string; eventId?: string | null }) => {
       if (!eventId) {
-        const { error: onlyItemsDeleteError } = await supabase
+        const { error: onlyItemsDeleteError } = await (supabase as any)
           .from('event_inventory_items')
           .delete()
           .eq('reservation_id', reservationId);
         if (onlyItemsDeleteError) throw onlyItemsDeleteError;
 
-        const { error: onlyReservationDeleteError } = await supabase
+        const { error: onlyReservationDeleteError } = await (supabase as any)
           .from('event_inventory_reservations')
           .delete()
           .eq('id', reservationId);
@@ -373,7 +373,7 @@ const SelecaoFestaPage = () => {
         return { reservationId, eventId: null };
       }
 
-      const { data: reservationRows, error: reservationRowsError } = await supabase
+      const { data: reservationRows, error: reservationRowsError } = await (supabase as any)
         .from('event_inventory_reservations')
         .select('id')
         .eq('event_id', eventId);
@@ -381,20 +381,20 @@ const SelecaoFestaPage = () => {
 
       const reservationIds = (reservationRows || []).map((row: any) => row.id);
       if (reservationIds.length > 0) {
-        const { error: itemsDeleteError } = await supabase
+        const { error: itemsDeleteError } = await (supabase as any)
           .from('event_inventory_items')
           .delete()
           .in('reservation_id', reservationIds);
         if (itemsDeleteError) throw itemsDeleteError;
       }
 
-      const { error: reservationsError } = await supabase.from('event_inventory_reservations').delete().eq('event_id', eventId);
+      const { error: reservationsError } = await (supabase as any).from('event_inventory_reservations').delete().eq('event_id', eventId);
       if (reservationsError) throw reservationsError;
 
       const [contractsResult, paymentsResult, movementsResult] = await Promise.all([
         supabase.from('contracts').update({ event_id: null } as any).eq('event_id', eventId),
         supabase.from('payments').update({ event_id: null } as any).eq('event_id', eventId),
-        supabase.from('stock_movements').delete().eq('event_id', eventId),
+        (supabase as any).from('stock_movements').delete().eq('event_id', eventId),
       ]);
       if (contractsResult.error) throw contractsResult.error;
       if (paymentsResult.error) throw paymentsResult.error;
