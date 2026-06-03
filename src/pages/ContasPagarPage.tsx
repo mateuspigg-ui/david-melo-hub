@@ -146,8 +146,8 @@ export default function ContasPagarPage() {
     const parsedAmount = parseCurrencyInput(form.amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return [];
     if (!form.due_date) return [];
-    const isSplit = form.recurrence_mode === "split";
-    const recurrenceMonths = isSplit
+    const shouldSplitInstallments = form.recurrence_mode === "split";
+    const recurrenceMonths = shouldSplitInstallments
       ? Math.max(2, Number(form.recurrence_months || "2"))
       : 12;
     if (!Number.isInteger(recurrenceMonths) || recurrenceMonths < 2) return [];
@@ -162,10 +162,10 @@ export default function ContasPagarPage() {
 
     return Array.from({ length: recurrenceMonths }, (_, index) => {
       const dueDate = addMonths(baseDate, index);
-      const amountCents = isSplit
+      const amountCents = shouldSplitInstallments
         ? splitBaseCents + (index === recurrenceMonths - 1 ? splitRemainder : 0)
         : totalCents;
-      const desc = isSplit
+      const desc = shouldSplitInstallments
         ? `${normalizedDescription} (${index + 1}/${recurrenceMonths})`
         : normalizedDescription;
       return {
@@ -365,11 +365,11 @@ export default function ContasPagarPage() {
 
       const payloads = Array.from({ length: scheduleCount }, (_, index) => {
         const dueDate = addMonths(baseDate, index).toISOString().split("T")[0];
-        const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
-        const amountCents = isSplit
+        const shouldSplitExpense = form.expense_type === "recurring" && form.recurrence_mode === "split";
+        const amountCents = shouldSplitExpense
           ? splitBaseCents + (index === scheduleCount - 1 ? splitRemainder : 0)
           : totalCents;
-        const nextDescription = isSplit
+        const nextDescription = shouldSplitExpense
           ? `${normalizedDescription} (${index + 1}/${scheduleCount})`
           : normalizedDescription;
 
