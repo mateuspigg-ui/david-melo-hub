@@ -72,6 +72,32 @@ const BankAccountsPage = () => {
     },
   });
 
+  const { data: entryPayments = [] } = useQuery({
+    queryKey: ['bank_accounts_entry_payments'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('payments')
+        .select('entry_bank_account_id, entry_paid_amount, entry_amount, entry_paid_at')
+        .not('entry_bank_account_id', 'is', null)
+        .not('entry_paid_at', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: installmentPayments = [] } = useQuery({
+    queryKey: ['bank_accounts_installment_payments'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('payment_installments')
+        .select('bank_account_id, paid_amount, amount, paid_at')
+        .not('bank_account_id', 'is', null)
+        .not('paid_at', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
   const balanceMap = useMemo(() => {
     const map: Record<string, number> = {};
     for (const t of transactions) {
@@ -85,8 +111,18 @@ const BankAccountsPage = () => {
         map[id] = (map[id] || 0) - paidVal;
       }
     }
+    for (const ep of entryPayments) {
+      const id = ep.entry_bank_account_id;
+      const val = Number(ep.entry_paid_amount || ep.entry_amount || 0);
+      map[id] = (map[id] || 0) + val;
+    }
+    for (const ip of installmentPayments) {
+      const id = ip.bank_account_id;
+      const val = Number(ip.paid_amount || ip.amount || 0);
+      map[id] = (map[id] || 0) + val;
+    }
     return map;
-  }, [transactions, payables]);
+  }, [transactions, payables, entryPayments, installmentPayments]);
 
   const getBalance = (accountId: string) => {
     const initial = accounts?.find((a: any) => a.id === accountId)?.default_initial_balance || 0;
@@ -146,6 +182,9 @@ const BankAccountsPage = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bank_transactions_balance'] });
+      qc.invalidateQueries({ queryKey: ['bank_accounts_payables'] });
+      qc.invalidateQueries({ queryKey: ['bank_accounts_entry_payments'] });
+      qc.invalidateQueries({ queryKey: ['bank_accounts_installment_payments'] });
       setTransferOpen(false);
       setTransferFrom(null);
       toast({ title: 'Transferencia registrada', description: 'Movimentacao entre contas realizada.', style: { backgroundColor: '#C5A059', color: '#fff' } });
@@ -547,6 +586,34 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
     enabled: open && !!account?.id,
   });
 
+  const { data: entryPayments = [], isLoading: isLoadingEntry } = useQuery({
+    queryKey: ['extract_entry_payments', account?.id, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!account?.id) return [];
+      let q = (supabase as any).from('payments').select('*, clients(name), events(name)').eq('entry_bank_account_id', account.id).not('entry_paid_at', 'is', null).order('entry_paid_at', { ascending: false });
+      if (dateFrom) q = q.gte('entry_paid_at', dateFrom);
+      if (dateTo) q = q.lte('entry_paid_at', dateTo);
+      const { data, error } = await q;
+      if (error) return [];
+      return data || [];
+    },
+    enabled: open && !!account?.id,
+  });
+
+  const { data: installmentPayments = [], isLoading: isLoadingInst } = useQuery({
+    queryKey: ['extract_installment_payments', account?.id, dateFrom, dateTo],
+    queryFn: async () => {
+      if (!account?.id) return [];
+      let q = (supabase as any).from('payment_installments').select('*, payments(client_id, event_id, clients(name), events(name))').eq('bank_account_id', account.id).not('paid_at', 'is', null).order('paid_at', { ascending: false });
+      if (dateFrom) q = q.gte('paid_at', dateFrom);
+      if (dateTo) q = q.lte('paid_at', dateTo);
+      const { data, error } = await q;
+      if (error) return [];
+      return data || [];
+    },
+    enabled: open && !!account?.id,
+  });
+
   const extractRows = useMemo(() => {
     const txRows = transactions.map((t: any) => ({
       id: t.id,
@@ -567,10 +634,26 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
       paid_amount: p.paid_amount,
       original_amount: p.amount,
     }));
-    const all = [...txRows, ...payRows];
+    const entryRows = entryPayments.map((ep: any) => ({
+      id: `entry-${ep.id}`,
+      date: ep.entry_paid_at || ep.entry_due_date,
+      description: ep.clients?.name || ep.events?.name || 'Recebimento (sinal)',
+      amount: Number(ep.entry_paid_amount || ep.entry_amount || 0),
+      source: 'recebimento' as const,
+      payment_method: ep.entry_payment_method,
+    }));
+    const instRows = installmentPayments.map((ip: any) => ({
+      id: `inst-${ip.id}`,
+      date: ip.paid_at || ip.due_date,
+      description: ip.payments?.clients?.name || ip.payments?.events?.name || 'Recebimento (parcela)',
+      amount: Number(ip.paid_amount || ip.amount || 0),
+      source: 'recebimento' as const,
+      payment_method: ip.payment_method,
+    }));
+    const all = [...txRows, ...payRows, ...entryRows, ...instRows];
     all.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return all;
-  }, [transactions, payables]);
+  }, [transactions, payables, entryPayments, installmentPayments]);
 
   const runningBalance = useMemo(() => {
     const sorted = [...extractRows].sort((a: any, b: any) => (a.date || '').localeCompare(b.date || ''));
@@ -583,7 +666,7 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
     return withBalance;
   }, [extractRows, account]);
 
-  const isLoading = isLoadingTx || isLoadingPay;
+  const isLoading = isLoadingTx || isLoadingPay || isLoadingEntry || isLoadingInst;
   const totalCredits = extractRows.filter((t: any) => Number(t.amount) > 0).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
   const totalDebits = extractRows.filter((t: any) => Number(t.amount) < 0).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
 
@@ -612,6 +695,7 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
             .negative { color: #dc2626; }
             .badge { display: inline-block; padding: 2px 6px; border-radius: 10px; font-size: 9px; font-weight: bold; text-transform: uppercase; }
             .badge-despesa { background: #fee2e2; color: #dc2626; }
+            .badge-recebimento { background: #dbeafe; color: #2563eb; }
             .badge-pix { background: #d1fae5; color: #059669; }
             .badge-cartao { background: #dbeafe; color: #2563eb; }
             .badge-dinheiro { background: #fef3c7; color: #d97706; }
@@ -641,6 +725,9 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
                       <span class="badge badge-despesa">Despesa</span>
                       ${t.payment_method ? `<span class="badge badge-${t.payment_method === 'pix' ? 'pix' : t.payment_method === 'cartao' ? 'cartao' : 'dinheiro'}">${t.payment_method === 'pix' ? 'PIX' : t.payment_method === 'cartao' ? 'Cartao' : 'Dinheiro'}</span>` : ''}
                       ${t.document_number ? `<span class="badge badge-doc">Doc: ${t.document_number}</span>` : ''}
+                    ` : t.source === 'recebimento' ? `
+                      <span class="badge badge-recebimento">Recebimento</span>
+                      ${t.payment_method ? `<span class="badge badge-${t.payment_method === 'pix' ? 'pix' : t.payment_method === 'cartao' ? 'cartao' : 'dinheiro'}">${t.payment_method === 'pix' ? 'PIX' : t.payment_method === 'cartao' ? 'Cartao' : 'Dinheiro'}</span>` : ''}
                     ` : `
                       <span class="badge ${Number(t.amount) >= 0 ? 'badge-pix' : 'badge-despesa'}">${t.transaction_type || (Number(t.amount) >= 0 ? 'credito' : 'debito')}</span>
                     `}
@@ -739,6 +826,17 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
                             {t.document_number && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[7px] font-bold uppercase bg-amber-50 text-amber-600">
                                 Doc: {t.document_number}
+                              </span>
+                            )}
+                          </div>
+                        ) : t.source === 'recebimento' ? (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[7px] font-bold uppercase bg-blue-50 text-blue-600">
+                              Recebimento
+                            </span>
+                            {t.payment_method && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[7px] font-bold uppercase bg-emerald-50 text-emerald-600">
+                                {t.payment_method === 'pix' ? 'PIX' : t.payment_method === 'cartao' ? 'Cartao' : 'Dinheiro'}
                               </span>
                             )}
                           </div>
