@@ -44,11 +44,11 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
   const fetchMessages = useCallback(async () => {
     try {
       if (chatToken) {
-        const { data, error } = await supabase.rpc('get_messages_by_token', { p_token: chatToken });
+        const { data, error } = await (supabase as any).rpc('get_messages_by_token', { p_token: chatToken });
         if (error) throw error;
-        setMessages(data || []);
+        setMessages((data || []) as Message[]);
       } else if (leadId) {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('lead_messages')
           .select('*')
           .eq('lead_id', leadId)
@@ -90,7 +90,7 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
             belongsToThisChat = nm.lead_id === leadId;
           } else if (chatToken) {
             // Se for cliente (token), precisamos validar se o lead_id da mensagem bate
-            const { data } = await supabase.rpc('get_lead_by_token', { p_token: chatToken });
+            const { data } = await (supabase as any).rpc('get_lead_by_token', { p_token: chatToken });
             if (data && data[0] && data[0].id === nm.lead_id) {
                belongsToThisChat = true;
             }
@@ -137,7 +137,7 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
     setSending(true);
     try {
       if (chatToken) {
-        const { error } = await supabase.rpc('send_client_message', {
+        const { error } = await (supabase as any).rpc('send_client_message', {
           p_token: chatToken,
           p_content: newMessage.trim() || null,
           p_attachment_url: attachment?.url || null,
@@ -149,7 +149,7 @@ export default function LeadChatContainer({ leadId, chatToken, isAdminView = fal
         const { data: { user } } = await supabase.auth.getUser();
         const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user?.id).single();
 
-        const { error } = await supabase.from('lead_messages').insert({
+        const { error } = await (supabase as any).from('lead_messages').insert({
           lead_id: leadId,
           sender_id: user?.id,
           sender_name: profile?.full_name || 'Equipe David Melo',
