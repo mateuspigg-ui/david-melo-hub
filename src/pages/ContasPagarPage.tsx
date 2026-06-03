@@ -525,8 +525,13 @@ export default function ContasPagarPage() {
 
   const createSupplierMutation = useMutation({
     mutationFn: async () => {
+      const name = supplierForm.company_name.trim();
+      const { data: existing } = await supabase.from("suppliers").select("id").ilike("company_name", name).maybeSingle();
+      if (existing) {
+        throw new Error("Ja existe um fornecedor com esse nome.");
+      }
       const payload = {
-        company_name: supplierForm.company_name.trim(),
+        company_name: name,
         cpf_cnpj: supplierForm.cpf_cnpj.trim() || null,
         address: supplierForm.address.trim() || null,
         phone: supplierForm.phone.trim() || null,
@@ -539,6 +544,7 @@ export default function ContasPagarPage() {
     },
     onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ["suppliers-select"] });
+      qc.refetchQueries({ queryKey: ["suppliers-select"] });
       setForm((prev) => ({ ...prev, supplier_id: data?.id || prev.supplier_id }));
       setSupplierDialogOpen(false);
       setSupplierForm({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
