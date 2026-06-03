@@ -141,36 +141,38 @@ export default function ContasPagarPage() {
     recurrence_months: "2",
   });
 
-  const installmentPreview = useMemo(() => {
-    if (form.expense_type !== "recurring") return [];
+  type Installment = { id: number; due_date: string; amount: number; description: string };
+  const [installments, setInstallments] = useState<Installment[]>([]);
+
+  const generateInstallments = () => {
     const parsedAmount = parseCurrencyInput(form.amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return [];
-    if (!form.due_date) return [];
-    const shouldSplitInstallments = form.recurrence_mode === "split";
-    const recurrenceMonths = shouldSplitInstallments
-      ? Math.max(2, Number(form.recurrence_months || "2"))
-      : 12;
-    if (!Number.isInteger(recurrenceMonths) || recurrenceMonths < 2) return [];
-
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !form.due_date) return;
+    const count = form.expense_type === "recurring"
+      ? (form.recurrence_mode === "split" ? Math.max(2, Number(form.recurrence_months || "2")) : 12)
+      : 1;
     const baseDate = new Date(`${form.due_date}T12:00:00`);
-    if (Number.isNaN(baseDate.getTime())) return [];
+    if (Number.isNaN(baseDate.getTime())) return;
+    const perParcel = Math.round((parsedAmount * 100) / count) / 100;
+    const desc = form.description.trim() || "Despesa sem titulo";
+    const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
+    const newInstallments: Installment[] = Array.from({ length: count }, (_, i) => ({
+      id: Date.now() + i,
+      due_date: addMonths(baseDate, i).toISOString().split("T")[0],
+      amount: perParcel,
+      description: isSplit ? `${desc} (${i + 1}/${count})` : desc,
+    }));
+    setInstallments(newInstallments);
+  };
 
-    const amountPerParcel = Math.round(parsedAmount * 100);
-    const normalizedDescription = form.description.trim() || "Despesa sem titulo";
+  const updateInstallment = (id: number, field: keyof Installment, value: string | number) => {
+    setInstallments((prev) => prev.map((inst) => inst.id === id ? { ...inst, [field]: value } : inst));
+  };
 
-    return Array.from({ length: recurrenceMonths }, (_, index) => {
-      const dueDate = addMonths(baseDate, index);
-      const desc = shouldSplitInstallments
-        ? `${normalizedDescription} (${index + 1}/${recurrenceMonths})`
-        : normalizedDescription;
-      return {
-        index: index + 1,
-        description: desc,
-        amount: amountPerParcel / 100,
-        due_date: dueDate,
-      };
-    });
-  }, [form.expense_type, form.amount, form.due_date, form.recurrence_months, form.recurrence_mode, form.description]);
+  const removeInstallment = (id: number) => {
+    setInstallments((prev) => prev.filter((inst) => inst.id !== id));
+  };
+
+  const installmentTotal = installments.reduce((sum, inst) => sum + inst.amount, 0);
 
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
   const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
@@ -340,17 +342,51 @@ export default function ContasPagarPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const parsedAmount = parseCurrencyInput(form.amount);
-      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-        throw new Error("Informe um valor válido maior que zero para a despesa.");
+      if (form.expense_type === "recurring") {
+        if (installments.length === 0) {
+          throw new Error("Gere as parcelas antes de salvar.");
+        }
+
+        const payloads = installments.map((inst) => ({
+          description: inst.description,
+          amount: inst.amount,
+          due_date: inst.due_date,
+          supplier_id: form.supplier_id || null,
+          category_id: form.category_id || null,
+          company_id: form.company_id || null,
+          cost_center_id: form.cost_center_id || null,
+          payment_status: "nao_pago",
+          paid_at: null,
+        }));
+
+        let { error } = await supabase.from("accounts_payable").insert(payloads as any);
+        if (error && isMissingCompanyIdColumnError(error)) {
+          const retry = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, company_id: undefined })) as any);
+          error = retry.error;
+        }
+        if (error && isMissingCostCenterIdColumnError(error)) {
+          const retry = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, cost_center_id: undefined })) as any);
+          error = retry.error;
+        }
+        if (error) {
+          const looksLikeStatusMismatch = /status|pending|pendente|pago|nao_pago|paid/i.test(String(error.message || ""));
+          if (!looksLikeStatusMismatch) throw error;
+          let lastError: any = error;
+          for (const status of PENDING_STATUS_VALUES) {
+            const { error: fallbackError } = await supabase
+              .from("accounts_payable")
+              .insert(payloads.map((p) => ({ ...p, payment_status: status })) as any);
+            if (!fallbackError) return;
+            lastError = fallbackError;
+          }
+          throw lastError;
+        }
+        return;
       }
 
-      const recurrenceMonths = form.expense_type === "recurring" && form.recurrence_mode === "repeat"
-        ? 12
-        : Math.max(2, Number(form.recurrence_months || "2"));
-      const scheduleCount = form.expense_type === "recurring" ? recurrenceMonths : 1;
-      if (!Number.isInteger(scheduleCount) || scheduleCount < 1) {
-        throw new Error("Informe um numero valido de meses para recorrencia.");
+      const parsedAmount = parseCurrencyInput(form.amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        throw new Error("Informe um valor valido maior que zero para a despesa.");
       }
 
       const baseDate = new Date(`${form.due_date}T12:00:00`);
@@ -358,21 +394,10 @@ export default function ContasPagarPage() {
         throw new Error("Informe uma data de vencimento valida.");
       }
 
-      const amountPerParcel = Math.round(parsedAmount * 100);
-
-      const normalizedDescription = form.description.trim() || "Despesa sem titulo";
-
-      const payloads = Array.from({ length: scheduleCount }, (_, index) => {
-        const dueDate = addMonths(baseDate, index).toISOString().split("T")[0];
-        const shouldSplitExpense = form.expense_type === "recurring" && form.recurrence_mode === "split";
-        const nextDescription = shouldSplitExpense
-          ? `${normalizedDescription} (${index + 1}/${scheduleCount})`
-          : normalizedDescription;
-
-        return {
-          description: nextDescription,
-          amount: amountPerParcel / 100,
-          due_date: dueDate,
+      const payload = {
+        description: form.description.trim() || "Despesa sem titulo",
+        amount: parsedAmount,
+        due_date: form.due_date,
         supplier_id: form.supplier_id || null,
         category_id: form.category_id || null,
         company_id: form.company_id || null,
@@ -380,38 +405,36 @@ export default function ContasPagarPage() {
         payment_status: "nao_pago",
         paid_at: null,
       };
-      });
 
-      let { error } = await supabase.from("accounts_payable").insert(payloads as any);
+      let { error } = await supabase.from("accounts_payable").insert(payload as any);
       if (error && isMissingCompanyIdColumnError(error)) {
-        const retryNoCompany = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, company_id: undefined })) as any);
-        error = retryNoCompany.error;
+        const { error: retry } = await supabase.from("accounts_payable").insert({ ...payload, company_id: undefined } as any);
+        error = retry;
       }
       if (error && isMissingCostCenterIdColumnError(error)) {
-        const retryNoCostCenter = await supabase.from("accounts_payable").insert(payloads.map((p) => ({ ...p, cost_center_id: undefined })) as any);
-        error = retryNoCostCenter.error;
+        const { error: retry } = await supabase.from("accounts_payable").insert({ ...payload, cost_center_id: undefined } as any);
+        error = retry;
       }
-      if (!error) return;
-
-      const looksLikeStatusMismatch = /status|pending|pendente|pago|nao_pago|paid/i.test(String(error.message || ""));
-      if (!looksLikeStatusMismatch) throw error;
-
-      let lastError: any = error;
-      for (const status of PENDING_STATUS_VALUES) {
-        const { error: fallbackError } = await supabase
-          .from("accounts_payable")
-          .insert(payloads.map((p) => ({ ...p, payment_status: status })) as any);
-        if (!fallbackError) return;
-        lastError = fallbackError;
+      if (error) {
+        const looksLikeStatusMismatch = /status|pending|pendente|pago|nao_pago|paid/i.test(String(error.message || ""));
+        if (!looksLikeStatusMismatch) throw error;
+        let lastError: any = error;
+        for (const status of PENDING_STATUS_VALUES) {
+          const { error: fallbackError } = await supabase
+            .from("accounts_payable")
+            .insert({ ...payload, payment_status: status } as any);
+          if (!fallbackError) return;
+          lastError = fallbackError;
+        }
+        throw lastError;
       }
-
-      throw lastError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
       setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
+      setInstallments([]);
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -1343,55 +1366,111 @@ export default function ContasPagarPage() {
               </div>
             </div>
 
-            {/* Previa das Parcelas */}
-            {form.expense_type === "recurring" && installmentPreview.length > 0 && (
-              <div className="rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/5 to-gold/10 overflow-hidden">
+            {/* Parcelamento Editavel */}
+            {form.expense_type === "recurring" && (
+              <div className="rounded-2xl border border-gold/20 bg-gradient-to-br from-gold/5 to-gold/10 overflow-hidden space-y-4">
                 <div className="px-6 py-4 border-b border-gold/10 bg-gold/5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full bg-gold animate-pulse" />
                       <Label className="text-[10px] font-bold uppercase tracking-widest text-gold">
-                        Previa das Parcelas
+                        Parcelamento
                       </Label>
                     </div>
-                    <span className="text-xs font-bold text-gold bg-gold/10 px-3 py-1 rounded-full">{installmentPreview.length}x parcelas</span>
+                    {installments.length > 0 && (
+                      <span className="text-xs font-bold text-gold bg-gold/10 px-3 py-1 rounded-full">{installments.length}x parcelas</span>
+                    )}
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-gold/10">
-                        <th className="text-left py-3 px-6 font-bold text-gold/60 uppercase tracking-wider">#</th>
-                        <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Vencimento</th>
-                        <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Descricao</th>
-                        <th className="text-right py-3 px-6 font-bold text-gold/60 uppercase tracking-wider">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {installmentPreview.map((p) => (
-                        <tr key={p.index} className="border-b border-gold/5 last:border-0 hover:bg-gold/5 transition-colors">
-                          <td className="py-3 px-6 font-bold text-gold">{String(p.index).padStart(2, '0')}</td>
-                          <td className="py-3 px-4 font-medium text-foreground">{format(p.due_date, "dd/MM/yyyy")}</td>
-                          <td className="py-3 px-4 text-muted-foreground truncate max-w-[200px]">{p.description}</td>
-                          <td className="py-3 px-6 text-right font-bold text-gold">{currencyFmt(p.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-gold/5">
-                        <td colSpan={3} className="py-3 px-6 text-gold uppercase tracking-wider text-[10px] font-bold">Total Geral</td>
-                        <td className="py-3 px-6 text-right font-bold text-gold text-sm">{currencyFmt(installmentPreview.reduce((sum, p) => sum + p.amount, 0))}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+
+                <div className="px-6 flex flex-wrap items-end gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Quantidade de Parcelas</Label>
+                    <Input
+                      type="number"
+                      min="2"
+                      value={form.recurrence_months}
+                      onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
+                      className="bg-white border-border/40 focus:border-gold focus:ring-gold h-11 rounded-xl font-medium w-32 transition-all hover:border-gold/40"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateInstallments}
+                    disabled={!form.amount || !form.due_date}
+                    className="h-11 px-6 rounded-xl border-gold/30 text-gold hover:bg-gold/5 hover:border-gold font-bold uppercase text-[10px] tracking-widest"
+                  >
+                    Atualizar
+                  </Button>
                 </div>
+
+                {installments.length > 0 && (
+                  <div className="overflow-x-auto px-6 pb-4">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-gold/20">
+                          <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider w-10">#</th>
+                          <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Data de Vencimento</th>
+                          <th className="text-right py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Valor</th>
+                          <th className="w-12"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {installments.map((inst, idx) => (
+                          <tr key={inst.id} className="border-b border-gold/5 last:border-0 hover:bg-gold/5 transition-colors">
+                            <td className="py-2 px-4 font-bold text-gold">{String(idx + 1).padStart(2, '0')}</td>
+                            <td className="py-2 px-4">
+                              <Input
+                                type="date"
+                                value={inst.due_date}
+                                onChange={(e) => updateInstallment(inst.id, "due_date", e.target.value)}
+                                className="h-9 rounded-lg text-xs bg-white border-border/40 focus:border-gold focus:ring-gold w-40 transition-all hover:border-gold/40"
+                              />
+                            </td>
+                            <td className="py-2 px-4">
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gold font-bold text-xs">R$</span>
+                                <Input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={maskCurrencyInput(String(inst.amount))}
+                                  onChange={(e) => updateInstallment(inst.id, "amount", parseCurrencyInput(e.target.value))}
+                                  className="h-9 rounded-lg text-xs bg-white border-border/40 focus:border-gold focus:ring-gold pl-9 font-bold text-gold w-36 transition-all hover:border-gold/40"
+                                />
+                              </div>
+                            </td>
+                            <td className="py-2 px-4 text-right">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeInstallment(inst.id)}
+                                className="h-8 w-8 text-destructive/60 hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gold/5 border-t border-gold/20">
+                          <td colSpan={2} className="py-3 px-4 text-gold uppercase tracking-wider text-[10px] font-bold">Total Geral</td>
+                          <td className="py-3 px-4 text-right font-bold text-gold text-sm">{currencyFmt(installmentTotal)}</td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Footer */}
             <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-6 border-t border-border/10 bg-background/95 backdrop-blur">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest h-11 px-6 rounded-xl hover:bg-secondary/50">Cancelar</Button>
-              <Button onClick={() => createMutation.mutate()} disabled={!form.amount || !form.due_date} className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-10 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30 hover:-translate-y-0.5">
+              <Button onClick={() => createMutation.mutate()} disabled={!form.amount || !form.due_date || (form.expense_type === "recurring" && installments.length === 0)} className="bg-gradient-to-r from-gold to-gold-light hover:from-gold-light hover:to-gold text-white font-bold h-11 px-10 rounded-xl shadow-lg shadow-gold/20 uppercase text-[11px] tracking-widest transition-all hover:shadow-xl hover:shadow-gold/30 hover:-translate-y-0.5">
                 Efetuar Registro
               </Button>
             </div>
