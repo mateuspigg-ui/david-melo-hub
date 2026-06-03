@@ -133,6 +133,7 @@ export default function ContasPagarPage() {
   const [form, setForm] = useState({
     description: "",
     amount: "",
+    issue_date: new Date().toISOString().split("T")[0],
     due_date: "",
     supplier_id: "",
     company_id: "",
@@ -365,6 +366,7 @@ export default function ContasPagarPage() {
         const payloads = installments.map((inst) => ({
           description: inst.description,
           amount: parseCurrencyInput(inst.amount),
+          issue_date: form.issue_date || null,
           due_date: inst.due_date,
           supplier_id: form.supplier_id || null,
           category_id: form.category_id || null,
@@ -412,6 +414,7 @@ export default function ContasPagarPage() {
       const payload = {
         description: form.description.trim() || "Despesa sem titulo",
         amount: parsedAmount,
+        issue_date: form.issue_date || null,
         due_date: form.due_date,
         supplier_id: form.supplier_id || null,
         category_id: form.category_id || null,
@@ -448,7 +451,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
+      setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
       setInstallments([]);
       toast({ title: "Conta criada com sucesso" });
     },
@@ -1297,7 +1300,25 @@ export default function ContasPagarPage() {
                 <div className="h-5 w-1 bg-gold rounded-full" />
                 <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Valores e Datas</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Data Emissao *</Label>
+                  <Input
+                    type="date"
+                    value={form.issue_date}
+                    onChange={(e) => setForm({ ...form, issue_date: e.target.value })}
+                    className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Data Vencimento *</Label>
+                  <Input
+                    type="date"
+                    value={form.due_date}
+                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                    className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Valor do Titulo *</Label>
                   <div className="relative">
@@ -1311,15 +1332,6 @@ export default function ContasPagarPage() {
                       placeholder="0,00"
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Data Vencimento *</Label>
-                  <Input
-                    type="date"
-                    value={form.due_date}
-                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                    className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
-                  />
                 </div>
               </div>
             </div>
