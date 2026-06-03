@@ -155,23 +155,18 @@ export default function ContasPagarPage() {
     const baseDate = new Date(`${form.due_date}T12:00:00`);
     if (Number.isNaN(baseDate.getTime())) return [];
 
-    const totalCents = Math.round(parsedAmount * 100);
-    const splitBaseCents = Math.floor(totalCents / recurrenceMonths);
-    const splitRemainder = totalCents - (splitBaseCents * recurrenceMonths);
+    const amountPerParcel = Math.round(parsedAmount * 100);
     const normalizedDescription = form.description.trim() || "Despesa sem titulo";
 
     return Array.from({ length: recurrenceMonths }, (_, index) => {
       const dueDate = addMonths(baseDate, index);
-      const amountCents = shouldSplitInstallments
-        ? splitBaseCents + (index === recurrenceMonths - 1 ? splitRemainder : 0)
-        : totalCents;
       const desc = shouldSplitInstallments
         ? `${normalizedDescription} (${index + 1}/${recurrenceMonths})`
         : normalizedDescription;
       return {
         index: index + 1,
         description: desc,
-        amount: amountCents / 100,
+        amount: amountPerParcel / 100,
         due_date: dueDate,
       };
     });
@@ -357,25 +352,20 @@ export default function ContasPagarPage() {
         throw new Error("Informe uma data de vencimento valida.");
       }
 
-      const totalCents = Math.round(parsedAmount * 100);
-      const splitBaseCents = Math.floor(totalCents / scheduleCount);
-      const splitRemainder = totalCents - (splitBaseCents * scheduleCount);
+      const amountPerParcel = Math.round(parsedAmount * 100);
 
       const normalizedDescription = form.description.trim() || "Despesa sem titulo";
 
       const payloads = Array.from({ length: scheduleCount }, (_, index) => {
         const dueDate = addMonths(baseDate, index).toISOString().split("T")[0];
         const shouldSplitExpense = form.expense_type === "recurring" && form.recurrence_mode === "split";
-        const amountCents = shouldSplitExpense
-          ? splitBaseCents + (index === scheduleCount - 1 ? splitRemainder : 0)
-          : totalCents;
         const nextDescription = shouldSplitExpense
           ? `${normalizedDescription} (${index + 1}/${scheduleCount})`
           : normalizedDescription;
 
         return {
           description: nextDescription,
-          amount: amountCents / 100,
+          amount: amountPerParcel / 100,
           due_date: dueDate,
         supplier_id: form.supplier_id || null,
         category_id: form.category_id || null,
