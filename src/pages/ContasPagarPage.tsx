@@ -159,7 +159,6 @@ export default function ContasPagarPage() {
     const splitBaseCents = Math.floor(totalCents / recurrenceMonths);
     const splitRemainder = totalCents - (splitBaseCents * recurrenceMonths);
     const normalizedDescription = form.description.trim() || "Despesa sem titulo";
-    const isSplit = form.recurrence_mode === "split";
 
     return Array.from({ length: recurrenceMonths }, (_, index) => {
       const dueDate = addMonths(baseDate, index);
