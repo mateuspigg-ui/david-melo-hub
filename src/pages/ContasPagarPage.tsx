@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
-import { addMonths, differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
@@ -864,6 +864,21 @@ export default function ContasPagarPage() {
     .filter((i) => isAccountPending(i.payment_status, i.paid_at) && getDaysOverdue(i.due_date) > 0)
     .reduce((s, i) => s + getUpdatedAmount(i.amount, i.due_date, false), 0);
 
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  const isInCurrentMonth = (dateStr: string) => {
+    const d = new Date(`${dateStr}T12:00:00`);
+    return isWithinInterval(d, { start: monthStart, end: monthEnd });
+  };
+
+  const monthPending = items
+    .filter((i) => isAccountPending(i.payment_status, i.paid_at) && isInCurrentMonth(i.due_date))
+    .reduce((s, i) => s + i.amount, 0);
+  const monthPaid = items
+    .filter((i) => isAccountPaid(i.payment_status, i.paid_at) && isInCurrentMonth(i.due_date))
+    .reduce((s, i) => s + i.amount, 0);
+
   return (
     <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 px-2">
@@ -880,7 +895,7 @@ export default function ContasPagarPage() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40 relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-2 h-full bg-gold/40" />
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Total Pendente</p>
@@ -891,6 +906,16 @@ export default function ContasPagarPage() {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold font-bold text-destructive">Total Vencido</p>
           <p className="text-3xl font-display text-foreground mt-1 group-hover:text-destructive transition-colors">{currencyFmt(totalOverdue)}</p>
           <p className="text-[10px] font-bold text-destructive/80 mt-1 uppercase tracking-wider">Atualizado: {currencyFmt(totalOverdueUpdated)}</p>
+        </div>
+        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-2 h-full bg-amber-500/40" />
+          <p className="text-[10px] uppercase tracking-widest text-amber-700 font-bold">Pendente {format(now, "MMMM/yyyy")}</p>
+          <p className="text-3xl font-display text-foreground mt-1 group-hover:text-amber-600 transition-colors">{currencyFmt(monthPending)}</p>
+        </div>
+        <div className="bg-white premium-shadow rounded-2xl p-6 border border-border/40 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500/40" />
+          <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Pago {format(now, "MMMM/yyyy")}</p>
+          <p className="text-3xl font-display text-foreground mt-1 group-hover:text-emerald-600 transition-colors">{currencyFmt(monthPaid)}</p>
         </div>
       </div>
 
