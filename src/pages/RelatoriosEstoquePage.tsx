@@ -161,7 +161,7 @@ const RelatoriosEstoquePage = () => {
             <table className="w-full min-w-[900px]">
               <thead className="bg-secondary/30 text-[10px] uppercase tracking-[0.16em] text-muted-foreground/80">
                 <tr>
-                  {Object.keys(reportRows[0]).map((key) => <th key={key} className="text-left p-4">{key.replaceAll('_', ' ')}</th>)}
+                  {Object.keys(reportRows[0]).map((key) => <th key={key} className="text-left p-4">{key.replace(/_/g, ' ')}</th>)}
                 </tr>
               </thead>
               <tbody>
