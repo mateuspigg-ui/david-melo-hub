@@ -20,7 +20,7 @@ export default function ClientChatPage() {
       try {
         if (!token) throw new Error('Link inválido');
         
-        const { data, error: rpcError } = await supabase.rpc('get_lead_by_token', { p_token: token });
+        const { data, error: rpcError } = await (supabase as any).rpc('get_lead_by_token', { p_token: token });
         
         if (rpcError) throw rpcError;
         if (!data || data.length === 0) throw new Error('Convite ou lead não encontrado.');
