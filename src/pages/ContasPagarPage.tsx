@@ -18,6 +18,13 @@ import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+const safeNum = (v: any): number => {
+  if (v == null) return 0;
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  const n = parseCurrencyInput(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
 const PAID_STATUS_VALUES = ["pago", "paid"] as const;
 const PENDING_STATUS_VALUES = ["nao_pago", "pending", "pendente"] as const;
 
@@ -147,6 +154,7 @@ export default function ContasPagarPage() {
   const [paymentDocumentNumber, setPaymentDocumentNumber] = useState("");
   const [modalTab, setModalTab] = useState("dados");
   const [editingItem, setEditingItem] = useState<AccountPayable | null>(null);
+
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -1198,6 +1206,10 @@ export default function ContasPagarPage() {
                             setEditingItem(item);
                             setPaymentBankAccount(item.bank_account_id || "");
                             setPaymentMethod(item.payment_method || "pix");
+                            setPaymentDiscount(item.discount != null ? maskCurrencyInput(String(item.discount)) : "");
+                            setPaymentInterest(item.interest != null ? maskCurrencyInput(String(item.interest)) : "");
+                            setPaymentFine(item.fine != null ? maskCurrencyInput(String(item.fine)) : "");
+                            setPaymentDocumentNumber(item.document_number || "");
                             setModalTab("baixa");
                             setDialogOpen(true);
                           }
@@ -1693,13 +1705,8 @@ export default function ContasPagarPage() {
                       {editingItem && (
                         <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 flex items-center justify-between">
                           <span className="text-xs font-bold uppercase tracking-widest text-gold">Total liquido da baixa:</span>
-                          <span className="text-xl font-bold text-gold">
-                            {currencyFmt(
-                              editingItem.amount
-                              - parseCurrencyInput(paymentDiscount)
-                              + parseCurrencyInput(paymentInterest)
-                              + parseCurrencyInput(paymentFine)
-                            )}
+                          <span className="text-xl font-bold text-gold" title={`amount=${JSON.stringify(editingItem.amount)} disc=${JSON.stringify(paymentDiscount)} juros=${JSON.stringify(paymentInterest)} multa=${JSON.stringify(paymentFine)}`}>
+                            {currencyFmt(safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine))}
                           </span>
                         </div>
                       )}
@@ -1710,10 +1717,10 @@ export default function ContasPagarPage() {
                       <Button
                         onClick={() => {
                           if (!editingItem) return;
-                          const discount = parseCurrencyInput(paymentDiscount);
-                          const interest = parseCurrencyInput(paymentInterest);
-                          const fine = parseCurrencyInput(paymentFine);
-                          const paidAmount = editingItem.amount - discount + interest + fine;
+                          const discount = safeNum(paymentDiscount);
+                          const interest = safeNum(paymentInterest);
+                          const fine = safeNum(paymentFine);
+                          const paidAmount = safeNum(editingItem.amount) - discount + interest + fine;
                           togglePaidMutation.mutate({
                             id: editingItem.id,
                             currentStatus: editingItem.payment_status,
