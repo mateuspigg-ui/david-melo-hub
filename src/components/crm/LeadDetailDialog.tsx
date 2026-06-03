@@ -36,6 +36,17 @@ interface LeadFile {
   created_at: string;
 }
 
+type LeadTask = {
+  id: string;
+  lead_id: string;
+  title: string;
+  status: string;
+  due_date: string | null;
+  due_time?: string | null;
+  assigned_to: string | null;
+  assignee?: { full_name: string } | null;
+};
+
 const formatFileSize = (size?: number | null) => {
   if (!size) return '-';
   if (size < 1024) return `${size} B`;
@@ -163,7 +174,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
     queryKey: ['lead_tasks', lead?.id],
     queryFn: async () => {
       if (!lead) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('lead_tasks')
         .select('*, assignee:assigned_to(full_name)')
         .eq('lead_id', lead.id)
@@ -176,7 +187,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
         throw error;
       }
       setIsLeadTasksUnavailable(false);
-      return data;
+      return (data || []) as LeadTask[];
     },
     enabled: !!lead,
   });
@@ -264,7 +275,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   const addTaskMutation = useMutation({
     mutationFn: async ({ title, due_date, due_time, assigned_to }: { title: string; due_date: string | null; due_time: string | null; assigned_to: string | null }) => {
       if (!lead) return;
-      const { error } = await supabase.from('lead_tasks').insert({
+      const { error } = await (supabase as any).from('lead_tasks').insert({
         lead_id: lead.id,
         title,
         due_date: due_date || null,
@@ -338,7 +349,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
   const toggleTaskMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const newStatus = status === 'done' ? 'pending' : 'done';
-      const { error } = await supabase.from('lead_tasks').update({ status: newStatus }).eq('id', id);
+      const { error } = await (supabase as any).from('lead_tasks').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -362,7 +373,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
 
   const updateTaskMutation = useMutation({
     mutationFn: async ({ id, title, due_date, due_time, assigned_to }: { id: string; title: string; due_date: string | null; due_time: string | null; assigned_to: string | null }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('lead_tasks')
         .update({ title, due_date: due_date || null, due_time: due_time || null, assigned_to })
         .eq('id', id);
@@ -387,7 +398,7 @@ export default function LeadDetailDialog({ lead, onClose, onOpenLeadCard, onEdit
 
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      const { error } = await supabase.from('lead_tasks').delete().eq('id', taskId);
+      const { error } = await (supabase as any).from('lead_tasks').delete().eq('id', taskId);
       if (error) throw error;
     },
     onSuccess: () => {
