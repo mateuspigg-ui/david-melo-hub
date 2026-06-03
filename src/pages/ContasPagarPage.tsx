@@ -191,7 +191,13 @@ export default function ContasPagarPage() {
     queryKey: ["suppliers-select"],
     queryFn: async () => {
       const { data } = await supabase.from("suppliers").select("id, company_name").order("company_name");
-      return data || [];
+      if (!data) return [];
+      const seen = new Map<string, typeof data[0]>();
+      for (const s of data) {
+        const key = (s.company_name || "").trim().toLowerCase();
+        if (!seen.has(key)) seen.set(key, s);
+      }
+      return Array.from(seen.values());
     },
   });
 
