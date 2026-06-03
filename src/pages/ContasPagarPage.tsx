@@ -141,7 +141,7 @@ export default function ContasPagarPage() {
     recurrence_months: "2",
   });
 
-  type Installment = { id: number; due_date: string; amount: number; description: string };
+  type Installment = { id: number; due_date: string; amount: string; description: string };
   const [installments, setInstallments] = useState<Installment[]>([]);
 
   const generateInstallments = () => {
@@ -153,12 +153,13 @@ export default function ContasPagarPage() {
     const baseDate = new Date(`${form.due_date}T12:00:00`);
     if (Number.isNaN(baseDate.getTime())) return;
     const perParcel = Math.round((parsedAmount * 100) / count) / 100;
+    const perParcelStr = perParcel.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const desc = form.description.trim() || "Despesa sem titulo";
     const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
     const newInstallments: Installment[] = Array.from({ length: count }, (_, i) => ({
       id: Date.now() + i,
       due_date: addMonths(baseDate, i).toISOString().split("T")[0],
-      amount: perParcel,
+      amount: perParcelStr,
       description: isSplit ? `${desc} (${i + 1}/${count})` : desc,
     }));
     setInstallments(newInstallments);
@@ -172,7 +173,7 @@ export default function ContasPagarPage() {
     setInstallments((prev) => prev.filter((inst) => inst.id !== id));
   };
 
-  const installmentTotal = installments.reduce((sum, inst) => sum + inst.amount, 0);
+  const installmentTotal = installments.reduce((sum, inst) => sum + parseCurrencyInput(inst.amount), 0);
 
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
   const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
@@ -349,7 +350,7 @@ export default function ContasPagarPage() {
 
         const payloads = installments.map((inst) => ({
           description: inst.description,
-          amount: inst.amount,
+          amount: parseCurrencyInput(inst.amount),
           due_date: inst.due_date,
           supplier_id: form.supplier_id || null,
           category_id: form.category_id || null,
@@ -1434,8 +1435,8 @@ export default function ContasPagarPage() {
                                 <Input
                                   type="text"
                                   inputMode="numeric"
-                                  value={maskCurrencyInput(String(inst.amount))}
-                                  onChange={(e) => updateInstallment(inst.id, "amount", parseCurrencyInput(e.target.value))}
+                                  value={inst.amount}
+                                  onChange={(e) => updateInstallment(inst.id, "amount", maskCurrencyInput(e.target.value))}
                                   className="h-9 rounded-lg text-xs bg-white border-border/40 focus:border-gold focus:ring-gold pl-9 font-bold text-gold w-36 transition-all hover:border-gold/40"
                                 />
                               </div>
