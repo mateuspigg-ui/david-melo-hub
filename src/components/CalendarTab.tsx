@@ -158,33 +158,33 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="h-10 w-10 rounded-xl hover:bg-gold/10"
+            className="h-9 w-9 rounded-xl hover:bg-gold/10 text-foreground/60"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </Button>
-          <h2 className="text-2xl font-display text-foreground tracking-tight min-w-[200px] text-center capitalize">
+          <h2 className="text-xl font-display text-foreground tracking-tight min-w-[180px] text-center capitalize">
             {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
           </h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="h-10 w-10 rounded-xl hover:bg-gold/10"
+            className="h-9 w-9 rounded-xl hover:bg-gold/10 text-foreground/60"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentMonth(new Date())}
-            className="rounded-xl text-[10px] font-bold uppercase tracking-widest border-gold/20 hover:bg-gold/10"
+            className="rounded-lg text-[9px] font-bold uppercase tracking-widest border-border/30 hover:bg-gold/5 hover:border-gold/30 text-muted-foreground h-8"
           >
-            mês atual
+            mes atual
           </Button>
         </div>
         <Button
@@ -192,23 +192,23 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
           size="sm"
           onClick={() => setEditMode(!editMode)}
           className={cn(
-            "rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+            "rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all h-8",
             editMode
-              ? "bg-gold text-white hover:bg-gold/90 shadow-gold-sm"
-              : "border-gold/20 hover:bg-gold/10"
+              ? "bg-gold text-white hover:bg-gold/90 shadow-[0_2px_8px_rgba(197,160,89,0.3)]"
+              : "border-border/30 hover:bg-gold/5 hover:border-gold/30 text-muted-foreground"
           )}
         >
-          <Pencil size={14} className="mr-2" />
-          {editMode ? "Edição ativa" : "Habilitar edição"}
+          <Pencil size={12} className="mr-1.5" />
+          {editMode ? "Edicao ativa" : "Habilitar edicao"}
         </Button>
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-white rounded-[24px] border border-border/30 premium-shadow overflow-hidden">
+      <div className="bg-white rounded-[28px] border border-border/20 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.08)] overflow-hidden">
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 border-b border-border/20 bg-gold/5">
+        <div className="grid grid-cols-7 bg-gradient-to-r from-gold via-gold-light to-gold">
           {weekDays.map((d) => (
-            <div key={d} className="py-3 text-center text-[10px] font-black uppercase tracking-widest text-gold/80 border-r border-border/10 last:border-r-0">
+            <div key={d} className="py-3.5 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/90 border-r border-white/10 last:border-r-0">
               {d}
             </div>
           ))}
@@ -224,90 +224,87 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
             const balance = dayBalance(dateStr);
             const showEntradas = dayItems.filter((i) => i.type === "entrada");
             const showSaidas = dayItems.filter((i) => i.type === "saida");
+            const totalItems = showEntradas.length + showSaidas.length;
+            const visibleItems = 4;
 
             return (
               <div
                 key={idx}
                 className={cn(
-                  "min-h-[130px] border-r border-b border-border/10 last:border-r-0 p-2.5 transition-colors relative",
-                  !inMonth && "bg-muted/30",
-                  inMonth && "bg-white hover:bg-gold/[0.02]",
-                  today && "bg-gold/[0.04]",
+                  "min-h-[140px] border-r border-b border-border/[0.06] last:border-r-0 p-3 transition-all duration-200 relative group",
+                  !inMonth && "bg-stone-50/80",
+                  inMonth && "bg-white hover:bg-gold/[0.015]",
+                  today && "bg-gradient-to-br from-gold/[0.04] to-gold/[0.08] ring-1 ring-inset ring-gold/10",
                 )}
               >
                 {/* Day number */}
-                <div className="flex items-start justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-2">
                   <span
                     className={cn(
-                      "inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold",
-                      today && "bg-gold text-white shadow-gold-sm",
-                      !today && inMonth && "text-foreground/80",
-                      !inMonth && "text-muted-foreground/30",
+                      "inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all",
+                      today && "bg-gold text-white shadow-[0_2px_8px_rgba(197,160,89,0.4)]",
+                      !today && inMonth && "text-foreground/70 group-hover:text-foreground",
+                      !inMonth && "text-muted-foreground/25",
                     )}
                   >
                     {format(day, "d")}
                   </span>
-                </div>
-
-                {/* SALDO */}
-                {dayItems.length > 0 && (
-                  <div className={cn(
-                    "text-[10px] font-black mb-2 pb-1.5 border-b border-dashed",
-                    balance > 0 && "text-blue-600 border-blue-200",
-                    balance < 0 && "text-red-500 border-red-200",
-                    balance === 0 && "text-muted-foreground/50 border-border/20",
-                  )}>
-                    <span className="uppercase tracking-wider opacity-60">Saldo: </span>
-                    <span className="tabular-nums">{currencyFmt(balance)}</span>
-                  </div>
-                )}
-
-                {/* Entries */}
-                <div className="space-y-1">
-                  {showEntradas.slice(0, 3).map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleEntryClick(item)}
-                      className={cn(
-                        "w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-left transition-all",
-                        editMode && "cursor-pointer hover:bg-blue-50 ring-1 ring-blue-200",
-                        !editMode && "cursor-default",
-                        item.status === "paid" && "opacity-50",
-                      )}
-                    >
-                      <div className="w-4 h-4 rounded bg-blue-500 flex items-center justify-center shrink-0">
-                        <ArrowUpCircle size={10} className="text-white" />
-                      </div>
-                      <span className="text-[10px] font-bold text-blue-600 tabular-nums truncate">
-                        {currencyFmt(item.amount)}
-                      </span>
-                    </button>
-                  ))}
-                  {showSaidas.slice(0, 3).map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleEntryClick(item)}
-                      className={cn(
-                        "w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-left transition-all",
-                        editMode && "cursor-pointer hover:bg-red-50 ring-1 ring-red-200",
-                        !editMode && "cursor-default",
-                        item.status === "paid" && "opacity-50",
-                      )}
-                    >
-                      <div className="w-4 h-4 rounded bg-red-500 flex items-center justify-center shrink-0">
-                        <ArrowDownCircle size={10} className="text-white" />
-                      </div>
-                      <span className="text-[10px] font-bold text-red-500 tabular-nums truncate">
-                        {currencyFmt(item.amount)}
-                      </span>
-                    </button>
-                  ))}
-                  {dayItems.length > 6 && (
-                    <span className="text-[9px] font-bold text-gold px-1">
-                      mais +{dayItems.length - 6}
+                  {dayItems.length > 0 && (
+                    <span className={cn(
+                      "text-[9px] font-black tabular-nums px-1.5 py-0.5 rounded-md",
+                      balance > 0 && "text-emerald-600 bg-emerald-50",
+                      balance < 0 && "text-red-500 bg-red-50",
+                      balance === 0 && "text-muted-foreground/40 bg-muted/30",
+                    )}>
+                      {currencyFmt(balance)}
                     </span>
                   )}
                 </div>
+
+                {/* Entries */}
+                {dayItems.length > 0 && (
+                  <div className="space-y-0.5">
+                    {showEntradas.slice(0, 2).map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleEntryClick(item)}
+                        className={cn(
+                          "w-full flex items-center gap-1 px-1.5 py-[3px] rounded-md text-left transition-all duration-150",
+                          editMode && "cursor-pointer hover:bg-blue-50/80 hover:shadow-sm",
+                          !editMode && "cursor-default",
+                          item.status === "paid" && "opacity-40",
+                        )}
+                      >
+                        <div className="w-[5px] h-[5px] rounded-full bg-blue-500 shrink-0" />
+                        <span className="text-[9px] font-semibold text-blue-600/80 tabular-nums truncate">
+                          {currencyFmt(item.amount)}
+                        </span>
+                      </button>
+                    ))}
+                    {showSaidas.slice(0, 2).map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleEntryClick(item)}
+                        className={cn(
+                          "w-full flex items-center gap-1 px-1.5 py-[3px] rounded-md text-left transition-all duration-150",
+                          editMode && "cursor-pointer hover:bg-red-50/80 hover:shadow-sm",
+                          !editMode && "cursor-default",
+                          item.status === "paid" && "opacity-40",
+                        )}
+                      >
+                        <div className="w-[5px] h-[5px] rounded-full bg-red-400 shrink-0" />
+                        <span className="text-[9px] font-semibold text-red-400/80 tabular-nums truncate">
+                          {currencyFmt(item.amount)}
+                        </span>
+                      </button>
+                    ))}
+                    {totalItems > visibleItems && (
+                      <span className="text-[8px] font-bold text-gold/70 px-1.5 block">
+                        +{totalItems - visibleItems} mais
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -315,26 +312,20 @@ const CalendarTab = ({ selectedCompany }: { selectedCompany: string }) => {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-6 px-2">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-blue-500 flex items-center justify-center">
-            <ArrowUpCircle size={10} className="text-white" />
+      <div className="flex flex-wrap items-center gap-5 px-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">Entradas</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">Saidas</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-4 h-4 rounded-full bg-gold flex items-center justify-center">
+            <span className="text-[7px] font-bold text-white">3</span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Entradas (Recebimentos)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-red-500 flex items-center justify-center">
-            <ArrowDownCircle size={10} className="text-white" />
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Saídas (Contas a Pagar)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-gold shadow-gold-sm" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Hoje</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Saldo</span>
-          <span className="text-[10px] font-bold text-muted-foreground/40">= Entradas - Saídas</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/50">Hoje</span>
         </div>
       </div>
 
