@@ -4,36 +4,61 @@ import { HashRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-const Auth = lazy(() => import("@/pages/Auth"));
 import AppLayout from "@/components/layout/AppLayout";
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
-const ContratosPage = lazy(() => import("@/pages/ContratosPage"));
-const DocumentosPage = lazy(() => import("@/pages/DocumentosPage"));
-const FornecedoresPage = lazy(() => import("@/pages/FornecedoresPage"));
-const AgendaPage = lazy(() => import("@/pages/AgendaPage"));
-const EventosPage = lazy(() => import("@/pages/EventosPage"));
-const ContasPagarPage = lazy(() => import("@/pages/ContasPagarPage"));
-const RecebimentosPage = lazy(() => import("@/pages/RecebimentosPage"));
-const NotasFiscaisPage = lazy(() => import("@/pages/NotasFiscaisPage"));
-const ConciliacaoPage = lazy(() => import("@/pages/ConciliacaoPage"));
-const CRMPage = lazy(() => import("@/pages/CRMPage"));
-const ClientesPage = lazy(() => import("@/pages/ClientesPage"));
-const BankAccountsPage = lazy(() => import("@/pages/BankAccountsPage"));
-const FinancialDashboard = lazy(() => import("@/pages/FinancialDashboard"));
-const EmpresasPage = lazy(() => import("@/pages/EmpresasPage"));
-const EquipePage = lazy(() => import("@/pages/EquipePage"));
-const InvitePage = lazy(() => import("@/pages/InvitePage"));
-const FormularioPage = lazy(() => import("@/pages/FormularioPage"));
-const PublicChatPage = lazy(() => import("@/pages/PublicChatPage"));
-const MensagensPage = lazy(() => import("@/pages/MensagensPage"));
-const AlmoxarifadoDashboardPage = lazy(() => import("@/pages/AlmoxarifadoDashboardPage"));
-const AlimentacaoPage = lazy(() => import("@/pages/AlimentacaoPage"));
-const MobiliarioDecoracaoPage = lazy(() => import("@/pages/MobiliarioDecoracaoPage"));
-const FloralPage = lazy(() => import("@/pages/FloralPage"));
-const SelecaoFestaPage = lazy(() => import("@/pages/SelecaoFestaPage"));
-const MovimentacoesEstoquePage = lazy(() => import("@/pages/MovimentacoesEstoquePage"));
-const RelatoriosEstoquePage = lazy(() => import("@/pages/RelatoriosEstoquePage"));
+
+// Retry dynamic imports once and reload the page if a stale chunk is detected
+// (happens after a new deploy invalidates previously cached chunk hashes).
+const lazyWithRetry = <T extends { default: React.ComponentType<any> }>(
+  factory: () => Promise<T>,
+) =>
+  lazy(async () => {
+    const reloadKey = `lazy-retry-${factory.toString()}`;
+    try {
+      return await factory();
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      const isChunkError =
+        msg.includes("Failed to fetch dynamically imported module") ||
+        msg.includes("Importing a module script failed") ||
+        msg.includes("error loading dynamically imported module");
+      if (isChunkError && !sessionStorage.getItem(reloadKey)) {
+        sessionStorage.setItem(reloadKey, "1");
+        window.location.reload();
+        return new Promise<T>(() => {}); // never resolves, page is reloading
+      }
+      throw err;
+    }
+  });
+
+const Auth = lazyWithRetry(() => import("@/pages/Auth"));
+const Dashboard = lazyWithRetry(() => import("@/pages/Dashboard"));
+const NotFound = lazyWithRetry(() => import("@/pages/NotFound"));
+const ContratosPage = lazyWithRetry(() => import("@/pages/ContratosPage"));
+const DocumentosPage = lazyWithRetry(() => import("@/pages/DocumentosPage"));
+const FornecedoresPage = lazyWithRetry(() => import("@/pages/FornecedoresPage"));
+const AgendaPage = lazyWithRetry(() => import("@/pages/AgendaPage"));
+const EventosPage = lazyWithRetry(() => import("@/pages/EventosPage"));
+const ContasPagarPage = lazyWithRetry(() => import("@/pages/ContasPagarPage"));
+const RecebimentosPage = lazyWithRetry(() => import("@/pages/RecebimentosPage"));
+const NotasFiscaisPage = lazyWithRetry(() => import("@/pages/NotasFiscaisPage"));
+const ConciliacaoPage = lazyWithRetry(() => import("@/pages/ConciliacaoPage"));
+const CRMPage = lazyWithRetry(() => import("@/pages/CRMPage"));
+const ClientesPage = lazyWithRetry(() => import("@/pages/ClientesPage"));
+const BankAccountsPage = lazyWithRetry(() => import("@/pages/BankAccountsPage"));
+const FinancialDashboard = lazyWithRetry(() => import("@/pages/FinancialDashboard"));
+const EmpresasPage = lazyWithRetry(() => import("@/pages/EmpresasPage"));
+const EquipePage = lazyWithRetry(() => import("@/pages/EquipePage"));
+const InvitePage = lazyWithRetry(() => import("@/pages/InvitePage"));
+const FormularioPage = lazyWithRetry(() => import("@/pages/FormularioPage"));
+const PublicChatPage = lazyWithRetry(() => import("@/pages/PublicChatPage"));
+const MensagensPage = lazyWithRetry(() => import("@/pages/MensagensPage"));
+const AlmoxarifadoDashboardPage = lazyWithRetry(() => import("@/pages/AlmoxarifadoDashboardPage"));
+const AlimentacaoPage = lazyWithRetry(() => import("@/pages/AlimentacaoPage"));
+const MobiliarioDecoracaoPage = lazyWithRetry(() => import("@/pages/MobiliarioDecoracaoPage"));
+const FloralPage = lazyWithRetry(() => import("@/pages/FloralPage"));
+const SelecaoFestaPage = lazyWithRetry(() => import("@/pages/SelecaoFestaPage"));
+const MovimentacoesEstoquePage = lazyWithRetry(() => import("@/pages/MovimentacoesEstoquePage"));
+const RelatoriosEstoquePage = lazyWithRetry(() => import("@/pages/RelatoriosEstoquePage"));
 
 const queryClient = new QueryClient();
 
