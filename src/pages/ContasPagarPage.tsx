@@ -80,6 +80,11 @@ type AccountPayable = {
   bank_account_id?: string | null;
   payment_method?: string | null;
   issue_date?: string | null;
+  discount?: number | null;
+  interest?: number | null;
+  fine?: number | null;
+  paid_amount?: number | null;
+  document_number?: string | null;
 };
 
 type PayableAttachment = {
@@ -136,6 +141,10 @@ export default function ContasPagarPage() {
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentDiscount, setPaymentDiscount] = useState("");
+  const [paymentInterest, setPaymentInterest] = useState("");
+  const [paymentFine, setPaymentFine] = useState("");
+  const [paymentDocumentNumber, setPaymentDocumentNumber] = useState("");
   const [modalTab, setModalTab] = useState("dados");
   const [editingItem, setEditingItem] = useState<AccountPayable | null>(null);
   const [form, setForm] = useState({
@@ -488,21 +497,21 @@ export default function ContasPagarPage() {
   });
 
   const togglePaidMutation = useMutation({
-    mutationFn: async ({ id, currentStatus, bankAccountId, paymentMethod }: { id: string; currentStatus: string; bankAccountId?: string; paymentMethod?: string }) => {
+    mutationFn: async ({ id, currentStatus, bankAccountId, paymentMethod, discount, interest, fine, paidAmount, documentNumber }: { id: string; currentStatus: string; bankAccountId?: string; paymentMethod?: string; discount?: number; interest?: number; fine?: number; paidAmount?: number; documentNumber?: string }) => {
       const tryUpdate = async (payload: any) => {
         let { error } = await supabase.from("accounts_payable").update(payload).eq("id", id);
         if (error && isMissingBankAccountIdColumnError(error)) {
-          const { bank_account_id, payment_method, ...rest } = payload;
+          const { bank_account_id, payment_method, discount: d, interest: i, fine: f, paid_amount, document_number, ...rest } = payload;
           ({ error } = await supabase.from("accounts_payable").update(rest).eq("id", id));
         }
         return error;
       };
 
       if (isAccountPaid(currentStatus)) {
-        let error = await tryUpdate({ payment_status: "nao_pago", paid_at: null, bank_account_id: null, payment_method: null });
+        let error = await tryUpdate({ payment_status: "nao_pago", paid_at: null, bank_account_id: null, payment_method: null, discount: 0, interest: 0, fine: 0, paid_amount: null, document_number: null });
         if (!error) return;
         for (const pendingStatus of PENDING_STATUS_VALUES) {
-          error = await tryUpdate({ payment_status: pendingStatus, paid_at: null, bank_account_id: null, payment_method: null });
+          error = await tryUpdate({ payment_status: pendingStatus, paid_at: null, bank_account_id: null, payment_method: null, discount: 0, interest: 0, fine: 0, paid_amount: null, document_number: null });
           if (!error) return;
         }
         if (error) throw error;
@@ -510,10 +519,10 @@ export default function ContasPagarPage() {
       }
 
       const paidAt = new Date().toISOString();
-      let error = await tryUpdate({ payment_status: "pago", paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null });
+      let error = await tryUpdate({ payment_status: "pago", paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null, discount: discount || 0, interest: interest || 0, fine: fine || 0, paid_amount: paidAmount || null, document_number: documentNumber || null });
       if (!error) return;
       for (const paidStatus of PAID_STATUS_VALUES) {
-        error = await tryUpdate({ payment_status: paidStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null });
+        error = await tryUpdate({ payment_status: paidStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null, discount: discount || 0, interest: interest || 0, fine: fine || 0, paid_amount: paidAmount || null, document_number: documentNumber || null });
         if (!error) return;
       }
       if (error) throw error;
@@ -1625,6 +1634,74 @@ export default function ContasPagarPage() {
                           ))}
                         </div>
                       </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Numero do Documento</Label>
+                        <Input
+                          type="text"
+                          value={paymentDocumentNumber}
+                          onChange={(e) => setPaymentDocumentNumber(e.target.value)}
+                          placeholder="Ex: 21316182000184 PIX/CNPJ"
+                          className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                        />
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-5 w-1 bg-gold rounded-full" />
+                          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-foreground/60">Desconto, Juros e Multa</h3>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Desconto (R$)</Label>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={paymentDiscount}
+                              onChange={(e) => setPaymentDiscount(maskCurrencyInput(e.target.value))}
+                              className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-11 rounded-xl text-sm font-medium transition-all hover:border-gold/40"
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Juros (R$)</Label>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={paymentInterest}
+                              onChange={(e) => setPaymentInterest(maskCurrencyInput(e.target.value))}
+                              className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-11 rounded-xl text-sm font-medium transition-all hover:border-gold/40"
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Multa (R$)</Label>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={paymentFine}
+                              onChange={(e) => setPaymentFine(maskCurrencyInput(e.target.value))}
+                              className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-11 rounded-xl text-sm font-medium transition-all hover:border-gold/40"
+                              placeholder="0,00"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {editingItem && (
+                        <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 flex items-center justify-between">
+                          <span className="text-xs font-bold uppercase tracking-widest text-gold">Total liquido da baixa:</span>
+                          <span className="text-xl font-bold text-gold">
+                            {currencyFmt(
+                              editingItem.amount
+                              - parseCurrencyInput(paymentDiscount)
+                              + parseCurrencyInput(paymentInterest)
+                              + parseCurrencyInput(paymentFine)
+                            )}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
@@ -1632,11 +1709,20 @@ export default function ContasPagarPage() {
                       <Button
                         onClick={() => {
                           if (!editingItem) return;
+                          const discount = parseCurrencyInput(paymentDiscount);
+                          const interest = parseCurrencyInput(paymentInterest);
+                          const fine = parseCurrencyInput(paymentFine);
+                          const paidAmount = editingItem.amount - discount + interest + fine;
                           togglePaidMutation.mutate({
                             id: editingItem.id,
                             currentStatus: editingItem.payment_status,
                             bankAccountId: paymentBankAccount || undefined,
                             paymentMethod: paymentMethod,
+                            discount,
+                            interest,
+                            fine,
+                            paidAmount,
+                            documentNumber: paymentDocumentNumber || undefined,
                           });
                           setDialogOpen(false);
                           setEditingItem(null);
