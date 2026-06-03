@@ -543,7 +543,8 @@ export default function ContasPagarPage() {
   const filtered = items.filter((item) => {
     const matchSearch = `${item.description} ${item.suppliers?.company_name || ""} ${item.suppliers?.cpf_cnpj || ""} ${item.accounts_payable_categories?.name || ""} ${item.accounts_payable_cost_centers?.name || ""}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all"
-      || (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
+      ? isAccountPending(item.payment_status, item.paid_at)
+      : (statusFilter === "pago" && isAccountPaid(item.payment_status, item.paid_at))
       || (statusFilter === "nao_pago" && isAccountPending(item.payment_status, item.paid_at));
     const matchCompany = companyFilter === "all" || String((item as any).company_id || "") === companyFilter;
     const matchCategory = categoryFilter === "all" || String(item.category_id || "") === categoryFilter;
