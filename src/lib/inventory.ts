@@ -174,7 +174,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   mobiliario: 'mobiliário',
 };
 
-export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replaceAll('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
 
 import { parseLocalDate } from './dateUtils';
 
@@ -376,7 +376,7 @@ export const fetchStockMovements = async () => {
 export const buildCsv = (headers: string[], rows: Array<Array<string | number | null | undefined>>) => {
   const safe = (value: string | number | null | undefined) => {
     if (value === null || value === undefined) return '';
-    const text = String(value).replaceAll('"', '""');
+    const text = String(value).replace(/"/g, '""');
     return `"${text}"`;
   };
 
