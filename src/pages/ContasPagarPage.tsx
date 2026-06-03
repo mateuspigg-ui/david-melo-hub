@@ -98,6 +98,8 @@ type UploadQueueItem = {
   file?: File;
 };
 
+type Installment = { id: number; due_date: string; amount: string; description: string };
+
 export default function ContasPagarPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -141,7 +143,6 @@ export default function ContasPagarPage() {
     recurrence_months: "2",
   });
 
-  type Installment = { id: number; due_date: string; amount: string; description: string };
   const [installments, setInstallments] = useState<Installment[]>([]);
 
   const generateInstallments = useCallback(() => {
@@ -175,13 +176,18 @@ export default function ContasPagarPage() {
 
   const installmentTotal = installments.reduce((sum, inst) => sum + parseCurrencyInput(inst.amount), 0);
 
+  const lastGenKeyRef = useRef("");
   useEffect(() => {
     if (form.expense_type !== "recurring" || !form.amount || !form.due_date || !form.recurrence_months) {
-      setInstallments([]);
+      if (installments.length > 0) setInstallments([]);
+      lastGenKeyRef.current = "";
       return;
     }
+    const key = `${form.amount}|${form.due_date}|${form.recurrence_months}|${form.recurrence_mode}|${form.description}`;
+    if (key === lastGenKeyRef.current) return;
+    lastGenKeyRef.current = key;
     generateInstallments();
-  }, [form.expense_type, form.amount, form.due_date, form.recurrence_months, form.recurrence_mode, form.description, generateInstallments]);
+  }, [form.expense_type, form.amount, form.due_date, form.recurrence_months, form.recurrence_mode, form.description]);
 
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
   const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
