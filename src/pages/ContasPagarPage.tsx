@@ -146,7 +146,10 @@ export default function ContasPagarPage() {
     const parsedAmount = parseCurrencyInput(form.amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return [];
     if (!form.due_date) return [];
-    const recurrenceMonths = Math.max(1, Number(form.recurrence_months || "1"));
+    const isSplit = form.recurrence_mode === "split";
+    const recurrenceMonths = isSplit
+      ? Math.max(2, Number(form.recurrence_months || "2"))
+      : 12;
     if (!Number.isInteger(recurrenceMonths) || recurrenceMonths < 2) return [];
 
     const baseDate = new Date(`${form.due_date}T12:00:00`);
@@ -342,7 +345,9 @@ export default function ContasPagarPage() {
         throw new Error("Informe um valor válido maior que zero para a despesa.");
       }
 
-      const recurrenceMonths = Math.max(1, Number(form.recurrence_months || "1"));
+      const recurrenceMonths = form.expense_type === "recurring" && form.recurrence_mode === "repeat"
+        ? 12
+        : Math.max(2, Number(form.recurrence_months || "2"));
       const scheduleCount = form.expense_type === "recurring" ? recurrenceMonths : 1;
       if (!Number.isInteger(scheduleCount) || scheduleCount < 1) {
         throw new Error("Informe um numero valido de meses para recorrencia.");
@@ -1175,7 +1180,7 @@ export default function ContasPagarPage() {
             </div>
 
             {form.expense_type === "recurring" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
+              <div className="grid grid-cols-1 gap-4 p-4 rounded-2xl border border-gold/20 bg-gold/5 lg:col-span-2">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Modelo</Label>
                   <Select value={form.recurrence_mode} onValueChange={(v) => setForm({ ...form, recurrence_mode: v })}>
@@ -1183,21 +1188,23 @@ export default function ContasPagarPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white shadow-2xl border-border/40">
-                      <SelectItem value="split" className="font-bold text-xs uppercase">Dividida em meses</SelectItem>
                       <SelectItem value="repeat" className="font-bold text-xs uppercase">Repete todo mes</SelectItem>
+                      <SelectItem value="split" className="font-bold text-xs uppercase">Dividida em meses</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Quantidade de meses</Label>
-                  <Input
-                    type="number"
-                    min="2"
-                    value={form.recurrence_months}
-                    onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
-                    className="bg-white border-border/40 focus:border-gold h-11 font-medium"
-                  />
-                </div>
+                {form.recurrence_mode === "split" && (
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Quantidade de meses</Label>
+                    <Input
+                      type="number"
+                      min="2"
+                      value={form.recurrence_months}
+                      onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
+                      className="bg-white border-border/40 focus:border-gold h-11 font-medium"
+                    />
+                  </div>
+                )}
               </div>
             )}
 
