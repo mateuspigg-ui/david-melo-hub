@@ -37,10 +37,10 @@ export default function FornecedoresPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingSupplier) {
-        const { error } = await supabase.from('suppliers').update(form).eq('id', editingSupplier.id);
+        const { error } = await (supabase as any).from('suppliers').update(form).eq('id', editingSupplier.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('suppliers').insert([form]);
+        const { error } = await (supabase as any).from('suppliers').insert([form]);
         if (error) throw error;
       }
     },
