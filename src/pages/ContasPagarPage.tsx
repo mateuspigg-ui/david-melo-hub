@@ -1175,6 +1175,7 @@ export default function ContasPagarPage() {
                             setForm({
                               description: item.description || "",
                               amount: maskCurrencyInput(String(item.amount || "")),
+                              issue_date: (item as any).issue_date || "",
                               due_date: item.due_date || "",
                               supplier_id: item.supplier_id || "",
                               company_id: item.company_id || "",
