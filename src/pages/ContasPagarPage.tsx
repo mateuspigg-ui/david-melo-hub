@@ -14,6 +14,7 @@ import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash
 import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
+import { useSearchParams } from "react-router-dom";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -230,6 +231,33 @@ export default function ContasPagarPage() {
       return data as unknown as AccountPayable[];
     },
   });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && items.length > 0) {
+      const item = items.find((i) => i.id === editId);
+      if (item) {
+        setForm({
+          description: item.description || "",
+          amount: maskCurrencyInput(String(item.amount || "")),
+          issue_date: (item as any).issue_date || "",
+          due_date: item.due_date || "",
+          supplier_id: item.supplier_id || "",
+          company_id: item.company_id || "",
+          category_id: item.category_id || "",
+          cost_center_id: item.cost_center_id || "",
+          expense_type: "single",
+          recurrence_mode: "repeat",
+          recurrence_months: "2",
+        });
+        setDialogOpen(true);
+        searchParams.delete("edit");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, items]);
 
   const { data: suppliers = [] } = useQuery({
     queryKey: ["suppliers-select"],

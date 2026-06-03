@@ -12,6 +12,7 @@ import { format, isPast, isToday } from "date-fns";
 import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "react-router-dom";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -354,6 +355,20 @@ export default function RecebimentosPage() {
     }
     return map;
   }, [installments]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && payments.length > 0) {
+      const payment = payments.find((p) => p.id === editId);
+      if (payment) {
+        openEditPayment(payment);
+        searchParams.delete("edit");
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [searchParams, payments, installmentsByPayment]);
 
   const filteredPayments = useMemo(() => {
     const q = search.toLowerCase().trim();
