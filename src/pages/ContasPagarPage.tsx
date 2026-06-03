@@ -1201,42 +1201,6 @@ export default function ContasPagarPage() {
               </div>
             )}
 
-            {form.expense_type === "recurring" && installmentPreview.length > 0 && (
-              <div className="lg:col-span-2 p-4 rounded-2xl border border-gold/20 bg-gold/5 space-y-3">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">
-                  Prévia das Parcelas ({installmentPreview.length}x)
-                </Label>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-gold/20">
-                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">#</th>
-                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">Vencimento</th>
-                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">Descricao</th>
-                        <th className="text-right py-2 font-bold text-gold/70 uppercase tracking-wider">Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {installmentPreview.map((p) => (
-                        <tr key={p.index} className="border-b border-gold/10 last:border-0">
-                          <td className="py-1.5 font-bold text-gold">{p.index}</td>
-                          <td className="py-1.5 font-medium">{format(p.due_date, "dd/MM/yyyy")}</td>
-                          <td className="py-1.5 text-muted-foreground truncate max-w-[200px]">{p.description}</td>
-                          <td className="py-1.5 text-right font-bold text-gold">{currencyFmt(p.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t border-gold/30 font-bold">
-                        <td colSpan={3} className="py-2 text-gold uppercase tracking-wider text-[10px]">Total</td>
-                        <td className="py-2 text-right text-gold">{currencyFmt(installmentPreview.reduce((sum, p) => sum + p.amount, 0))}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2 lg:col-span-2">
               <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Título</Label>
               <Textarea 
@@ -1322,6 +1286,42 @@ export default function ContasPagarPage() {
             )}
 
             </div>
+
+            {form.expense_type === "recurring" && installmentPreview.length > 0 && (
+              <div className="lg:col-span-2 p-4 rounded-2xl border border-gold/20 bg-gold/5 space-y-3">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">
+                  Prévia das Parcelas ({installmentPreview.length}x)
+                </Label>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gold/20">
+                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">#</th>
+                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">Vencimento</th>
+                        <th className="text-left py-2 font-bold text-gold/70 uppercase tracking-wider">Descricao</th>
+                        <th className="text-right py-2 font-bold text-gold/70 uppercase tracking-wider">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {installmentPreview.map((p) => (
+                        <tr key={p.index} className="border-b border-gold/10 last:border-0">
+                          <td className="py-1.5 font-bold text-gold">{p.index}</td>
+                          <td className="py-1.5 font-medium">{format(p.due_date, "dd/MM/yyyy")}</td>
+                          <td className="py-1.5 text-muted-foreground truncate max-w-[200px]">{p.description}</td>
+                          <td className="py-1.5 text-right font-bold text-gold">{currencyFmt(p.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-gold/30 font-bold">
+                        <td colSpan={3} className="py-2 text-gold uppercase tracking-wider text-[10px]">Total</td>
+                        <td className="py-2 text-right text-gold">{currencyFmt(installmentPreview.reduce((sum, p) => sum + p.amount, 0))}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            )}
 
             <div className="sticky bottom-0 z-10 flex justify-end gap-3 pt-6 border-t border-border/10 bg-background/95 backdrop-blur">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
