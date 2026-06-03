@@ -125,7 +125,8 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[92vh] p-0 rounded-3xl shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25)] border border-border/30 bg-background overflow-hidden flex flex-col">
-        <div className="relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 p-8 text-white overflow-hidden">
+        <div className="relative bg-gradient-to-r from-gold via-gold-light to-gold p-8 text-white overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djZoNnYtNmgtNnptMC0zMHY2aDZ2LTZoLTZ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
           <div className="relative flex items-center justify-between">
             <div>
               <DialogTitle className="text-2xl font-display text-white tracking-tight">Editar Recebimento</DialogTitle>
@@ -190,7 +191,7 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
           </div>
 
           {hasEntry && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gold/5 rounded-xl border border-gold/20">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Entrada</Label>
                 <Input value={entryAmount} onChange={(e) => setEntryAmount(maskCurrencyInput(e.target.value))} className="h-11 rounded-xl" placeholder="0,00" />
@@ -203,30 +204,30 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
           )}
 
           {installmentPlan.length > 0 && (
-            <div className="rounded-2xl border border-blue-200 overflow-hidden">
-              <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600">Parcelamento</span>
-                <span className="text-xs font-bold text-blue-600">{installmentPlan.length}x parcelas</span>
+            <div className="rounded-2xl border border-gold/20 overflow-hidden">
+              <div className="px-4 py-3 bg-gold/5 border-b border-gold/20 flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gold">Parcelamento</span>
+                <span className="text-xs font-bold text-gold">{installmentPlan.length}x parcelas</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-blue-100">
-                      <th className="text-left py-2 px-4 font-bold text-blue-400 uppercase tracking-wider w-10">#</th>
-                      <th className="text-left py-2 px-4 font-bold text-blue-400 uppercase tracking-wider">Data</th>
-                      <th className="text-right py-2 px-4 font-bold text-blue-400 uppercase tracking-wider">Valor</th>
+                    <tr className="border-b border-gold/10">
+                      <th className="text-left py-2 px-4 font-bold text-gold/60 uppercase tracking-wider w-10">#</th>
+                      <th className="text-left py-2 px-4 font-bold text-gold/60 uppercase tracking-wider">Data</th>
+                      <th className="text-right py-2 px-4 font-bold text-gold/60 uppercase tracking-wider">Valor</th>
                       <th className="w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {installmentPlan.map((inst, idx) => (
-                      <tr key={idx} className="border-b border-blue-50 last:border-0 hover:bg-blue-50/50 transition-colors">
-                        <td className="py-2 px-4 font-bold text-blue-500">{String(idx + 1).padStart(2, "0")}</td>
+                      <tr key={idx} className="border-b border-gold/5 last:border-0 hover:bg-gold/5 transition-colors">
+                        <td className="py-2 px-4 font-bold text-gold">{String(idx + 1).padStart(2, "0")}</td>
                         <td className="py-2 px-4"><Input type="date" value={inst.due_date} onChange={(e) => updateInstallment(idx, "due_date", e.target.value)} className="h-9 rounded-lg text-xs w-40" /></td>
                         <td className="py-2 px-4">
                           <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 font-bold text-xs">R$</span>
-                            <Input value={inst.amount} onChange={(e) => updateInstallment(idx, "amount", maskCurrencyInput(e.target.value))} className="h-9 rounded-lg text-xs pl-9 font-bold text-blue-600 w-36" />
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gold font-bold text-xs">R$</span>
+                            <Input value={inst.amount} onChange={(e) => updateInstallment(idx, "amount", maskCurrencyInput(e.target.value))} className="h-9 rounded-lg text-xs pl-9 font-bold text-gold w-36" />
                           </div>
                         </td>
                         <td className="py-2 px-4 text-right">
@@ -239,11 +240,11 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
                   </tbody>
                 </table>
               </div>
-              <div className="px-4 py-3 bg-blue-50 border-t border-blue-200 flex justify-between items-center">
-                <Button variant="outline" size="sm" onClick={() => setInstallmentPlan((prev) => [...prev, { installment_number: prev.length + 1, due_date: "", amount: "", status: "pending" }])} className="rounded-xl text-[10px] font-bold uppercase tracking-widest border-blue-300 text-blue-600 hover:bg-blue-100">
+              <div className="px-4 py-3 bg-gold/5 border-t border-gold/20 flex justify-between items-center">
+                <Button variant="outline" size="sm" onClick={() => setInstallmentPlan((prev) => [...prev, { installment_number: prev.length + 1, due_date: "", amount: "", status: "pending" }])} className="rounded-xl text-[10px] font-bold uppercase tracking-widest border-gold/30 text-gold hover:bg-gold/5">
                   <Plus size={12} className="mr-1" /> Adicionar parcela
                 </Button>
-                <span className="text-xs font-bold text-blue-600">
+                <span className="text-xs font-bold text-gold">
                   Total: {currencyFmt(installmentPlan.reduce((sum, inst) => sum + (parseCurrencyInput(inst.amount) || 0), 0))}
                 </span>
               </div>
@@ -252,7 +253,7 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
             <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground uppercase text-[10px] font-bold tracking-widest">Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold h-11 px-10 rounded-xl uppercase text-[11px] tracking-widest">
+            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-gradient-to-r from-gold to-gold-light text-white font-bold h-11 px-10 rounded-xl uppercase text-[11px] tracking-widest">
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </div>
