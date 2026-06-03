@@ -487,14 +487,14 @@ export default function RecebimentosPage() {
     const payment = payments.find((item) => item.id === paymentId);
     if (!payment) return;
 
-    const { data: rows, error } = await supabase
+    const { data: rows, error } = await (supabase as any)
       .from("payment_installments")
       .select("id, amount, status, paid_at, paid_amount")
       .eq("payment_id", paymentId)
       .order("installment_number", { ascending: true });
     if (error) throw error;
 
-    const allInstallments = (rows || []) as Installment[];
+    const allInstallments = (rows || []) as unknown as Installment[];
     const openInstallments = allInstallments.filter((inst) => !isInstallmentPaid(inst.status, inst.paid_at));
     if (!openInstallments.length) return;
 
@@ -685,7 +685,7 @@ export default function RecebimentosPage() {
       }
 
       const remaining = totalValue - (hasEntry ? entryAmount : 0);
-      const sourcePlan = installmentPlan.length === count
+      const sourcePlan: InstallmentPlanItem[] = installmentPlan.length === count
         ? installmentPlan
         : buildDefaultInstallments(count, remaining, hasEntry ? contractForm.entry_date : undefined);
 
