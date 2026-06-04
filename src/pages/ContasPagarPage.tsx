@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
+import { PaymentReceiptDialog } from "@/components/PaymentReceiptDialog";
 import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
@@ -154,6 +155,8 @@ export default function ContasPagarPage() {
   const [paymentDocumentNumber, setPaymentDocumentNumber] = useState("");
   const [modalTab, setModalTab] = useState("dados");
   const [editingItem, setEditingItem] = useState<AccountPayable | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
 
   const [form, setForm] = useState({
     description: "",
@@ -538,7 +541,27 @@ export default function ContasPagarPage() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
-      toast({ title: isAccountPaid(variables.currentStatus) ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
+      const isReversal = isAccountPaid(variables.currentStatus);
+      toast({ title: isReversal ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
+      if (!isReversal && editingItem) {
+        const acc = bankAccounts.find((b: any) => b.id === variables.bankAccountId);
+        setReceiptData({
+          supplierName: editingItem.suppliers?.company_name || "Fornecedor",
+          supplierCpfCnpj: editingItem.suppliers?.cpf_cnpj || "",
+          supplierAddress: editingItem.suppliers?.address || "",
+          description: editingItem.description || "Pagamento",
+          amount: editingItem.amount || 0,
+          discount: variables.discount || 0,
+          interest: variables.interest || 0,
+          fine: variables.fine || 0,
+          paidAmount: variables.paidAmount || 0,
+          paymentDate: new Date().toISOString().split("T")[0],
+          paymentMethod: variables.paymentMethod || "",
+          bankAccount: acc ? `${acc.bank_name} - ${acc.account_number}${acc.account_digit ? `-${acc.account_digit}` : ''}` : "",
+          documentNumber: variables.documentNumber || "",
+        });
+        setReceiptOpen(true);
+      }
     },
     onError: (e: any) => toast({ title: 'Erro ao atualizar conta', description: e?.message || 'Não foi possível efetivar baixa.', variant: 'destructive' }),
   });
@@ -2011,6 +2034,8 @@ export default function ContasPagarPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PaymentReceiptDialog open={receiptOpen} onOpenChange={setReceiptOpen} data={receiptData} />
     </div>
   );
 }
