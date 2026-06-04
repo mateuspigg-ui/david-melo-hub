@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -133,6 +133,25 @@ export default function EmpresasPage() {
     setForm({ legal_name: "", trade_name: "", cnpj: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "", address_zip: "", phone: "", ie: "" });
     setEditingCompany(null);
   };
+
+  const fetchCep = useCallback(async (cep: string) => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) return;
+      setForm((prev) => ({
+        ...prev,
+        address_street: prev.address_street || data.logradouro || "",
+        address_neighborhood: prev.address_neighborhood || data.bairro || "",
+        address_city: prev.address_city || data.localidade || "",
+        address_state: prev.address_state || data.uf || "",
+      }));
+    } catch {
+      // CEP not found, ignore
+    }
+  }, []);
 
   const fillFiscalForm = (settings: CompanyFiscalSettings | null) => {
     if (!settings) {
@@ -555,7 +574,13 @@ export default function EmpresasPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CEP</Label>
-                  <Input value={form.address_zip} onChange={(e) => setForm({ ...form, address_zip: e.target.value })} placeholder="00000-000" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+                  <Input
+                    value={form.address_zip}
+                    onChange={(e) => setForm({ ...form, address_zip: e.target.value })}
+                    onBlur={() => fetchCep(form.address_zip)}
+                    placeholder="00000-000"
+                    className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Telefone</Label>
