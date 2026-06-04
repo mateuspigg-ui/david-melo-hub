@@ -453,6 +453,7 @@ const BankAccountsPage = () => {
 
       <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
     </div>
+    </>
   );
 };
 
