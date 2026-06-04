@@ -50,7 +50,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
   const { data: unlinkedInstallments = [], isLoading } = useQuery({
     queryKey: ['unlinked_installments'],
     queryFn: async () => {
-      const { data: installments, error } = await supabase
+      const { data: installments, error } = await (supabase as any)
         .from('payment_installments')
         .select('id, payment_id, installment_number, due_date, amount, paid_at, bank_account_id')
         .not('paid_at', 'is', null)
