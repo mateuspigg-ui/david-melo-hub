@@ -65,7 +65,6 @@ const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
   cartao_credito: "bg-purple-50 text-purple-600 border-purple-200",
   transferencia: "bg-slate-50 text-slate-600 border-slate-200",
 };
-};
 
 const getInitials = (name: string) =>
   name
