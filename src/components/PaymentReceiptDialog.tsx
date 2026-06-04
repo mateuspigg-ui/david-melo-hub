@@ -50,6 +50,13 @@ type Props = {
   data: ReceiptData | null;
 };
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  pix: "PIX",
+  cartao: "Cartao de Credito",
+  dinheiro: "Dinheiro",
+  transferencia: "Transferencia Bancaria",
+};
+
 const formatCompanyAddress = (c: CompanyInfo): string => {
   const parts: string[] = [];
   if (c.address_street) parts.push(c.address_street);
@@ -138,11 +145,11 @@ const getReceiptHtml = (data: ReceiptData, company: CompanyInfo): string => {
     <div class="receipt-title">RECIBO</div>
 
     <div class="receipt-body">
-      Recebemos de <strong>${companyName}</strong>${companyCnpj ? `, inscrito sob o CNPJ n&ordm; <strong>${companyCnpj}</strong>` : ""}, a import&acirc;ncia de
+      Recebi de <strong>${companyName}</strong>${companyCnpj ? `, inscrito sob o CNPJ n&ordm; <strong>${companyCnpj}</strong>` : ""}, a import&acirc;ncia de
       <strong class="amount-highlight"> ${currencyFmt(data.paidAmount)}</strong>
       ${data.amount !== data.paidAmount ? ` (valor original: ${currencyFmt(data.amount)}${data.discount ? `, desconto: ${currencyFmt(data.discount)}` : ""}${data.interest ? `, juros: ${currencyFmt(data.interest)}` : ""}${data.fine ? `, multa: ${currencyFmt(data.fine)}` : ""})` : ""},
       referente a <strong>${data.description}</strong>,
-      em <strong>${formattedDate}</strong>.
+      ${data.paymentMethod ? `em <strong>${PAYMENT_METHOD_LABEL[data.paymentMethod] || data.paymentMethod}</strong>` : ""}, em <strong>${formattedDate}</strong>.
     </div>
 
     <div class="location-date">
@@ -244,11 +251,12 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
             <p className="text-center font-black text-sm uppercase tracking-[0.3em] my-4">Recibo</p>
 
             <p className="leading-relaxed text-muted-foreground">
-              Recebemos de <span className="font-bold text-foreground">{selectedCompany?.trade_name || selectedCompany?.legal_name || "—"}</span>
+              Recebi de <span className="font-bold text-foreground">{selectedCompany?.trade_name || selectedCompany?.legal_name || "—"}</span>
               {selectedCompany?.cnpj && <>, inscrito sob o CNPJ n&ordm; <span className="font-bold text-foreground">{selectedCompany.cnpj}</span></>}
               {" "}a importancia de{" "}
               <span className="font-bold text-foreground">{currencyFmt(data.paidAmount)}</span>,
               referente a <span className="font-bold text-foreground">{data.description}</span>,
+              {data.paymentMethod && <> em <span className="font-bold text-foreground">{PAYMENT_METHOD_LABEL[data.paymentMethod] || data.paymentMethod}</span>,</>}
               em <span className="font-bold text-foreground">{data.paymentDate}</span>.
             </p>
 
