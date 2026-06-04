@@ -59,7 +59,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
       if (error) throw error;
       if (!installments?.length) return [];
 
-      const paymentIds = [...new Set(installments.map(i => i.payment_id))];
+      const paymentIds = [...new Set(installments.map((i: any) => i.payment_id as string))] as string[];
       const { data: payments } = await supabase
         .from('payments')
         .select('id, client_id, event_id, clients(id, first_name, last_name), events(id, title)')
