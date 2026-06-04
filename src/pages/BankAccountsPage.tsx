@@ -873,8 +873,6 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
         </div>
       </DialogContent>
     </Dialog>
-
-    <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
   );
 }
 
