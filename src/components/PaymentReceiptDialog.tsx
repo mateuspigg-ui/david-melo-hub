@@ -151,8 +151,8 @@ const getReceiptHtml = (data: ReceiptData, company: CompanyInfo): string => {
 
     <div class="signature-section">
       <div class="signature-line">
-        <div class="signature-name">${companyName}</div>
-        <div class="signature-doc">${companyCnpj ? `CNPJ: ${companyCnpj}` : ""}</div>
+        <div class="signature-name">${data.supplierName || companyName}</div>
+        <div class="signature-doc">${data.supplierCpfCnpj ? `CPF/CNPJ: ${data.supplierCpfCnpj}` : ""}</div>
       </div>
     </div>
   </div>
@@ -259,8 +259,8 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
             <div className="flex justify-center pt-10">
               <div className="text-center w-72">
                 <div className="border-t border-foreground/40 mb-2" />
-                <p className="text-[10px] font-bold uppercase">{selectedCompany?.trade_name || selectedCompany?.legal_name || "DAVID MELO"}</p>
-                {selectedCompany?.cnpj && <p className="text-[9px] text-muted-foreground">CNPJ: {selectedCompany.cnpj}</p>}
+                <p className="text-[10px] font-bold uppercase">{data.supplierName || selectedCompany?.trade_name || "—"}</p>
+                {data.supplierCpfCnpj && <p className="text-[9px] text-muted-foreground">CPF/CNPJ: {data.supplierCpfCnpj}</p>}
               </div>
             </div>
           </div>
