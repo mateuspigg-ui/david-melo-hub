@@ -47,8 +47,8 @@ export default function EditContaPagarDialog({ open, onOpenChange, itemId, onSav
 
   const { data: suppliers = [] } = useQuery({ queryKey: ["suppliers-cal"], queryFn: async () => { const { data } = await supabase.from("suppliers").select("id, company_name").order("company_name"); return data || []; }, enabled: open });
   const { data: companies = [] } = useQuery({ queryKey: ["companies-cal"], queryFn: async () => { const { data } = await (supabase as any).from("companies").select("id, legal_name, trade_name").order("trade_name"); return data || []; }, enabled: open });
-  const { data: categories = [] } = useQuery({ queryKey: ["categories-cal"], queryFn: async () => { const { data } = await supabase.from("accounts_payable_categories").select("id, name").order("name"); return data || []; }, enabled: open });
-  const { data: costCenters = [] } = useQuery({ queryKey: ["costcenters-cal"], queryFn: async () => { const { data } = await supabase.from("accounts_payable_cost_centers").select("id, name").order("name"); return data || []; }, enabled: open });
+  const { data: categories = [] } = useQuery({ queryKey: ["categories-cal"], queryFn: async () => { const { data } = await (supabase as any).from("accounts_payable_categories").select("id, name").order("name"); return data || []; }, enabled: open });
+  const { data: costCenters = [] } = useQuery({ queryKey: ["costcenters-cal"], queryFn: async () => { const { data } = await (supabase as any).from("accounts_payable_cost_centers").select("id, name").order("name"); return data || []; }, enabled: open });
   const { data: bankAccounts = [] } = useQuery({ queryKey: ["bank-cal"], queryFn: async () => { const { data } = await (supabase as any).from("bank_accounts").select("id, bank_name, account_number, account_digit, description").order("bank_name"); return data || []; }, enabled: open });
 
   useEffect(() => {

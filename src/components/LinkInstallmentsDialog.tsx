@@ -50,7 +50,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
   const { data: unlinkedInstallments = [], isLoading } = useQuery({
     queryKey: ['unlinked_installments'],
     queryFn: async () => {
-      const { data: installments, error } = await supabase
+      const { data: installments, error } = await (supabase as any)
         .from('payment_installments')
         .select('id, payment_id, installment_number, due_date, amount, paid_at, bank_account_id')
         .not('paid_at', 'is', null)
@@ -59,7 +59,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
       if (error) throw error;
       if (!installments?.length) return [];
 
-      const paymentIds = [...new Set(installments.map(i => i.payment_id))];
+      const paymentIds = [...new Set(installments.map((i: any) => i.payment_id as string))] as string[];
       const { data: payments } = await supabase
         .from('payments')
         .select('id, client_id, event_id, clients(id, first_name, last_name), events(id, title)')
@@ -114,7 +114,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
       const updates = Object.entries(localChanges);
       const results = await Promise.allSettled(
         updates.map(([id, bankAccountId]) =>
-          supabase
+          (supabase as any)
             .from('payment_installments')
             .update({ bank_account_id: bankAccountId || null })
             .eq('id', id)

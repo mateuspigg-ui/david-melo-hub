@@ -450,6 +450,8 @@ const BankAccountsPage = () => {
 
       {/* ===== EXTRACT DIALOG ===== */}
       <ExtractDialog open={extractOpen} onOpenChange={setExtractOpen} account={extractAccount} />
+
+      <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
     </div>
   );
 };
@@ -875,6 +877,7 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
 
     <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
     </>
+
   );
 }
 
