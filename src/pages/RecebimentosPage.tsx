@@ -12,6 +12,7 @@ import { format, isPast, isToday } from "date-fns";
 import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, Landmark, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
+import { LinkInstallmentsDialog } from "@/components/LinkInstallmentsDialog";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -111,6 +112,7 @@ export default function RecebimentosPage() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [linkInstallmentsOpen, setLinkInstallmentsOpen] = useState(false);
 
   const [contractOpen, setContractOpen] = useState(false);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
@@ -1246,7 +1248,7 @@ export default function RecebimentosPage() {
                     <div className="border-t border-border/20 p-4 space-y-3">
                       {payment.has_entry_payment && Number(payment.entry_amount || 0) > 0 && (
                         <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                          <div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-emerald-600" /><div className="flex-1 min-w-0"><p className="text-[10px] uppercase tracking-wider font-bold">Entrada</p><p className="text-xs text-muted-foreground">{payment.entry_date ? format(new Date(payment.entry_date + "T12:00:00"), "dd/MM/yyyy") : "-"}</p>{payment.entry_paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(payment.entry_paid_at), "dd/MM/yyyy")}</p>}{payment.entry_paid_at && (payment as any).entry_bank_account_id && (() => { const acc = bankAccounts.find((b: any) => b.id === (payment as any).entry_bank_account_id); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; })()}</div></div>
+                          <div className="flex items-center gap-3"><Calendar className="w-4 h-4 text-emerald-600" /><div className="flex-1 min-w-0"><p className="text-[10px] uppercase tracking-wider font-bold">Entrada</p><p className="text-xs text-muted-foreground">{payment.entry_date ? format(new Date(payment.entry_date + "T12:00:00"), "dd/MM/yyyy") : "-"}</p>{payment.entry_paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(payment.entry_paid_at), "dd/MM/yyyy")}</p>}{payment.entry_paid_at && (() => { const accId = (payment as any).entry_bank_account_id; if (accId) { const acc = bankAccounts.find((b: any) => b.id === accId); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; } return <p className="text-[10px] text-amber-600 mt-1 font-semibold cursor-pointer hover:underline" onClick={() => setLinkInstallmentsOpen(true)}>Conta nao vinculada</p>; })()}</div></div>
                           <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(Number(payment.entry_amount || 0))}</p><Button size="sm" variant="outline" disabled={!supportsEntryPaidAt} className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", payment.entry_paid_at ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-white text-emerald-700 hover:bg-emerald-50")} onClick={() => { if (payment.entry_paid_at) { toggleEntryMutation.mutate({ paymentId: payment.id, currentPaidAt: payment.entry_paid_at }); return; } openEntryAccountPicker(payment); }}>{!supportsEntryPaidAt ? "Indisponível" : payment.entry_paid_at ? "Baixado" : "Validar"}</Button></div>
                         </div>
                       )}
@@ -1258,7 +1260,7 @@ export default function RecebimentosPage() {
                         return (
                           <div key={inst.id} className={cn("relative flex items-center justify-between p-4 rounded-xl border pl-8", overdue ? "border-destructive/30 bg-destructive/[0.03]" : dueToday ? "border-gold/40 bg-gold/5" : "border-border/30") }>
                             <div className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full", paid ? "bg-emerald-500" : overdue ? "bg-destructive" : dueToday ? "bg-gold" : "bg-slate-300")} />
-                            <div className="flex-1 min-w-0"><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}{paid && inst.bank_account_id && (() => { const acc = bankAccounts.find((b: any) => b.id === inst.bank_account_id); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; })()}{paid && inst.payment_method && <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase mt-1 border", PAYMENT_METHOD_BADGE_CLASS[inst.payment_method] || "bg-slate-50 text-slate-600 border-slate-200")}>{inst.payment_method === 'pix' ? 'PIX' : inst.payment_method === 'cartao_credito' ? 'Cartao' : inst.payment_method === 'dinheiro' ? 'Dinheiro' : 'Transferencia'}</span>}</div>
+                            <div className="flex-1 min-w-0"><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}{paid && (() => { if (inst.bank_account_id) { const acc = bankAccounts.find((b: any) => b.id === inst.bank_account_id); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; } return <p className="text-[10px] text-amber-600 mt-1 font-semibold cursor-pointer hover:underline" onClick={() => setLinkInstallmentsOpen(true)}>Conta nao vinculada</p>; })()}</div>
                             <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(inst.amount)}</p><Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white")} onClick={() => { if (paid) { toggleInstallmentMutation.mutate({ installment: inst }); return; } setPendingInstallment(inst); setSelectedBankAccountId(""); setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at)); setSelectedInstallmentPaidAmount(maskCurrencyInput(String(inst.paid_amount ?? inst.amount ?? ""))); setSelectedInstallmentPaymentMethod(inst.payment_method || ""); setAccountPickerOpen(true); }}>{paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}</Button></div>
                           </div>
                         );
@@ -1533,6 +1535,8 @@ export default function RecebimentosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
     </div>
   );
 }
