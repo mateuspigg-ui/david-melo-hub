@@ -213,6 +213,7 @@ const BankAccountsPage = () => {
   };
 
   return (
+    <>
     <div className="p-8 space-y-10 animate-fade-in max-w-[1500px] mx-auto min-h-screen">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
         <div>
@@ -873,6 +874,7 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
     </Dialog>
 
     <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
+    </>
   );
 }
 
