@@ -18,6 +18,19 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
+type UnlinkedInstallment = {
+  id: string;
+  payment_id: string;
+  installment_number: number;
+  installment_count: number;
+  due_date: string;
+  amount: number;
+  paid_at: string | null;
+  client_name: string;
+  event_name: string;
+  selected_bank_account: string | null;
+};
+
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   pix: 'PIX',
   dinheiro: 'Dinheiro',
@@ -67,7 +80,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
     queryFn: async () => {
       const { data: installments, error } = await (supabase as any)
         .from('payment_installments')
-        .select('id, payment_id, installment_number, due_date, amount, paid_at, payment_method, bank_account_id')
+        .select('id, payment_id, installment_number, due_date, amount, paid_at, bank_account_id')
         .not('paid_at', 'is', null)
         .is('bank_account_id', null)
         .order('due_date', { ascending: false });
@@ -77,7 +90,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
       const paymentIds = [...new Set(installments.map((i: any) => i.payment_id as string))] as string[];
       const { data: payments } = await supabase
         .from('payments')
-        .select('id, client_id, event_id, clients(id, first_name, last_name), events(id, title)')
+        .select('id, client_id, event_id, installment_count, clients(id, first_name, last_name), events(id, title)')
         .in('id', paymentIds);
 
       const paymentMap = new Map((payments || []).map((p: any) => [p.id, p]));
@@ -88,6 +101,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
         const event = payment?.events;
         return {
           ...inst,
+          installment_count: payment?.installment_count || 0,
           client_name: client ? `${client.first_name || ''} ${client.last_name || ''}`.trim() : '---',
           event_name: event?.title || '---',
           selected_bank_account: null,
@@ -225,7 +239,6 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                       <th className="text-center py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Parcela</th>
                       <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Vencimento</th>
                       <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Pgto</th>
-                      <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Forma</th>
                       <th className="text-right py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Valor</th>
                       <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] min-w-[200px]">Conta Bancaria</th>
                     </tr>
@@ -239,7 +252,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                           <td className="py-3 px-4 text-xs text-muted-foreground">{inst.event_name}</td>
                           <td className="py-3 px-4 text-center">
                             <Badge variant="outline" className="text-[10px] border-gold/30 text-gold bg-gold/5">
-                              {inst.installment_number}
+                              {inst.installment_number}{inst.installment_count ? `/${inst.installment_count}` : ''}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 text-xs text-muted-foreground">
@@ -247,15 +260,6 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                           </td>
                           <td className="py-3 px-4 text-xs text-muted-foreground">
                             {inst.paid_at ? format(new Date(inst.paid_at), 'dd/MM/yy') : '---'}
-                          </td>
-                          <td className="py-3 px-4">
-                            {inst.payment_method ? (
-                              <Badge variant="outline" className={cn("text-[9px] font-bold uppercase border", PAYMENT_METHOD_BADGE[inst.payment_method] || 'bg-slate-50 text-slate-600 border-slate-200')}>
-                                {PAYMENT_METHOD_LABEL[inst.payment_method] || inst.payment_method}
-                              </Badge>
-                            ) : (
-                              <span className="text-[10px] text-muted-foreground">---</span>
-                            )}
                           </td>
                           <td className="py-3 px-4 text-right text-xs font-bold tabular-nums">
                             {currencyFmt(inst.amount)}
