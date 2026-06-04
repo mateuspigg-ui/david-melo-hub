@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Building2, Landmark, Search, Trash2, Loader2, LayoutGrid, List, ArrowRightLeft, FileText, DollarSign, ArrowUpRight, ArrowDownLeft, Calendar, Printer, CreditCard, Banknote } from 'lucide-react';
+import { Plus, Building2, Landmark, Search, Trash2, Loader2, LayoutGrid, List, ArrowRightLeft, FileText, DollarSign, ArrowUpRight, ArrowDownLeft, Calendar, Printer, CreditCard, Banknote, Link } from 'lucide-react';
+import { LinkInstallmentsDialog } from '@/components/LinkInstallmentsDialog';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
@@ -36,6 +37,7 @@ const BankAccountsPage = () => {
   const [transferFrom, setTransferFrom] = useState<any>(null);
   const [extractOpen, setExtractOpen] = useState(false);
   const [extractAccount, setExtractAccount] = useState<any>(null);
+  const [linkInstallmentsOpen, setLinkInstallmentsOpen] = useState(false);
   const [form, setForm] = useState({
     bank_name: '', bank_code: '', agency: '', account_number: '',
     account_digit: '', description: '', account_type: 'corrente',
@@ -218,6 +220,13 @@ const BankAccountsPage = () => {
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Gestao e Custodia de Ativos David Melo</p>
         </div>
         <div className="flex gap-3">
+          <Button
+            onClick={() => setLinkInstallmentsOpen(true)}
+            variant="outline"
+            className="border-gold/40 text-gold hover:bg-gold hover:text-white font-black h-12 px-6 rounded-xl uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
+          >
+            <Link size={16} className="mr-2" /> Vincular Parcelas
+          </Button>
           <Button
             onClick={() => { setEditingAccount(null); resetForm(); setDialogOpen(true); }}
             className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
@@ -862,6 +871,8 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
         </div>
       </DialogContent>
     </Dialog>
+
+    <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
   );
 }
 
