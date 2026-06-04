@@ -462,7 +462,15 @@ export default function RecebimentosPage() {
     const installments = selectedClientGroup.payments.flatMap((p) => installmentsByPayment.get(p.id) || []);
     const pending = installments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + Number(i.amount || 0), 0);
     const received = installments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + Number(i.paid_amount ?? i.amount ?? 0), 0);
-    return { pending, received, contracts: selectedClientGroup.payments.length };
+    const entryReceived = selectedClientGroup.payments.reduce((s, p) => {
+      if (p.has_entry_payment && p.entry_paid_at) return s + Number(p.entry_paid_amount ?? p.entry_amount ?? 0);
+      return s;
+    }, 0);
+    const entryPending = selectedClientGroup.payments.reduce((s, p) => {
+      if (p.has_entry_payment && !p.entry_paid_at && p.entry_amount) return s + Number(p.entry_amount);
+      return s;
+    }, 0);
+    return { pending: pending + entryPending, received: received + entryReceived, contracts: selectedClientGroup.payments.length };
   }, [selectedClientGroup, installmentsByPayment]);
 
   const hasActiveFilters = search.trim() || statusFilter !== "all" || dateFilterMode !== "all" || dateFrom || dateTo || companyFilter !== "all";
