@@ -18,6 +18,20 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  pix: 'PIX',
+  dinheiro: 'Dinheiro',
+  cartao_credito: 'Cartao',
+  transferencia: 'Transferencia',
+};
+
+const PAYMENT_METHOD_BADGE: Record<string, string> = {
+  pix: 'bg-blue-50 text-blue-600 border-blue-200',
+  dinheiro: 'bg-amber-50 text-amber-700 border-amber-200',
+  cartao_credito: 'bg-purple-50 text-purple-600 border-purple-200',
+  transferencia: 'bg-slate-100 text-slate-600 border-slate-200',
+};
+
 type UnlinkedInstallment = {
   id: string;
   payment_id: string;
@@ -25,6 +39,7 @@ type UnlinkedInstallment = {
   due_date: string;
   amount: number;
   paid_at: string | null;
+  payment_method: string | null;
   client_name: string;
   event_name: string;
   selected_bank_account: string | null;
@@ -52,7 +67,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
     queryFn: async () => {
       const { data: installments, error } = await (supabase as any)
         .from('payment_installments')
-        .select('id, payment_id, installment_number, due_date, amount, paid_at, bank_account_id')
+        .select('id, payment_id, installment_number, due_date, amount, paid_at, payment_method, bank_account_id')
         .not('paid_at', 'is', null)
         .is('bank_account_id', null)
         .order('due_date', { ascending: false });
@@ -210,6 +225,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                       <th className="text-center py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Parcela</th>
                       <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Vencimento</th>
                       <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Pgto</th>
+                      <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Forma</th>
                       <th className="text-right py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em]">Valor</th>
                       <th className="text-left py-3 px-4 text-muted-foreground font-black text-[10px] uppercase tracking-[0.2em] min-w-[200px]">Conta Bancaria</th>
                     </tr>
@@ -231,6 +247,15 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                           </td>
                           <td className="py-3 px-4 text-xs text-muted-foreground">
                             {inst.paid_at ? format(new Date(inst.paid_at), 'dd/MM/yy') : '---'}
+                          </td>
+                          <td className="py-3 px-4">
+                            {inst.payment_method ? (
+                              <Badge variant="outline" className={cn("text-[9px] font-bold uppercase border", PAYMENT_METHOD_BADGE[inst.payment_method] || 'bg-slate-50 text-slate-600 border-slate-200')}>
+                                {PAYMENT_METHOD_LABEL[inst.payment_method] || inst.payment_method}
+                              </Badge>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">---</span>
+                            )}
                           </td>
                           <td className="py-3 px-4 text-right text-xs font-bold tabular-nums">
                             {currencyFmt(inst.amount)}
