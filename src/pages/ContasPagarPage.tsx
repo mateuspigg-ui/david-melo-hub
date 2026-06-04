@@ -559,6 +559,7 @@ export default function ContasPagarPage() {
           paymentMethod: variables.paymentMethod || "",
           bankAccount: acc ? `${acc.bank_name} - ${acc.account_number}${acc.account_digit ? `-${acc.account_digit}` : ''}` : "",
           documentNumber: variables.documentNumber || "",
+          companyId: editingItem.company_id || "",
         });
         setReceiptOpen(true);
       }
@@ -1262,6 +1263,33 @@ export default function ContasPagarPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openAttachmentsModal(item)}>Anexos</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handlePrintPayable(item)}>Imprimir</DropdownMenuItem>
+                        {isAccountPaid(item.payment_status, item.paid_at) && (
+                          <DropdownMenuItem onClick={() => {
+                            const discount = safeNum(item.discount);
+                            const interest = safeNum(item.interest);
+                            const fine = safeNum(item.fine);
+                            const paidAmount = safeNum(item.amount) - discount + interest + fine;
+                            setReceiptData({
+                              supplierName: item.suppliers?.company_name || "Fornecedor",
+                              supplierCpfCnpj: item.suppliers?.cpf_cnpj || "",
+                              supplierAddress: item.suppliers?.address || "",
+                              description: item.description || "Pagamento",
+                              amount: item.amount || 0,
+                              discount,
+                              interest,
+                              fine,
+                              paidAmount: item.paid_amount || paidAmount,
+                              paymentDate: item.paid_at ? item.paid_at.split("T")[0] : new Date().toISOString().split("T")[0],
+                              paymentMethod: item.payment_method || "",
+                              bankAccount: "",
+                              documentNumber: item.document_number || "",
+                              companyId: item.company_id || "",
+                            });
+                            setReceiptOpen(true);
+                          }}>
+                            Gerar Recibo
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => {
