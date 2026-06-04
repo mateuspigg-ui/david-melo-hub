@@ -124,7 +124,7 @@ const getReceiptHtml = (data: ReceiptData, company: CompanyInfo | null): string 
     <div class="receipt-title">RECIBO</div>
 
     <div class="receipt-body">
-      Recebemos de <strong>${data.supplierName}</strong>${data.supplierCpfCnpj ? `, CNPJ: <strong>${data.supplierCpfCnpj}</strong>` : ""} a import&acirc;ncia de
+      Recebemos de <strong>${companyName}</strong>${companyCnpj ? `, CNPJ: <strong>${companyCnpj}</strong>` : ""} a import&acirc;ncia de
       <strong class="amount-highlight"> ${currencyFmt(data.paidAmount)}</strong>,
       referente a <strong>${data.description}</strong>,
       em <strong>${formattedDate}</strong>.
@@ -193,8 +193,8 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
           <p className="text-center font-black text-sm uppercase tracking-[0.3em] my-4">Recibo</p>
 
           <p className="leading-relaxed text-muted-foreground">
-            Recebemos de <span className="font-bold text-foreground">{data.supplierName}</span>
-            {data.supplierCpfCnpj && <>, CNPJ: <span className="font-bold text-foreground">{data.supplierCpfCnpj}</span></>}
+            Recebemos de <span className="font-bold text-foreground">{company?.trade_name || company?.legal_name || "David Melo"}</span>
+            {company?.cnpj && <>, CNPJ: <span className="font-bold text-foreground">{company.cnpj}</span></>}
             {" "}a importancia de{" "}
             <span className="font-bold text-foreground">{currencyFmt(data.paidAmount)}</span>,
             referente a <span className="font-bold text-foreground">{data.description}</span>,
