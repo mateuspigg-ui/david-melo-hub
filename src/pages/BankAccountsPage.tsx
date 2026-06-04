@@ -449,6 +449,8 @@ const BankAccountsPage = () => {
 
       {/* ===== EXTRACT DIALOG ===== */}
       <ExtractDialog open={extractOpen} onOpenChange={setExtractOpen} account={extractAccount} />
+
+      <LinkInstallmentsDialog open={linkInstallmentsOpen} onOpenChange={setLinkInstallmentsOpen} />
     </div>
   );
 };
