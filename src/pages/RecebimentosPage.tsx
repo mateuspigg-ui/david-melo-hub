@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { format, isPast, isToday } from "date-fns";
-import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import { ArrowDownCircle, Calendar, Check, ChevronDown, FileText, LayoutGrid, Landmark, List, Pencil, Plus, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 import { cn } from "@/lib/utils";
 
@@ -57,6 +57,14 @@ const PAYMENT_METHOD_LABEL: Record<(typeof PAYMENT_METHOD_OPTIONS)[number], stri
   dinheiro: "Dinheiro",
   cartao_credito: "Cartao de credito",
   transferencia: "Transferencia",
+};
+
+const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
+  pix: "bg-blue-50 text-blue-600 border-blue-200",
+  dinheiro: "bg-amber-50 text-amber-700 border-amber-200",
+  cartao_credito: "bg-purple-50 text-purple-600 border-purple-200",
+  transferencia: "bg-slate-50 text-slate-600 border-slate-200",
+};
 };
 
 const getInitials = (name: string) =>
@@ -1251,7 +1259,7 @@ export default function RecebimentosPage() {
                         return (
                           <div key={inst.id} className={cn("relative flex items-center justify-between p-4 rounded-xl border pl-8", overdue ? "border-destructive/30 bg-destructive/[0.03]" : dueToday ? "border-gold/40 bg-gold/5" : "border-border/30") }>
                             <div className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full", paid ? "bg-emerald-500" : overdue ? "bg-destructive" : dueToday ? "bg-gold" : "bg-slate-300")} />
-                            <div><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}</div>
+                            <div className="flex-1 min-w-0"><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}{paid && inst.bank_account_id && (() => { const acc = bankAccounts.find((b: any) => b.id === inst.bank_account_id); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; })()}{paid && inst.payment_method && <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase mt-1 border", PAYMENT_METHOD_BADGE_CLASS[inst.payment_method] || "bg-slate-50 text-slate-600 border-slate-200")}>{inst.payment_method === 'pix' ? 'PIX' : inst.payment_method === 'cartao_credito' ? 'Cartao' : inst.payment_method === 'dinheiro' ? 'Dinheiro' : 'Transferencia'}</span>}</div>
                             <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(inst.amount)}</p><Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white")} onClick={() => { if (paid) { toggleInstallmentMutation.mutate({ installment: inst }); return; } setPendingInstallment(inst); setSelectedBankAccountId(""); setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at)); setSelectedInstallmentPaidAmount(maskCurrencyInput(String(inst.paid_amount ?? inst.amount ?? ""))); setSelectedInstallmentPaymentMethod(inst.payment_method || ""); setAccountPickerOpen(true); }}>{paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}</Button></div>
                           </div>
                         );
@@ -1397,29 +1405,31 @@ export default function RecebimentosPage() {
         }
       }}>
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader><DialogTitle>Conta de recebimento</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <Label>Conta bancária</Label>
-            <Select value={selectedBankAccountId} onValueChange={setSelectedBankAccountId}>
-              <SelectTrigger><SelectValue placeholder="Escolher conta" /></SelectTrigger>
-              <SelectContent>
-                {bankAccounts.map((acc: any) => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="space-y-1 pt-2">
-              <Label>Data do pagamento</Label>
-              <Input type="date" value={selectedInstallmentPaidDate} onChange={(e) => setSelectedInstallmentPaidDate(e.target.value)} />
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Check size={18} className="text-gold" /> Baixar Parcela</DialogTitle><p className="text-xs text-muted-foreground mt-1">Selecione a conta bancaria para vincular o recebimento automaticamente.</p></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conta bancaria</Label>
+              <Select value={selectedBankAccountId} onValueChange={setSelectedBankAccountId}>
+                <SelectTrigger className={cn("h-11", selectedBankAccountId ? "border-emerald-300 bg-emerald-50/50" : "")}><SelectValue placeholder="Escolher conta para vincular" /></SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((acc: any) => (
+                    <SelectItem key={acc.id} value={acc.id}>{acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-1 pt-2">
-              <Label>Valor pago</Label>
-              <Input value={selectedInstallmentPaidAmount} onChange={(e) => setSelectedInstallmentPaidAmount(maskCurrencyInput(e.target.value))} placeholder="0,00" inputMode="numeric" />
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data do pagamento</Label>
+              <Input type="date" value={selectedInstallmentPaidDate} onChange={(e) => setSelectedInstallmentPaidDate(e.target.value)} className="h-10" />
             </div>
-            <div className="space-y-1 pt-2">
-              <Label>Forma de pagamento</Label>
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Valor pago</Label>
+              <Input value={selectedInstallmentPaidAmount} onChange={(e) => setSelectedInstallmentPaidAmount(maskCurrencyInput(e.target.value))} placeholder="0,00" inputMode="numeric" className="h-10" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de pagamento</Label>
               <Select value={selectedInstallmentPaymentMethod} onValueChange={setSelectedInstallmentPaymentMethod}>
-                <SelectTrigger><SelectValue placeholder="Escolher forma" /></SelectTrigger>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Escolher forma" /></SelectTrigger>
                 <SelectContent>
                   {PAYMENT_METHOD_OPTIONS.map((method) => (
                     <SelectItem key={method} value={method}>{PAYMENT_METHOD_LABEL[method]}</SelectItem>
