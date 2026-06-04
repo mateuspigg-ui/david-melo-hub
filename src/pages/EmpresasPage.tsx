@@ -14,6 +14,15 @@ type Company = {
   legal_name: string | null;
   trade_name: string | null;
   cnpj: string | null;
+  address_street: string | null;
+  address_number: string | null;
+  address_complement: string | null;
+  address_neighborhood: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_zip: string | null;
+  phone: string | null;
+  ie: string | null;
   created_at?: string;
 };
 
@@ -68,7 +77,7 @@ export default function EmpresasPage() {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
-  const [form, setForm] = useState({ legal_name: "", trade_name: "", cnpj: "" });
+  const [form, setForm] = useState({ legal_name: "", trade_name: "", cnpj: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "", address_zip: "", phone: "", ie: "" });
   const [selectedCompanyId, setSelectedCompanyId] = useState("");
   const [fiscalForm, setFiscalForm] = useState({
     provider: "focus_nfe",
@@ -88,7 +97,7 @@ export default function EmpresasPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("companies")
-        .select("id, legal_name, trade_name, cnpj, created_at")
+        .select("id, legal_name, trade_name, cnpj, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip, phone, ie, created_at")
         .order("trade_name", { ascending: true });
       if (error) throw error;
       return (data || []) as Company[];
@@ -121,7 +130,7 @@ export default function EmpresasPage() {
   );
 
   const resetForm = () => {
-    setForm({ legal_name: "", trade_name: "", cnpj: "" });
+    setForm({ legal_name: "", trade_name: "", cnpj: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "", address_zip: "", phone: "", ie: "" });
     setEditingCompany(null);
   };
 
@@ -162,6 +171,15 @@ export default function EmpresasPage() {
         legal_name: form.legal_name.trim() || null,
         trade_name: form.trade_name.trim() || null,
         cnpj: cleanDigits(form.cnpj) || null,
+        address_street: form.address_street.trim() || null,
+        address_number: form.address_number.trim() || null,
+        address_complement: form.address_complement.trim() || null,
+        address_neighborhood: form.address_neighborhood.trim() || null,
+        address_city: form.address_city.trim() || null,
+        address_state: form.address_state.trim() || null,
+        address_zip: form.address_zip.trim() || null,
+        phone: form.phone.trim() || null,
+        ie: form.ie.trim() || null,
       };
 
       if (!payload.legal_name && !payload.trade_name) {
@@ -326,6 +344,15 @@ export default function EmpresasPage() {
                               legal_name: company.legal_name || "",
                               trade_name: company.trade_name || "",
                               cnpj: maskDocument(company.cnpj || ""),
+                              address_street: company.address_street || "",
+                              address_number: company.address_number || "",
+                              address_complement: company.address_complement || "",
+                              address_neighborhood: company.address_neighborhood || "",
+                              address_city: company.address_city || "",
+                              address_state: company.address_state || "",
+                              address_zip: company.address_zip || "",
+                              phone: company.phone || "",
+                              ie: company.ie || "",
                             });
                             setDialogOpen(true);
                           }}
@@ -488,6 +515,58 @@ export default function EmpresasPage() {
                 placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg"
               />
+            </div>
+
+            <div className="pt-2 border-t border-border/20 space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Endereço</p>
+
+              <div className="grid grid-cols-[1fr_80px] gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Logradouro</Label>
+                  <Input value={form.address_street} onChange={(e) => setForm({ ...form, address_street: e.target.value })} placeholder="Rua, Avenida..." className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Nº</Label>
+                  <Input value={form.address_number} onChange={(e) => setForm({ ...form, address_number: e.target.value })} placeholder="Nº" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Complemento</Label>
+                <Input value={form.address_complement} onChange={(e) => setForm({ ...form, address_complement: e.target.value })} placeholder="Sala, Andar..." className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Bairro</Label>
+                <Input value={form.address_neighborhood} onChange={(e) => setForm({ ...form, address_neighborhood: e.target.value })} placeholder="Bairro" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+              </div>
+
+              <div className="grid grid-cols-[1fr_80px] gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Cidade</Label>
+                  <Input value={form.address_city} onChange={(e) => setForm({ ...form, address_city: e.target.value })} placeholder="Cidade" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">UF</Label>
+                  <Input value={form.address_state} onChange={(e) => setForm({ ...form, address_state: e.target.value.toUpperCase().slice(0, 2) })} placeholder="UF" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg uppercase" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">CEP</Label>
+                  <Input value={form.address_zip} onChange={(e) => setForm({ ...form, address_zip: e.target.value })} placeholder="00000-000" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Telefone</Label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(00) 00000-0000" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Inscrição Estadual</Label>
+                <Input value={form.ie} onChange={(e) => setForm({ ...form, ie: e.target.value })} placeholder="IE" className="bg-secondary/30 border-border/40 focus:ring-gold h-11 rounded-lg" />
+              </div>
             </div>
           </div>
 
