@@ -79,7 +79,7 @@ const getReceiptHtml = (data: ReceiptData, company: CompanyInfo): string => {
   const formattedDate = (() => {
     try {
       const d = new Date(data.paymentDate + "T12:00:00");
-      return format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+      return format(d, "dd/MM/yyyy");
     } catch {
       return data.paymentDate;
     }
@@ -257,7 +257,7 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
               <span className="font-bold text-foreground">{currencyFmt(data.paidAmount)}</span>,
               referente a <span className="font-bold text-foreground">{data.description}</span>,
               {data.paymentMethod && <> em <span className="font-bold text-foreground">{PAYMENT_METHOD_LABEL[data.paymentMethod] || data.paymentMethod}</span>,</>}
-              em <span className="font-bold text-foreground">{data.paymentDate}</span>.
+              em <span className="font-bold text-foreground">{formattedDate}</span>.
             </p>
 
             <p className="text-right text-muted-foreground mt-6">
