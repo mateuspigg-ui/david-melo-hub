@@ -145,7 +145,7 @@ const getReceiptHtml = (data: ReceiptData, company: CompanyInfo): string => {
     <div class="receipt-title">RECIBO</div>
 
     <div class="receipt-body">
-      Recebi(mos) de <strong>${companyName}</strong>${companyCnpj ? `, inscrito sob o CNPJ n&ordm; <strong>${companyCnpj}</strong>` : ""}, a import&acirc;ncia de
+      Recebi(emos) de <strong>${companyName}</strong>${companyCnpj ? `, inscrito sob o CNPJ n&ordm; <strong>${companyCnpj}</strong>` : ""}, a import&acirc;ncia de
       <strong class="amount-highlight"> ${currencyFmt(data.paidAmount)}</strong>
       ${data.amount !== data.paidAmount ? ` (valor original: ${currencyFmt(data.amount)}${data.discount ? `, desconto: ${currencyFmt(data.discount)}` : ""}${data.interest ? `, juros: ${currencyFmt(data.interest)}` : ""}${data.fine ? `, multa: ${currencyFmt(data.fine)}` : ""})` : ""},
       referente a <strong>${data.description}</strong>,
@@ -251,7 +251,7 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
             <p className="text-center font-black text-sm uppercase tracking-[0.3em] my-4">Recibo</p>
 
             <p className="leading-relaxed text-muted-foreground">
-              Recebi(mos) de <span className="font-bold text-foreground">{selectedCompany?.trade_name || selectedCompany?.legal_name || "—"}</span>
+              Recebi(emos) de <span className="font-bold text-foreground">{selectedCompany?.trade_name || selectedCompany?.legal_name || "—"}</span>
               {selectedCompany?.cnpj && <>, inscrito sob o CNPJ n&ordm; <span className="font-bold text-foreground">{selectedCompany.cnpj}</span></>}
               {" "}a importancia de{" "}
               <span className="font-bold text-foreground">{currencyFmt(data.paidAmount)}</span>,
