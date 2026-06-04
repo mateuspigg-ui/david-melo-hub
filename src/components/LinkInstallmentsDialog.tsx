@@ -114,7 +114,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
       const updates = Object.entries(localChanges);
       const results = await Promise.allSettled(
         updates.map(([id, bankAccountId]) =>
-          supabase
+          (supabase as any)
             .from('payment_installments')
             .update({ bank_account_id: bankAccountId || null })
             .eq('id', id)
