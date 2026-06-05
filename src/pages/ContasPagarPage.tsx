@@ -26,15 +26,18 @@ const safeNum = (v: any): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const PAID_STATUS_VALUES = ["pago", "paid", "pago_parcial", "partial"] as const;
+const PAID_STATUS_VALUES = ["pago", "paid"] as const;
+const PARTIAL_STATUS_VALUES = ["pago_parcial", "partial"] as const;
 const PENDING_STATUS_VALUES = ["nao_pago", "pending", "pendente"] as const;
 
 const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
 const isAccountPaid = (status: string | null | undefined, paidAt?: string | null) =>
   PAID_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PAID_STATUS_VALUES)[number]) || !!paidAt;
+const isAccountPartial = (status: string | null | undefined) =>
+  PARTIAL_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PARTIAL_STATUS_VALUES)[number]);
 const isAccountPending = (status: string | null | undefined, paidAt?: string | null) => {
   if (isAccountPaid(status, paidAt)) return false;
-  return PENDING_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PENDING_STATUS_VALUES)[number]) || !status;
+  return PENDING_STATUS_VALUES.includes(normalizeStatus(status) as (typeof PENDING_STATUS_VALUES)[number]) || !status || isAccountPartial(status);
 };
 
 const LATE_FEE_RATE = 0.02;
@@ -519,7 +522,7 @@ export default function ContasPagarPage() {
         return error;
       };
 
-      if (isAccountPaid(currentStatus)) {
+      if (isAccountPaid(currentStatus) || isAccountPartial(currentStatus)) {
         let error = await tryUpdate({ payment_status: "nao_pago", paid_at: null, bank_account_id: null, payment_method: null, discount: 0, interest: 0, fine: 0, paid_amount: null, document_number: null });
         if (!error) return;
         for (const pendingStatus of PENDING_STATUS_VALUES) {
@@ -546,7 +549,7 @@ export default function ContasPagarPage() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
-      const isReversal = isAccountPaid(variables.currentStatus);
+      const isReversal = isAccountPaid(variables.currentStatus) || isAccountPartial(variables.currentStatus);
       const isPartial = !isReversal && variables.paidAmount != null && (variables.totalAmount || 0) > 0 && variables.paidAmount < variables.totalAmount;
       toast({ title: isReversal ? 'Baixa desfeita com sucesso' : isPartial ? 'Pagamento parcial registrado' : 'Conta marcada como paga' });
       if (!isReversal && editingItem) {
@@ -1169,8 +1172,8 @@ export default function ContasPagarPage() {
                               </span>
                             )}
                             {normalizeStatus(item.payment_status) === "pago_parcial" ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
-                                Parcial: {currencyFmt(item.paid_amount || 0)} / {currencyFmt(item.amount || 0)}
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-sm">
+                                Pago Parcial
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gold/10 text-gold">
@@ -1197,7 +1200,19 @@ export default function ContasPagarPage() {
                 
                 <div className="flex items-center justify-between sm:justify-end gap-6 mt-4 sm:mt-0">
                   <div className="text-right">
-                    <p className={`text-lg font-display tabular-nums tracking-tighter ${overdue ? "text-destructive" : "text-foreground"}`}>{currencyFmt(item.amount)}</p>
+                    {isAccountPartial(item.payment_status) ? (
+                      <>
+                        <p className="text-lg font-display tabular-nums tracking-tighter text-amber-600 font-bold">
+                          {currencyFmt(safeNum(item.amount) - safeNum(item.paid_amount))}
+                        </p>
+                        <p className="text-[9px] font-bold text-amber-500 uppercase tracking-wider mt-0.5">
+                          Pago: {currencyFmt(item.paid_amount || 0)}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">Falta: {currencyFmt(safeNum(item.amount) - safeNum(item.paid_amount))}</p>
+                      </>
+                    ) : (
+                      <p className={`text-lg font-display tabular-nums tracking-tighter ${overdue ? "text-destructive" : "text-foreground"}`}>{currencyFmt(item.amount)}</p>
+                    )}
                     {overdue && (
                       <>
                         <p className="text-[8px] font-black text-destructive uppercase tracking-[0.2em] mt-0.5 animate-pulse">{overdueDays} dia(s) em atraso</p>
@@ -1236,13 +1251,17 @@ export default function ContasPagarPage() {
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
-                          if (isAccountPaid(item.payment_status, item.paid_at)) {
+                          if (isAccountPaid(item.payment_status, item.paid_at) || isAccountPartial(item.payment_status)) {
                             togglePaidMutation.mutate({ id: item.id, currentStatus: item.payment_status });
                           } else {
                             setEditingItem(item);
                             setPaymentBankAccount(item.bank_account_id || "");
                             setPaymentMethod(item.payment_method || "pix");
-                            setPaymentPaidAmount(item.paid_amount != null ? maskCurrencyInput(String(item.paid_amount)) : "");
+                            setPaymentPaidAmount(
+                              isAccountPartial(item.payment_status)
+                                ? maskCurrencyInput(String(safeNum(item.amount) - safeNum(item.paid_amount)))
+                                : item.paid_amount != null ? maskCurrencyInput(String(item.paid_amount)) : ""
+                            );
                             setPaymentDiscount(item.discount != null ? maskCurrencyInput(String(item.discount)) : "");
                             setPaymentInterest(item.interest != null ? maskCurrencyInput(String(item.interest)) : "");
                             setPaymentFine(item.fine != null ? maskCurrencyInput(String(item.fine)) : "");
@@ -1251,7 +1270,7 @@ export default function ContasPagarPage() {
                             setDialogOpen(true);
                           }
                         }}>
-                          {isAccountPaid(item.payment_status, item.paid_at) ? "Desfazer baixa" : "Baixar"}
+                          {(isAccountPaid(item.payment_status, item.paid_at) || isAccountPartial(item.payment_status)) ? "Desfazer baixa" : "Baixar"}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -1657,7 +1676,14 @@ export default function ContasPagarPage() {
                       <p className="font-bold text-foreground">{editingItem.suppliers?.company_name || "Fornecedor"}</p>
                       <p className="text-sm text-muted-foreground">{editingItem.description}</p>
                       <div className="flex items-center gap-3 pt-1">
-                        <span className="text-2xl font-bold text-gold">{currencyFmt(editingItem.amount)}</span>
+                        {isAccountPartial(editingItem.payment_status) ? (
+                          <>
+                            <span className="text-2xl font-bold text-amber-600">{currencyFmt(safeNum(editingItem.amount) - safeNum(editingItem.paid_amount))}</span>
+                            <span className="text-xs text-amber-500 font-bold">Restante (pago: {currencyFmt(editingItem.paid_amount || 0)})</span>
+                          </>
+                        ) : (
+                          <span className="text-2xl font-bold text-gold">{currencyFmt(editingItem.amount)}</span>
+                        )}
                         <span className="text-xs text-muted-foreground">Venc: {format(new Date(editingItem.due_date + "T12:00:00"), "dd/MM/yyyy")}</span>
                       </div>
                     </div>
