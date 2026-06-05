@@ -36,6 +36,8 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
   const [eventId, setEventId] = useState("");
   const [companyId, setCompanyId] = useState("");
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
+  const [additionalValue, setAdditionalValue] = useState("");
+  const [additionalDescription, setAdditionalDescription] = useState("");
 
   const { data: payment } = useQuery({
     queryKey: ["cal-edit-rec", paymentId],
@@ -71,6 +73,8 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
       setClientId(payment.client_id || "");
       setEventId(payment.event_id || "");
       setCompanyId(payment.company_id || "");
+      setAdditionalValue(payment.additional_value != null ? formatCurrencyInput(payment.additional_value) : "");
+      setAdditionalDescription(payment.additional_description || "");
       setInstallmentPlan(installments.map((inst: any) => ({
         installment_number: inst.installment_number,
         due_date: inst.due_date,
@@ -99,6 +103,8 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
         client_id: clientId || null,
         event_id: eventId || null,
         company_id: companyId || null,
+        additional_value: parseCurrencyInput(additionalValue) || 0,
+        additional_description: additionalDescription || "",
       }).eq("id", paymentId);
       if (updateErr) throw updateErr;
 
@@ -202,6 +208,31 @@ export default function EditRecebimentoDialog({ open, onOpenChange, paymentId, o
               </div>
             </div>
           )}
+
+          <div className="rounded-2xl border border-gold/20 overflow-hidden">
+            <div className="px-4 py-3 bg-gold/5 border-b border-gold/20">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gold">Adicional (pós-contrato)</span>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Adicional (R$)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gold font-bold text-sm">R$</span>
+                  <Input value={additionalValue} onChange={(e) => setAdditionalValue(maskCurrencyInput(e.target.value))} className="h-11 rounded-xl pl-10 font-bold text-gold" placeholder="0,00" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Descrição do Adicional</Label>
+                <Input value={additionalDescription} onChange={(e) => setAdditionalDescription(e.target.value)} className="h-11 rounded-xl" placeholder="Ex: Acréscimo de serviço, item adicional..." />
+              </div>
+              {Number(parseCurrencyInput(additionalValue) || 0) > 0 && (
+                <div className="flex items-center justify-between p-3 bg-gold/5 rounded-xl border border-gold/10">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor Final do Contrato</span>
+                  <span className="text-lg font-bold text-gold">{currencyFmt((parseCurrencyInput(totalEventValue) || 0) + (parseCurrencyInput(additionalValue) || 0))}</span>
+                </div>
+              )}
+            </div>
+          </div>
 
           {installmentPlan.length > 0 && (
             <div className="rounded-2xl border border-gold/20 overflow-hidden">

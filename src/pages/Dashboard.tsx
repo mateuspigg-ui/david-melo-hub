@@ -280,7 +280,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('payments')
-        .select('id, total_event_value, created_at')
+        .select('id, total_event_value, additional_value, created_at')
         .not('total_event_value', 'is', null);
       if (error) throw error;
       return data || [];
@@ -316,7 +316,7 @@ const Dashboard = () => {
       const parsed = new Date(row.created_at);
       if (Number.isNaN(parsed.getTime())) return;
       if (parsed.getFullYear() !== selectedYear) return;
-      total += Number(row.total_event_value || 0);
+      total += Number(row.total_event_value || 0) + Number(row.additional_value || 0);
       count += 1;
     });
 

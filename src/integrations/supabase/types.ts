@@ -545,6 +545,8 @@ export type Database = {
       }
       payments: {
         Row: {
+          additional_description: string | null
+          additional_value: number | null
           client_id: string | null
           created_at: string
           entry_amount: number | null
@@ -557,6 +559,8 @@ export type Database = {
           total_event_value: number
         }
         Insert: {
+          additional_description?: string | null
+          additional_value?: number | null
           client_id?: string | null
           created_at?: string
           entry_amount?: number | null
@@ -569,6 +573,8 @@ export type Database = {
           total_event_value: number
         }
         Update: {
+          additional_description?: string | null
+          additional_value?: number | null
           client_id?: string | null
           created_at?: string
           entry_amount?: number | null

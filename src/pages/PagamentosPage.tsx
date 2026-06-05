@@ -25,6 +25,8 @@ type Payment = {
   client_id: string | null;
   event_id: string | null;
   created_at: string;
+  additional_value?: number | null;
+  additional_description?: string | null;
   clients?: { first_name: string; last_name: string } | null;
   events?: { title: string } | null;
 };
@@ -88,6 +90,8 @@ export default function PagamentosPage() {
     entry_date: "",
     client_id: "",
     event_id: "",
+    additional_value: "",
+    additional_description: "",
   });
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
 
@@ -296,6 +300,8 @@ export default function PagamentosPage() {
           entry_date: hasEntry && form.entry_date ? form.entry_date : null,
           client_id: form.client_id || null,
           event_id: form.event_id || null,
+          additional_value: parseCurrencyInput(form.additional_value) || 0,
+          additional_description: form.additional_description || "",
         })
           .eq('id', editingPayment.id);
         if (error) throw error;
@@ -311,6 +317,8 @@ export default function PagamentosPage() {
             entry_date: hasEntry && form.entry_date ? form.entry_date : null,
             client_id: form.client_id || null,
             event_id: form.event_id || null,
+            additional_value: parseCurrencyInput(form.additional_value) || 0,
+            additional_description: form.additional_description || "",
           });
         if (error) throw error;
       }
@@ -515,7 +523,7 @@ export default function PagamentosPage() {
   });
 
   const resetForm = () => {
-    setForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "" });
+    setForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", additional_value: "", additional_description: "" });
     setInstallmentPlan([]);
     setEditingPayment(null);
   };
@@ -530,6 +538,8 @@ export default function PagamentosPage() {
       entry_date: payment.entry_date || '',
       client_id: payment.client_id || '',
       event_id: payment.event_id || '',
+      additional_value: payment.additional_value != null ? formatCurrencyInput(payment.additional_value) : '',
+      additional_description: payment.additional_description || '',
     });
 
     const { data, error } = await supabase
@@ -1005,6 +1015,40 @@ export default function PagamentosPage() {
                 </div>
               </div>
             )}
+
+            <div className="rounded-xl border border-gold/20 overflow-hidden">
+              <div className="px-4 py-2 bg-gold/5 border-b border-gold/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gold">Adicional (pós-contrato)</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Valor Adicional (R$)</Label>
+                  <Input 
+                    type="text"
+                    inputMode="numeric"
+                    value={form.additional_value} 
+                    onChange={(e) => setForm({ ...form, additional_value: maskCurrencyInput(e.target.value) })} 
+                    className="bg-background border-border/40 h-10 text-xs font-bold" 
+                    placeholder="0,00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold/80 ml-1">Descrição do Adicional</Label>
+                  <Input 
+                    value={form.additional_description} 
+                    onChange={(e) => setForm({ ...form, additional_description: e.target.value })} 
+                    className="bg-background border-border/40 h-10 text-xs" 
+                    placeholder="Ex: Acréscimo de serviço..."
+                  />
+                </div>
+                {Number(parseCurrencyInput(form.additional_value) || 0) > 0 && (
+                  <div className="flex items-center justify-between p-2 bg-gold/5 rounded-lg border border-gold/10">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor final do contrato</span>
+                    <span className="text-sm font-bold text-gold">{currencyFmt((parseCurrencyInput(form.total_event_value) || 0) + (parseCurrencyInput(form.additional_value) || 0))}</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {installmentPlan.length > 0 && (
               <div className="space-y-3 p-4 bg-secondary/10 rounded-xl border border-border/10">

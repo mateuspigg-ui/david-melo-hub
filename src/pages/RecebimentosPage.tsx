@@ -35,6 +35,8 @@ type Payment = {
   client_id: string | null;
   event_id: string | null;
   company_id?: string | null;
+  additional_value?: number | null;
+  additional_description?: string | null;
   clients?: { first_name: string; last_name: string } | null;
   events?: { title: string } | null;
 };
@@ -210,6 +212,8 @@ export default function RecebimentosPage() {
     client_id: "",
     event_id: "",
     company_id: "",
+    additional_value: "",
+    additional_description: "",
   });
 
   const isMissingEntryPaidAtColumnError = (error: any) => /entry_paid_at.*does not exist|schema cache|could not find.*entry_paid_at/i.test(String(error?.message || ""));
@@ -645,6 +649,8 @@ export default function RecebimentosPage() {
             client_id: contractForm.client_id,
             event_id: contractForm.event_id || null,
             company_id: contractForm.company_id || null,
+            additional_value: parseCurrencyInput(contractForm.additional_value) || 0,
+            additional_description: contractForm.additional_description || "",
           } as any)
           .eq("id", editingPayment.id);
         if (paymentError) {
@@ -659,6 +665,8 @@ export default function RecebimentosPage() {
                 entry_date: hasEntry ? contractForm.entry_date : null,
                 client_id: contractForm.client_id,
                 event_id: contractForm.event_id || null,
+                additional_value: parseCurrencyInput(contractForm.additional_value) || 0,
+                additional_description: contractForm.additional_description || "",
               } as any)
               .eq("id", editingPayment.id);
             if (retry.error) throw retry.error;
@@ -679,6 +687,8 @@ export default function RecebimentosPage() {
             client_id: contractForm.client_id,
             event_id: contractForm.event_id || null,
             company_id: contractForm.company_id || null,
+            additional_value: parseCurrencyInput(contractForm.additional_value) || 0,
+            additional_description: contractForm.additional_description || "",
           } as any);
         if (paymentError) {
           if (isMissingCompanyIdColumnError(paymentError)) {
@@ -693,6 +703,8 @@ export default function RecebimentosPage() {
                 entry_date: hasEntry ? contractForm.entry_date : null,
                 client_id: contractForm.client_id,
                 event_id: contractForm.event_id || null,
+                additional_value: parseCurrencyInput(contractForm.additional_value) || 0,
+                additional_description: contractForm.additional_description || "",
               } as any);
             if (retry.error) throw retry.error;
           } else {
@@ -747,7 +759,7 @@ export default function RecebimentosPage() {
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       await syncEventPaymentStatus(contractForm.event_id || editingPayment?.event_id || null);
       setContractOpen(false);
-      setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "" });
+      setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "", additional_value: "", additional_description: "" });
       setInstallmentPlan([]);
       setEditingPayment(null);
       toast({ title: editingPayment ? "Pagamento atualizado com sucesso" : "Contrato criado com sucesso" });
@@ -767,6 +779,8 @@ export default function RecebimentosPage() {
       client_id: payment.client_id || "",
       event_id: payment.event_id || "",
       company_id: (payment as any).company_id || "",
+      additional_value: (payment as any).additional_value != null ? formatCurrencyInput((payment as any).additional_value) : "",
+      additional_description: (payment as any).additional_description || "",
     });
     setInstallmentPlan(
       paymentInstallments.length
@@ -1009,7 +1023,7 @@ export default function RecebimentosPage() {
               <List className="w-4 h-4 mr-2" /> Lista
             </Button>
           </div>
-          <Button onClick={() => { setEditingPayment(null); setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "" }); setInstallmentPlan([]); setContractOpen(true); }} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
+          <Button onClick={() => { setEditingPayment(null); setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "", additional_value: "", additional_description: "" }); setInstallmentPlan([]); setContractOpen(true); }} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
             <Plus className="w-4 h-4 mr-2" /> Novo Contrato
           </Button>
         </div>
@@ -1365,6 +1379,28 @@ export default function RecebimentosPage() {
                 </div>
               </div>
             )}
+
+            <div className="rounded-xl border border-gold/20 overflow-hidden">
+              <div className="px-4 py-2 bg-gold/5 border-b border-gold/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gold">Adicional (pós-contrato)</span>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="space-y-1">
+                  <Label>Valor adicional (R$)</Label>
+                  <Input value={contractForm.additional_value} onChange={(e) => setContractForm({ ...contractForm, additional_value: maskCurrencyInput(e.target.value) })} placeholder="0,00" />
+                </div>
+                <div className="space-y-1">
+                  <Label>Descrição do adicional</Label>
+                  <Input value={contractForm.additional_description} onChange={(e) => setContractForm({ ...contractForm, additional_description: e.target.value })} placeholder="Ex: Acréscimo de serviço..." />
+                </div>
+                {Number(parseCurrencyInput(contractForm.additional_value) || 0) > 0 && (
+                  <div className="flex items-center justify-between p-2 bg-gold/5 rounded-lg border border-gold/10">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor final do contrato</span>
+                    <span className="text-sm font-bold text-gold">{currencyFmt((parseCurrencyInput(contractForm.total_event_value) || 0) + (parseCurrencyInput(contractForm.additional_value) || 0))}</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {installmentPlan.length > 0 && (
               <div className="space-y-3 p-4 bg-secondary/10 rounded-xl border border-border/10">
