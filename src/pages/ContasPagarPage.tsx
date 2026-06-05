@@ -153,7 +153,7 @@ export default function ContasPagarPage() {
   const progressTimersRef = useRef<Record<string, any>>({});
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCostCenterName, setNewCostCenterName] = useState("");
-  const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
+  const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", person_type: "juridica", birth_date: "", ie: "", im: "", suframa: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "", address_zip: "", phone: "", email: "", pix_details: "", instagram: "", notes: "" });
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [paymentPaidAmount, setPaymentPaidAmount] = useState("");
@@ -785,10 +785,24 @@ export default function ContasPagarPage() {
       const payload = {
         company_name: name,
         cpf_cnpj: supplierForm.cpf_cnpj.trim() || null,
-        address: supplierForm.address.trim() || null,
+        person_type: supplierForm.person_type || null,
+        birth_date: supplierForm.birth_date || null,
+        ie: supplierForm.ie.trim() || null,
+        im: supplierForm.im.trim() || null,
+        suframa: supplierForm.suframa.trim() || null,
+        address: supplierForm.address_street.trim() || null,
+        address_street: supplierForm.address_street.trim() || null,
+        address_number: supplierForm.address_number.trim() || null,
+        address_complement: supplierForm.address_complement.trim() || null,
+        address_neighborhood: supplierForm.address_neighborhood.trim() || null,
+        address_city: supplierForm.address_city.trim() || null,
+        address_state: supplierForm.address_state.trim() || null,
+        address_zip: supplierForm.address_zip.trim() || null,
         phone: supplierForm.phone.trim() || null,
+        email: supplierForm.email.trim() || null,
         pix_details: supplierForm.pix_details.trim() || null,
         instagram: supplierForm.instagram.trim() || null,
+        notes: supplierForm.notes.trim() || null,
       };
       const { data, error } = await (supabase as any).from("suppliers").insert(payload).select("id").single();
       if (error) throw error;
@@ -799,7 +813,7 @@ export default function ContasPagarPage() {
       qc.refetchQueries({ queryKey: ["suppliers-select"] });
       setForm((prev) => ({ ...prev, supplier_id: data?.id || prev.supplier_id }));
       setSupplierDialogOpen(false);
-      setSupplierForm({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
+      setSupplierForm({ company_name: "", cpf_cnpj: "", person_type: "juridica", birth_date: "", ie: "", im: "", suframa: "", address_street: "", address_number: "", address_complement: "", address_neighborhood: "", address_city: "", address_state: "", address_zip: "", phone: "", email: "", pix_details: "", instagram: "", notes: "" });
       toast({ title: "Fornecedor cadastrado" });
     },
     onError: (e: any) => toast({ title: "Erro ao cadastrar fornecedor", description: e?.message || "Não foi possível cadastrar fornecedor.", variant: "destructive" }),
@@ -2094,20 +2108,111 @@ export default function ContasPagarPage() {
       </Dialog>
 
       <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novo Fornecedor</DialogTitle>
+            <DialogTitle>Nova Pessoa</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Input value={supplierForm.company_name} onChange={(e) => setSupplierForm({ ...supplierForm, company_name: e.target.value })} placeholder="Nome / Razão social" />
-            <Input value={supplierForm.cpf_cnpj} onChange={(e) => setSupplierForm({ ...supplierForm, cpf_cnpj: e.target.value })} placeholder="CNPJ / CPF" />
-            <Input value={supplierForm.address} onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })} placeholder="Endereço" />
-            <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })} placeholder="Telefone" />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">CPF/CNPJ</Label>
+                <Input value={supplierForm.cpf_cnpj} onChange={(e) => setSupplierForm({ ...supplierForm, cpf_cnpj: e.target.value })} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nome *</Label>
+                <Input value={supplierForm.company_name} onChange={(e) => setSupplierForm({ ...supplierForm, company_name: e.target.value })} placeholder="Nome / Razão social" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Tipo de Pessoa</Label>
+                <select value={supplierForm.person_type} onChange={(e) => setSupplierForm({ ...supplierForm, person_type: e.target.value })} className="h-10 w-full rounded-lg border border-border/40 bg-secondary/50 px-3 text-sm">
+                  <option value="juridica">Jurídica</option>
+                  <option value="fisica">Física</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Inscrição Estadual</Label>
+                <Input value={supplierForm.ie} onChange={(e) => setSupplierForm({ ...supplierForm, ie: e.target.value })} placeholder="IE" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Inscrição Municipal</Label>
+                <Input value={supplierForm.im} onChange={(e) => setSupplierForm({ ...supplierForm, im: e.target.value })} placeholder="IM" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Telefone</Label>
+                <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })} placeholder="(00) 00000-0000" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">E-mail</Label>
+                <Input value={supplierForm.email} onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })} placeholder="email@exemplo.com" type="email" />
+              </div>
+            </div>
+
+            <div className="border-t border-border/20 pt-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Endereço</p>
+              <div className="grid grid-cols-[1fr_80px] gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Logradouro</Label>
+                  <Input value={supplierForm.address_street} onChange={(e) => setSupplierForm({ ...supplierForm, address_street: e.target.value })} placeholder="Rua, Avenida..." />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nº</Label>
+                  <Input value={supplierForm.address_number} onChange={(e) => setSupplierForm({ ...supplierForm, address_number: e.target.value })} placeholder="Nº" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Bairro</Label>
+                  <Input value={supplierForm.address_neighborhood} onChange={(e) => setSupplierForm({ ...supplierForm, address_neighborhood: e.target.value })} placeholder="Bairro" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Complemento</Label>
+                  <Input value={supplierForm.address_complement} onChange={(e) => setSupplierForm({ ...supplierForm, address_complement: e.target.value })} placeholder="Sala, Andar..." />
+                </div>
+              </div>
+              <div className="grid grid-cols-[1fr_80px] gap-3 mt-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Cidade</Label>
+                  <Input value={supplierForm.address_city} onChange={(e) => setSupplierForm({ ...supplierForm, address_city: e.target.value })} placeholder="Cidade" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">UF</Label>
+                  <Input value={supplierForm.address_state} onChange={(e) => setSupplierForm({ ...supplierForm, address_state: e.target.value.toUpperCase().slice(0, 2) })} placeholder="UF" className="uppercase" />
+                </div>
+              </div>
+              <div className="space-y-2 mt-3">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">CEP</Label>
+                <Input value={supplierForm.address_zip} onChange={(e) => setSupplierForm({ ...supplierForm, address_zip: e.target.value })} placeholder="00000-000" className="max-w-[200px]" />
+              </div>
+            </div>
+
+            <div className="border-t border-border/20 pt-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Dados Complementares</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Dados PIX</Label>
+                  <Input value={supplierForm.pix_details} onChange={(e) => setSupplierForm({ ...supplierForm, pix_details: e.target.value })} placeholder="Chave PIX" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Instagram</Label>
+                  <Input value={supplierForm.instagram} onChange={(e) => setSupplierForm({ ...supplierForm, instagram: e.target.value })} placeholder="@usuario" />
+                </div>
+              </div>
+              <div className="space-y-2 mt-3">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Observações</Label>
+                <textarea value={supplierForm.notes} onChange={(e) => setSupplierForm({ ...supplierForm, notes: e.target.value })} placeholder="Notas sobre o fornecedor..." className="w-full h-20 rounded-lg border border-border/40 bg-secondary/50 px-3 py-2 text-sm resize-none" />
+              </div>
+            </div>
           </div>
-          <DialogFooter>
+          <div className="flex justify-end gap-3 pt-4 border-t border-border/20">
             <Button variant="ghost" onClick={() => setSupplierDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => createSupplierMutation.mutate()} disabled={!supplierForm.company_name.trim()}>Salvar</Button>
-          </DialogFooter>
+            <Button onClick={() => createSupplierMutation.mutate()} disabled={!supplierForm.company_name.trim()} className="bg-gradient-gold hover:opacity-90 text-white font-bold">Gravar</Button>
+          </div>
         </DialogContent>
       </Dialog>
 

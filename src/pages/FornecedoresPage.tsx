@@ -16,14 +16,12 @@ export default function FornecedoresPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
-  const [form, setForm] = useState({
-    company_name: '',
-    cpf_cnpj: '',
-    address: '',
-    phone: '',
-    pix_details: '',
-    instagram: ''
-  });
+  const emptyForm = {
+    company_name: '', cpf_cnpj: '', person_type: 'juridica', birth_date: '', ie: '', im: '', suframa: '',
+    address_street: '', address_number: '', address_complement: '', address_neighborhood: '', address_city: '', address_state: '', address_zip: '',
+    phone: '', email: '', pix_details: '', instagram: '', notes: ''
+  };
+  const [form, setForm] = useState(emptyForm);
 
   const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ['suppliers'],
@@ -79,7 +77,7 @@ export default function FornecedoresPage() {
     onError: (e: any) => toast({ title: 'Erro ao excluir fornecedor', description: e?.message || 'Verifique vínculos existentes.', variant: 'destructive' })
   });
 
-  const resetForm = () => setForm({ company_name: '', cpf_cnpj: '', address: '', phone: '', pix_details: '', instagram: '' });
+  const resetForm = () => setForm({ ...emptyForm });
 
   const filtered = useMemo(() => {
     return suppliers
@@ -262,47 +260,114 @@ export default function FornecedoresPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-white border-border/40 text-foreground max-w-md max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">
+        <DialogContent className="bg-white border-border/40 text-foreground max-w-2xl max-h-[90vh] rounded-[32px] p-0 overflow-hidden shadow-2xl font-body flex flex-col">
           <div className="bg-gradient-gold p-10 text-white relative">
             <DialogHeader>
-              <DialogTitle className="text-3xl font-display text-white tracking-tight">Cadastro de Parceiro</DialogTitle>
+              <DialogTitle className="text-3xl font-display text-white tracking-tight">{editingSupplier ? 'Editar Pessoa' : 'Nova Pessoa'}</DialogTitle>
               <p className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Ecossistema Operacional David Melo</p>
             </DialogHeader>
           </div>
           <div className="p-6 md:p-10 space-y-6 overflow-y-auto min-h-0">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Razão Social / Nome</Label>
-                <Input value={form.company_name} onChange={e => setForm({...form, company_name: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CPF/CNPJ</Label>
+                  <Input value={form.cpf_cnpj} onChange={e => setForm({...form, cpf_cnpj: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nome *</Label>
+                  <Input value={form.company_name} onChange={e => setForm({...form, company_name: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Contato (WhatsApp)</Label>
-                <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" />
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tipo de Pessoa</Label>
+                  <select value={form.person_type} onChange={e => setForm({...form, person_type: e.target.value})} className="h-12 w-full rounded-xl border border-border/10 bg-secondary/20 px-3 font-bold text-sm focus:border-gold">
+                    <option value="juridica">Jurídica</option>
+                    <option value="fisica">Física</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Inscrição Estadual</Label>
+                  <Input value={form.ie} onChange={e => setForm({...form, ie: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="IE" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Inscrição Municipal</Label>
+                  <Input value={form.im} onChange={e => setForm({...form, im: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="IM" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CNPJ / CPF</Label>
-                <Input value={form.cpf_cnpj} onChange={e => setForm({...form, cpf_cnpj: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Telefone</Label>
+                  <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="(00) 00000-0000" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">E-mail</Label>
+                  <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="email@exemplo.com" type="email" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Endereço</Label>
-                <Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Rua, número, bairro, cidade/UF" />
+
+              <div className="border-t border-border/10 pt-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Endereço</p>
+                <div className="grid grid-cols-[1fr_80px] gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Logradouro</Label>
+                    <Input value={form.address_street} onChange={e => setForm({...form, address_street: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Rua, Avenida..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nº</Label>
+                    <Input value={form.address_number} onChange={e => setForm({...form, address_number: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Nº" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Bairro</Label>
+                    <Input value={form.address_neighborhood} onChange={e => setForm({...form, address_neighborhood: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Bairro" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Complemento</Label>
+                    <Input value={form.address_complement} onChange={e => setForm({...form, address_complement: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Sala, Andar..." />
+                  </div>
+                </div>
+                <div className="grid grid-cols-[1fr_80px] gap-3 mt-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Cidade</Label>
+                    <Input value={form.address_city} onChange={e => setForm({...form, address_city: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Cidade" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">UF</Label>
+                    <Input value={form.address_state} onChange={e => setForm({...form, address_state: e.target.value.toUpperCase().slice(0, 2)})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold uppercase" placeholder="UF" />
+                  </div>
+                </div>
+                <div className="space-y-2 mt-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CEP</Label>
+                  <Input value={form.address_zip} onChange={e => setForm({...form, address_zip: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold max-w-[200px]" placeholder="00000-000" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Identificador Instagram</Label>
-                <Input value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Dados de Faturamento (PIX)</Label>
-                <textarea 
-                  value={form.pix_details} 
-                  onChange={e => setForm({...form, pix_details: e.target.value})} 
-                  className="w-full h-24 bg-secondary/20 border border-border/10 focus:border-gold rounded-xl font-bold p-4 text-sm" 
-                />
+
+              <div className="border-t border-border/10 pt-4">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Dados Complementares</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Dados PIX</Label>
+                    <Input value={form.pix_details} onChange={e => setForm({...form, pix_details: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="Chave PIX" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Instagram</Label>
+                    <Input value={form.instagram} onChange={e => setForm({...form, instagram: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="@usuario" />
+                  </div>
+                </div>
+                <div className="space-y-2 mt-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Observações</Label>
+                  <textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} className="w-full h-24 bg-secondary/20 border border-border/10 focus:border-gold rounded-xl font-bold p-4 text-sm resize-none" placeholder="Notas sobre o fornecedor..." />
+                </div>
               </div>
             </div>
             <div className="flex justify-between items-center pt-6 border-t border-border/10 gap-4">
               <Button variant="ghost" onClick={() => setDialogOpen(false)} className="text-[10px] font-black uppercase tracking-widest">Cancelar</Button>
-              <Button onClick={() => saveMutation.mutate()} className="bg-gradient-gold text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">Finalizar Cadastro</Button>
+              <Button onClick={() => saveMutation.mutate()} className="bg-gradient-gold text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">Gravar</Button>
             </div>
           </div>
         </DialogContent>
