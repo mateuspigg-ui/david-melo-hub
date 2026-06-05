@@ -45,18 +45,6 @@ const PAYMENT_METHOD_BADGE: Record<string, string> = {
   transferencia: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
-type UnlinkedInstallment = {
-  id: string;
-  payment_id: string;
-  installment_number: number;
-  due_date: string;
-  amount: number;
-  paid_at: string | null;
-  payment_method: string | null;
-  client_name: string;
-  event_name: string;
-  selected_bank_account: string | null;
-};
 
 export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
   const qc = useQueryClient();
