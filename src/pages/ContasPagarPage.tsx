@@ -13,6 +13,8 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
 import { PaymentReceiptDialog } from "@/components/PaymentReceiptDialog";
 import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import logoImg from "@/assets/logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 import { ptBR } from "date-fns/locale";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
 
@@ -122,6 +124,7 @@ type Installment = { id: number; due_date: string; amount: string; description: 
 
 export default function ContasPagarPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [companyFilter, setCompanyFilter] = useState("all");
@@ -709,11 +712,9 @@ export default function ContasPagarPage() {
     onError: (e: any) => toast({ title: "Erro ao cadastrar centro de custo", description: e?.message || "Não foi possível cadastrar centro de custo.", variant: "destructive" }),
   });
 
-  const handlePrintPayable = (item: AccountPayable) => {
+  const handlePrintPayable = async (item: AccountPayable) => {
     const supplierName = item.suppliers?.company_name || "Sem fornecedor";
     const supplierDoc = item.suppliers?.cpf_cnpj || "-";
-    const supplierAddress = item.suppliers?.address || "-";
-    const supplierPhone = item.suppliers?.phone || "-";
     const categoryName = item.accounts_payable_categories?.name || "Sem categoria";
     const costCenterName = item.accounts_payable_cost_centers?.name || "Sem centro de custo";
     const dueDate = item.due_date ? format(new Date(`${item.due_date}T12:00:00`), "dd/MM/yyyy") : "-";
@@ -721,6 +722,29 @@ export default function ContasPagarPage() {
     const issuedAt = format(new Date(), "dd/MM/yyyy HH:mm:ss");
     const titleNumber = String(item.id || "").slice(0, 8).toUpperCase();
     const observations = item.description || "Sem observacoes.";
+
+    let company: any = null;
+    if (item.company_id) {
+      const { data } = await supabase.from("companies" as any)
+        .select("trade_name, legal_name, cnpj, ie, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip, phone")
+        .eq("id", item.company_id)
+        .single();
+      company = data;
+    }
+
+    const companyName = company?.trade_name || company?.legal_name || "David Melo Decoracao & Eventos";
+    const companyCnpj = company?.cnpj || "";
+    const companyIe = company?.ie || "";
+    const companyPhone = company?.phone || "";
+    const companyAddressParts = [
+      company?.address_street,
+      company?.address_number,
+      company?.address_complement,
+    ].filter(Boolean).join(", ");
+    const companyNeighborhood = company?.address_neighborhood || "";
+    const companyCity = company?.address_city || "";
+    const companyState = company?.address_state || "";
+    const companyZip = company?.address_zip || "";
 
     const printWindow = window.open("", "_blank", "width=980,height=720");
     if (!printWindow) {
@@ -737,7 +761,13 @@ export default function ContasPagarPage() {
           <style>
             body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
             .block { border: 2px solid #222; padding: 14px; margin-bottom: 16px; }
-            .header { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; }
+            .company-header { display: flex; align-items: flex-start; gap: 12px; border-bottom: 1px solid #999; padding-bottom: 10px; margin-bottom: 12px; }
+            .company-logo { width: 50px; height: 50px; object-fit: contain; }
+            .company-info { flex: 1; font-size: 12px; line-height: 1.6; }
+            .company-info .name { font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 2px; }
+            .company-info .detail { color: #333; }
+            .company-info .detail strong { color: #111; }
+            .company-right { text-align: right; font-size: 11px; color: #555; }
             .title { text-align: center; font-size: 40px; margin: 20px 0 24px; }
             .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
             .label { font-weight: 700; }
@@ -746,12 +776,21 @@ export default function ContasPagarPage() {
           </style>
         </head>
         <body>
-          <div class="block header">
-            <div><span class="label">EMPRESA/PESSOA:</span> ${supplierName}</div>
-            <div><span class="label">EMITIDO EM:</span> ${issuedAt}</div>
-            <div><span class="label">CPF/CNPJ:</span> ${supplierDoc}</div>
-            <div><span class="label">TELEFONE:</span> ${supplierPhone}</div>
-            <div style="grid-column: 1 / -1;"><span class="label">ENDERECO:</span> ${supplierAddress}</div>
+          <div class="block">
+            <div class="company-header">
+              <img src="${logoImg}" alt="${companyName}" class="company-logo" />
+              <div class="company-info">
+                <div class="name">Empresa: ${companyName}</div>
+                ${companyCnpj ? `<div class="detail"><strong>CNPJ:</strong> ${companyCnpj}${companyIe ? `&nbsp;&nbsp;&nbsp;&nbsp;<strong>IE:</strong> ${companyIe}` : ""}</div>` : ""}
+                ${companyAddressParts ? `<div class="detail"><strong>Logradouro:</strong> ${companyAddressParts}</div>` : ""}
+                ${companyNeighborhood || companyCity ? `<div class="detail"><strong>Bairro:</strong> ${companyNeighborhood || "-"}&nbsp;&nbsp;&nbsp;&nbsp;<strong>Cidade:</strong> ${companyCity}${companyState ? ` / ${companyState}` : ""}</div>` : ""}
+                ${companyZip || companyPhone ? `<div class="detail">${companyZip ? `<strong>CEP:</strong> ${companyZip}` : ""}${companyZip && companyPhone ? "&nbsp;&nbsp;&nbsp;&nbsp;" : ""}${companyPhone ? `<strong>Telefone:</strong> ${companyPhone}` : ""}</div>` : ""}
+              </div>
+              <div class="company-right">
+                <div>${user?.email || ""}</div>
+                <div>${issuedAt}</div>
+              </div>
+            </div>
           </div>
 
           <div class="title">Lancamento</div>
@@ -766,7 +805,10 @@ export default function ContasPagarPage() {
               <div><span class="label">Pessoa:</span> ${supplierName}</div>
               <div><span class="label">Data vencimento:</span> ${dueDate}</div>
             </div>
-            <div style="margin-top: 8px;"><span class="label">Categoria / Centro de Custo:</span> ${categoryName} / ${costCenterName}</div>
+            <div class="row">
+              <div><span class="label">CPF/CNPJ:</span> ${supplierDoc}</div>
+              <div><span class="label">Categoria / Centro de Custo:</span> ${categoryName} / ${costCenterName}</div>
+            </div>
             <div style="margin-top: 8px;"><span class="label">Valor do titulo:</span> ${currencyFmt(Number(item.amount || 0))}</div>
           </div>
 
