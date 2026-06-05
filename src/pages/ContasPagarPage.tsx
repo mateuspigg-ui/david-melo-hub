@@ -180,6 +180,7 @@ export default function ContasPagarPage() {
   });
 
   const [installments, setInstallments] = useState<Installment[]>([]);
+  const [formPaidAmount, setFormPaidAmount] = useState("");
 
   const generateInstallments = useCallback(() => {
     const parsedAmount = parseCurrencyInput(form.amount);
@@ -499,12 +500,37 @@ export default function ContasPagarPage() {
         throw lastError;
       }
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["accounts_payable"] });
-      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["accounts_payable"] });
+      await qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      const hasPaid = formPaidAmount && parseCurrencyInput(formPaidAmount) > 0;
+      if (hasPaid && form.expense_type === "single") {
+        const { data: latestItems } = await qc.fetchQuery<any[]>({
+          queryKey: ["accounts_payable"],
+          staleTime: 0,
+        });
+        const newest = latestItems?.[0];
+        if (newest) {
+          setEditingItem(newest);
+          setPaymentBankAccount("");
+          setPaymentMethod("pix");
+          setPaymentPaidAmount(maskCurrencyInput(formPaidAmount));
+          setPaymentDiscount("");
+          setPaymentInterest("");
+          setPaymentFine("");
+          setPaymentDocumentNumber("");
+          setModalTab("baixa");
+          setFormPaidAmount("");
+          setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
+          setInstallments([]);
+          toast({ title: "Conta criada. Preencha os dados da baixa." });
+          return;
+        }
+      }
       setDialogOpen(false);
       setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
       setInstallments([]);
+      setFormPaidAmount("");
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -1536,6 +1562,20 @@ export default function ContasPagarPage() {
                       value={form.amount}
                       onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })}
                       className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-gold text-lg pl-12 transition-all hover:border-gold/40"
+                      placeholder="0,00"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Valor Pago</Label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-sm">R$</span>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={formPaidAmount}
+                      onChange={(e) => setFormPaidAmount(maskCurrencyInput(e.target.value))}
+                      className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-emerald-600 text-lg pl-12 transition-all hover:border-gold/40"
                       placeholder="0,00"
                     />
                   </div>
