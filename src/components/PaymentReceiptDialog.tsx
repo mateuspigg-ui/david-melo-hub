@@ -205,9 +205,26 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
     }
   })();
 
+  const fallbackCompany: CompanyInfo = {
+    id: "",
+    trade_name: "David Melo Produções",
+    legal_name: null,
+    cnpj: null,
+    address_street: null,
+    address_number: null,
+    address_complement: null,
+    address_neighborhood: null,
+    address_city: "Salvador",
+    address_state: "BA",
+    address_zip: null,
+    phone: null,
+    ie: null,
+  };
+
+  const companyForReceipt = selectedCompany || fallbackCompany;
+
   const handlePrint = () => {
-    if (!selectedCompany) return;
-    const html = getReceiptHtml(data, selectedCompany);
+    const html = getReceiptHtml(data, companyForReceipt);
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.write(html);
@@ -243,24 +260,22 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
           </div>
 
           <div className="bg-white border border-border/30 rounded-xl p-5 space-y-3 text-xs">
-            {selectedCompany && (
-              <div className="flex items-start gap-3 border-b border-border/20 pb-3">
-                <img src={logoImg} alt="Logo" className="w-10 h-10 object-contain" />
-                <div>
-                  <p className="font-bold uppercase tracking-wider">{selectedCompany.trade_name || selectedCompany.legal_name || "—"}</p>
-                  {selectedCompany.cnpj && <p className="text-muted-foreground">CNPJ: {selectedCompany.cnpj}</p>}
-                  {selectedCompany.ie && <p className="text-muted-foreground">IE: {selectedCompany.ie}</p>}
-                  {formatCompanyAddress(selectedCompany) && <p className="text-muted-foreground">{formatCompanyAddress(selectedCompany)}</p>}
-                  {selectedCompany.phone && <p className="text-muted-foreground">Tel: {selectedCompany.phone}</p>}
-                </div>
+            <div className="flex items-start gap-3 border-b border-border/20 pb-3">
+              <img src={logoImg} alt="Logo" className="w-10 h-10 object-contain" />
+              <div>
+                <p className="font-bold uppercase tracking-wider">{companyForReceipt.trade_name || companyForReceipt.legal_name || "—"}</p>
+                {companyForReceipt.cnpj && <p className="text-muted-foreground">CNPJ: {companyForReceipt.cnpj}</p>}
+                {companyForReceipt.ie && <p className="text-muted-foreground">IE: {companyForReceipt.ie}</p>}
+                {formatCompanyAddress(companyForReceipt) && <p className="text-muted-foreground">{formatCompanyAddress(companyForReceipt)}</p>}
+                {companyForReceipt.phone && <p className="text-muted-foreground">Tel: {companyForReceipt.phone}</p>}
               </div>
-            )}
+            </div>
 
             <p className="text-center font-black text-sm uppercase tracking-[0.3em] my-4">Recibo</p>
 
             <p className="leading-relaxed text-muted-foreground">
-              Recebi(emos) de <span className="font-bold text-foreground">{selectedCompany?.trade_name || selectedCompany?.legal_name || "—"}</span>
-              {selectedCompany?.cnpj && <>, inscrito sob o CNPJ n&ordm; <span className="font-bold text-foreground">{selectedCompany.cnpj}</span></>}
+              Recebi(emos) de <span className="font-bold text-foreground">{companyForReceipt.trade_name || companyForReceipt.legal_name || "—"}</span>
+              {companyForReceipt.cnpj && <>, inscrito sob o CNPJ n&ordm; <span className="font-bold text-foreground">{companyForReceipt.cnpj}</span></>}
               {" "}a importancia de{" "}
               <span className="font-bold text-foreground">{currencyFmt(data.paidAmount)}</span>,
               referente a <span className="font-bold text-foreground">{data.description}</span>,
@@ -269,13 +284,13 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
             </p>
 
             <p className="text-right text-muted-foreground mt-6">
-              {selectedCompany?.address_city || "Salvador"} ({selectedCompany?.address_state || "BA"}), {format(new Date(), "dd/MM/yyyy")}.
+              {companyForReceipt.address_city || "Salvador"} ({companyForReceipt.address_state || "BA"}), {format(new Date(), "dd/MM/yyyy")}.
             </p>
 
             <div className="flex justify-center pt-10">
               <div className="text-center w-72">
                 <div className="border-t border-foreground/40 mb-2" />
-                <p className="text-[10px] font-bold uppercase">{data.supplierName || selectedCompany?.trade_name || "—"}</p>
+                <p className="text-[10px] font-bold uppercase">{data.supplierName || companyForReceipt.trade_name || "—"}</p>
                 {data.supplierCpfCnpj && <p className="text-[9px] text-muted-foreground">CPF/CNPJ: {data.supplierCpfCnpj}</p>}
               </div>
             </div>
