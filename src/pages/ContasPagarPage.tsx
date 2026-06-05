@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
+import { Plus, Search, Receipt, MoreVertical, Paperclip, Upload, FileText, Trash2, Download } from "lucide-react";
 import { PaymentReceiptDialog } from "@/components/PaymentReceiptDialog";
 import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import logoImg from "@/assets/logo.png";
@@ -616,19 +616,16 @@ export default function ContasPagarPage() {
   });
 
   const handleExportPayablesCsv = () => {
-    const header = ["fornecedor", "documento", "descricao", "categoria", "centro_de_custo", "vencimento", "valor", "status"];
+    const header = ["Pessoa", "N.º Documento", "Status", "Vencimento", "Valor"];
     const rows = filtered.map((item) => [
       item.suppliers?.company_name || "",
-      item.suppliers?.cpf_cnpj || "",
-      item.description || "",
-      item.accounts_payable_categories?.name || "",
-      item.accounts_payable_cost_centers?.name || "",
+      item.document_number || item.suppliers?.cpf_cnpj || "",
+      isAccountPartial(item.payment_status) ? "Pago Parcial" : isAccountPaid(item.payment_status, item.paid_at) ? "Pago" : getDaysOverdue(item.due_date) > 0 ? "Vencido" : "Pendente",
       item.due_date || "",
-      Number(item.amount || 0).toFixed(2),
-      isAccountPaid(item.payment_status, item.paid_at) ? "pago" : "nao_pago",
+      Number(item.amount || 0).toFixed(2).replace(".", ","),
     ]);
-    const csv = [header, ...rows].map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const csv = [header, ...rows].map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -637,6 +634,145 @@ export default function ContasPagarPage() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportPayablesPdf = async () => {
+    let company: any = null;
+    if (companyFilter !== "all" && companyFilter) {
+      const { data } = await supabase.from("companies" as any)
+        .select("trade_name, legal_name, cnpj, ie, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip, phone")
+        .eq("id", companyFilter)
+        .single();
+      company = data;
+    }
+
+    const companyName = company?.trade_name || company?.legal_name || "David Melo Produções";
+    const companyCnpj = company?.cnpj || "";
+    const companyIe = company?.ie || "";
+    const companyPhone = company?.phone || "";
+    const companyAddressParts = [company?.address_street, company?.address_number, company?.address_complement].filter(Boolean).join(", ");
+    const companyNeighborhood = company?.address_neighborhood || "";
+    const companyCity = company?.address_city || "";
+    const companyState = company?.address_state || "";
+    const companyZip = company?.address_zip || "";
+    const showCompanyHeader = !!company;
+
+    const issuedAt = format(new Date(), "dd/MM/yyyy HH:mm:ss");
+    const userEmail = user?.email || "";
+
+    const dateRange = dateFrom && dateTo
+      ? `Período de Vencimento: ${dateFrom.split("-").reverse().join("/")} até ${dateTo.split("-").reverse().join("/")}`
+      : dateFrom
+        ? `A partir de: ${dateFrom.split("-").reverse().join("/")}`
+        : dateTo
+          ? `Até: ${dateTo.split("-").reverse().join("/")}`
+          : "Todos os vencimentos";
+
+    const rows = filtered.map((item) => {
+      const status = isAccountPartial(item.payment_status) ? "Pago Parcial"
+        : isAccountPaid(item.payment_status, item.paid_at) ? "Pago"
+        : getDaysOverdue(item.due_date) > 0 ? "Vencido" : "Pendente";
+      return `<tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:11px;">${item.suppliers?.company_name || ""}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:11px;">${item.document_number || item.suppliers?.cpf_cnpj || ""}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:11px;font-weight:700;color:${status === "Vencido" ? "#dc2626" : status === "Pago Parcial" ? "#d97706" : status === "Pago" ? "#16a34a" : "#555"};">${status}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:11px;">${item.due_date ? format(new Date(item.due_date + "T12:00:00"), "dd/MM/yyyy") : ""}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e5e5;font-size:11px;text-align:right;font-weight:600;">${currencyFmt(Number(item.amount || 0))}</td>
+      </tr>`;
+    }).join("");
+
+    const totalValue = filtered.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contas a Pagar</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', Arial, sans-serif; color: #1a1a1a; background: #fff; }
+    .page { padding: 20mm 18mm; }
+
+    .company-header { display: flex; align-items: flex-start; gap: 12px; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 16px; }
+    .company-logo { width: 50px; height: 50px; object-fit: contain; }
+    .company-info { flex: 1; font-size: 11px; line-height: 1.6; }
+    .company-info .name { font-weight: 800; text-transform: uppercase; font-size: 12px; margin-bottom: 2px; }
+    .company-right { text-align: right; font-size: 10px; color: #555; }
+
+    .simple-header { display: flex; align-items: center; gap: 12px; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 16px; }
+    .simple-header .name { font-weight: 800; text-transform: uppercase; font-size: 13px; }
+
+    h1 { font-size: 22px; font-weight: 800; margin: 16px 0 12px; }
+    .period { font-size: 11px; background: #f5f5f5; padding: 6px 10px; border-radius: 4px; margin-bottom: 12px; font-weight: 600; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 6px 8px; text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 2px solid #1a1a1a; color: #555; }
+    th:last-child { text-align: right; }
+
+    .total-row td { padding: 8px; font-weight: 800; border-top: 2px solid #1a1a1a; font-size: 12px; }
+
+    @media print { body { margin: 0; } .page { padding: 15mm; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    ${showCompanyHeader ? `
+    <div class="company-header">
+      <img src="${logoImg}" alt="${companyName}" class="company-logo" />
+      <div class="company-info">
+        <div class="name">Empresa: ${companyName}</div>
+        ${companyCnpj ? `<div><strong>CNPJ:</strong> ${companyCnpj}${companyIe ? `&nbsp;&nbsp;&nbsp;&nbsp;<strong>IE:</strong> ${companyIe}` : ""}</div>` : ""}
+        ${companyAddressParts ? `<div><strong>Logradouro:</strong> ${companyAddressParts}</div>` : ""}
+        ${companyNeighborhood || companyCity ? `<div><strong>Bairro:</strong> ${companyNeighborhood || "-"}&nbsp;&nbsp;&nbsp;&nbsp;<strong>Cidade:</strong> ${companyCity}${companyState ? ` / ${companyState}` : ""}</div>` : ""}
+        ${companyZip || companyPhone ? `<div>${companyZip ? `<strong>CEP:</strong> ${companyZip}` : ""}${companyZip && companyPhone ? "&nbsp;&nbsp;&nbsp;&nbsp;" : ""}${companyPhone ? `<strong>Telefone:</strong> ${companyPhone}` : ""}</div>` : ""}
+      </div>
+      <div class="company-right">
+        <div>${userEmail}</div>
+        <div>${issuedAt}</div>
+      </div>
+    </div>
+    ` : `
+    <div class="simple-header">
+      <img src="${logoImg}" alt="David Melo" class="company-logo" />
+      <div class="name">David Melo Produções</div>
+      <div class="company-right" style="margin-left:auto;">
+        <div>${userEmail}</div>
+        <div>${issuedAt}</div>
+      </div>
+    </div>
+    `}
+
+    <h1>Contas a Pagar:</h1>
+    <div class="period">${dateRange}</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Pessoa</th>
+          <th>N.º Documento</th>
+          <th>Status</th>
+          <th>Vencimento</th>
+          <th>Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="total-row">
+          <td colspan="4" style="text-align:right;">Total:</td>
+          <td style="text-align:right;">${currencyFmt(totalValue)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank", "width=980,height=720");
+    if (!printWindow) return;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 400);
   };
 
   const createSupplierMutation = useMutation({
@@ -1055,9 +1191,26 @@ export default function ContasPagarPage() {
           </div>
           <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Controle de Despesas</p>
         </div>
-        <Button onClick={() => { setEditingItem(null); setModalTab("dados"); setDialogOpen(true); }} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">
-          <Plus className="w-4 h-4 mr-2" /> Programar Despesa
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => { setEditingItem(null); setModalTab("dados"); setDialogOpen(true); }} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">
+            <Plus className="w-4 h-4 mr-2" /> Programar Despesa
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-12 px-6 rounded-xl border-border/40 font-bold uppercase text-[11px] tracking-widest hover:bg-secondary/60">
+                <Download className="w-4 h-4 mr-2" /> Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={handleExportPayablesCsv}>
+                <FileText className="w-4 h-4 mr-2" /> Exportar CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPayablesPdf}>
+                <FileText className="w-4 h-4 mr-2" /> Exportar PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* KPIs */}
