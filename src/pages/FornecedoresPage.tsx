@@ -276,8 +276,8 @@ export default function FornecedoresPage() {
                   <Input
                     value={form.cpf_cnpj}
                     onChange={e => setForm({...form, cpf_cnpj: e.target.value})}
-                    onBlur={async () => {
-                      const digits = form.cpf_cnpj.replace(/\D/g, "");
+                    onBlur={async (e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
                       if (digits.length === 14) {
                         const data = await fetchCnpj(digits);
                         if (data) {
@@ -296,6 +296,8 @@ export default function FornecedoresPage() {
                             ie: prev.ie || data.inscricao_estadual || "",
                           }));
                           toast({ title: "Dados do CNPJ carregados", style: { backgroundColor: '#C5A059', color: '#fff' } });
+                        } else {
+                          toast({ title: "CNPJ nao encontrado", variant: "destructive" });
                         }
                       }
                     }}

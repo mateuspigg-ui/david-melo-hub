@@ -2120,10 +2120,12 @@ export default function ContasPagarPage() {
                 <Input
                   value={supplierForm.cpf_cnpj}
                   onChange={(e) => setSupplierForm({ ...supplierForm, cpf_cnpj: e.target.value })}
-                  onBlur={async () => {
-                    const digits = supplierForm.cpf_cnpj.replace(/\D/g, "");
+                  onBlur={async (e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    console.log("[CNPJ onBlur] digits:", digits, "length:", digits.length);
                     if (digits.length === 14) {
                       const data = await fetchCnpj(digits);
+                      console.log("[CNPJ onBlur] data:", data);
                       if (data) {
                         setSupplierForm((prev) => ({
                           ...prev,
@@ -2140,6 +2142,8 @@ export default function ContasPagarPage() {
                           ie: prev.ie || data.inscricao_estadual || "",
                         }));
                         toast({ title: "Dados do CNPJ carregados" });
+                      } else {
+                        toast({ title: "CNPJ nao encontrado", variant: "destructive" });
                       }
                     }
                   }}
