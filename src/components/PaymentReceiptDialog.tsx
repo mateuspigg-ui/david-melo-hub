@@ -175,10 +175,10 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
   useEffect(() => {
     if (open) {
       setLoading(true);
-      supabase.from("companies" as any)
+      (supabase.from("companies" as any)
         .select("id, trade_name, legal_name, cnpj, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip, phone, ie")
-        .order("trade_name")
-        .then(({ data: comps }) => {
+        .order("trade_name") as any)
+        .then(({ data: comps }: any) => {
           setCompanies((comps as any) || []);
           if (data?.companyId) {
             setSelectedCompanyId(data.companyId);
