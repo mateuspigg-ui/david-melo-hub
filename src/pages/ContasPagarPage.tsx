@@ -148,6 +148,7 @@ export default function ContasPagarPage() {
   const attachmentSearchRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+  const [inlinePaidMap, setInlinePaidMap] = useState<Record<string, string>>({});
   const cancelUploadRef = useRef(false);
   const progressTimersRef = useRef<Record<string, any>>({});
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -180,7 +181,6 @@ export default function ContasPagarPage() {
   });
 
   const [installments, setInstallments] = useState<Installment[]>([]);
-  const [formPaidAmount, setFormPaidAmount] = useState("");
 
   const generateInstallments = useCallback(() => {
     const parsedAmount = parseCurrencyInput(form.amount);
@@ -500,37 +500,12 @@ export default function ContasPagarPage() {
         throw lastError;
       }
     },
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["accounts_payable"] });
-      await qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
-      const hasPaid = formPaidAmount && parseCurrencyInput(formPaidAmount) > 0;
-      if (hasPaid && form.expense_type === "single") {
-        const { data: latestItems } = await qc.fetchQuery<any[]>({
-          queryKey: ["accounts_payable"],
-          staleTime: 0,
-        });
-        const newest = latestItems?.[0];
-        if (newest) {
-          setEditingItem(newest);
-          setPaymentBankAccount("");
-          setPaymentMethod("pix");
-          setPaymentPaidAmount(maskCurrencyInput(formPaidAmount));
-          setPaymentDiscount("");
-          setPaymentInterest("");
-          setPaymentFine("");
-          setPaymentDocumentNumber("");
-          setModalTab("baixa");
-          setFormPaidAmount("");
-          setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
-          setInstallments([]);
-          toast({ title: "Conta criada. Preencha os dados da baixa." });
-          return;
-        }
-      }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["accounts_payable"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
       setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
       setInstallments([]);
-      setFormPaidAmount("");
       toast({ title: "Conta criada com sucesso" });
     },
     onError: (e: any) => toast({
@@ -1290,6 +1265,37 @@ export default function ContasPagarPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
+                    {!isAccountPaid(item.payment_status, item.paid_at) && !isAccountPartial(item.payment_status) && (
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={inlinePaidMap[item.id] || ""}
+                          onChange={(e) => setInlinePaidMap((prev) => ({ ...prev, [item.id]: maskCurrencyInput(e.target.value) }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const val = parseCurrencyInput(inlinePaidMap[item.id] || "");
+                              if (val > 0) {
+                                setEditingItem(item);
+                                setPaymentBankAccount(item.bank_account_id || "");
+                                setPaymentMethod(item.payment_method || "pix");
+                                setPaymentPaidAmount(maskCurrencyInput(String(val)));
+                                setPaymentDiscount(item.discount != null ? maskCurrencyInput(String(item.discount)) : "");
+                                setPaymentInterest(item.interest != null ? maskCurrencyInput(String(item.interest)) : "");
+                                setPaymentFine(item.fine != null ? maskCurrencyInput(String(item.fine)) : "");
+                                setPaymentDocumentNumber(item.document_number || "");
+                                setModalTab("baixa");
+                                setDialogOpen(true);
+                                setInlinePaidMap((prev) => ({ ...prev, [item.id]: "" }));
+                              }
+                            }
+                          }}
+                          className="h-9 w-28 rounded-lg border-gold/30 bg-white text-xs font-bold text-gold pl-2 pr-6 focus:border-gold focus:ring-gold"
+                          placeholder="R$"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-bold">R$</span>
+                      </div>
+                    )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button size="icon" variant="ghost" className="h-10 w-10 rounded-xl border border-border/30 bg-white hover:bg-secondary/60">
@@ -1562,20 +1568,6 @@ export default function ContasPagarPage() {
                       value={form.amount}
                       onChange={(e) => setForm({ ...form, amount: maskCurrencyInput(e.target.value) })}
                       className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-gold text-lg pl-12 transition-all hover:border-gold/40"
-                      placeholder="0,00"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Valor Pago</Label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-sm">R$</span>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={formPaidAmount}
-                      onChange={(e) => setFormPaidAmount(maskCurrencyInput(e.target.value))}
-                      className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-emerald-600 text-lg pl-12 transition-all hover:border-gold/40"
                       placeholder="0,00"
                     />
                   </div>
