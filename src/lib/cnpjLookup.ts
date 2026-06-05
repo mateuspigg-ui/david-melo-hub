@@ -14,6 +14,26 @@ export type CnpjData = {
   inscricao_estadual?: string;
 };
 
+async function fetchCep(cep: string): Promise<Partial<CnpjData> | null> {
+  const digits = cep.replace(/\D/g, "");
+  if (digits.length !== 8) return null;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.erro) return null;
+    return {
+      logradouro: data.logradouro || "",
+      bairro: data.bairro || "",
+      municipio: data.localidade || "",
+      uf: data.uf || "",
+      cep: data.cep || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchCnpj(cnpj: string): Promise<CnpjData | null> {
   const digits = cnpj.replace(/\D/g, "");
   if (digits.length !== 14) return null;
@@ -24,7 +44,8 @@ export async function fetchCnpj(cnpj: string): Promise<CnpjData | null> {
     if (!res.ok) return null;
     const data = await res.json();
     console.log("[CNPJ Lookup] Dados:", data);
-    return {
+
+    const result: CnpjData = {
       nome: data.razao_social || data.nome || "",
       fantasia: data.fantasia || "",
       cnpj: data.cnpj || digits,
@@ -39,6 +60,20 @@ export async function fetchCnpj(cnpj: string): Promise<CnpjData | null> {
       email: data.email || "",
       inscricao_estadual: data.inscricoes_estaduais?.[0]?.inscricao_estadual || "",
     };
+
+    if (!result.logradouro && result.cep) {
+      console.log("[CNPJ Lookup] Logradouro vazio, buscando CEP:", result.cep);
+      const cepData = await fetchCep(result.cep);
+      if (cepData) {
+        console.log("[CNPJ Lookup] Dados do CEP:", cepData);
+        result.logradouro = cepData.logradouro || "";
+        result.bairro = cepData.bairro || "";
+        result.municipio = cepData.municipio || "";
+        result.uf = cepData.uf || "";
+      }
+    }
+
+    return result;
   } catch {
     return null;
   }
