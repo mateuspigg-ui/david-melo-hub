@@ -60,6 +60,7 @@ const FloralPage = lazyWithRetry(() => import("@/pages/FloralPage"));
 const SelecaoFestaPage = lazyWithRetry(() => import("@/pages/SelecaoFestaPage"));
 const MovimentacoesEstoquePage = lazyWithRetry(() => import("@/pages/MovimentacoesEstoquePage"));
 const RelatoriosEstoquePage = lazyWithRetry(() => import("@/pages/RelatoriosEstoquePage"));
+const LancamentosPage = lazyWithRetry(() => import("@/pages/LancamentosPage"));
 
 const queryClient = new QueryClient();
 
@@ -136,6 +137,7 @@ const App = () => (
                 <Route path="/contas-pagar" element={<ModuleRoute module="financeiro" element={<ContasPagarPage />} />} />
                 <Route path="/recebimentos" element={<ModuleRoute module="financeiro" element={<RecebimentosPage />} />} />
                 <Route path="/notas-fiscais" element={<ModuleRoute module="financeiro" element={<NotasFiscaisPage />} />} />
+                <Route path="/lancamentos" element={<ModuleRoute module="financeiro" element={<LancamentosPage />} />} />
                 <Route path="/equipe" element={<ModuleRoute module="equipe" element={<EquipePage />} />} />
                 <Route path="/almoxarifado" element={<ModuleRoute module="almoxarifado" element={<AlmoxarifadoDashboardPage />} />} />
                 <Route path="/almoxarifado/alimentacao" element={<ModuleRoute module="almoxarifado" element={<AlimentacaoPage />} />} />

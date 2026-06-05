@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Handshake, Calendar, DollarSign,
   UserCog, FileText, Building2, ShoppingBag,
   Landmark, Receipt, ArrowDownUp, ChevronDown, Lock,
-  MessageSquare, Boxes
+  MessageSquare, Boxes, ListChecks
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -53,6 +53,7 @@ const sections: NavSection[] = [
     label: 'Financeiro',
     items: [
       { label: 'Dashboard Financeiro', path: '/financeiro-dashboard', icon: LayoutDashboard, module: 'financeiro' },
+      { label: 'Lançamentos', path: '/lancamentos', icon: ListChecks, module: 'financeiro' },
       { label: 'Calendário Financeiro', path: '/calendario-financeiro', icon: Calendar, module: 'financeiro' },
       { label: 'Fornecedores', path: '/fornecedores', icon: Building2, module: 'fornecedores' },
       { label: 'Empresas', path: '/empresas', icon: Building2, module: 'financeiro' },
