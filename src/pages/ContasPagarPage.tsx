@@ -17,6 +17,7 @@ import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ptBR } from "date-fns/locale";
 import { maskCurrencyInput, parseCurrencyInput, formatCurrencyInput } from "@/lib/currencyInput";
+import { fetchCnpj } from "@/lib/cnpjLookup";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -2116,7 +2117,34 @@ export default function ContasPagarPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">CPF/CNPJ</Label>
-                <Input value={supplierForm.cpf_cnpj} onChange={(e) => setSupplierForm({ ...supplierForm, cpf_cnpj: e.target.value })} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+                <Input
+                  value={supplierForm.cpf_cnpj}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, cpf_cnpj: e.target.value })}
+                  onBlur={async () => {
+                    const digits = supplierForm.cpf_cnpj.replace(/\D/g, "");
+                    if (digits.length === 14) {
+                      const data = await fetchCnpj(digits);
+                      if (data) {
+                        setSupplierForm((prev) => ({
+                          ...prev,
+                          company_name: prev.company_name || data.nome || data.fantasia || "",
+                          address_street: prev.address_street || data.logradouro || "",
+                          address_number: prev.address_number || data.numero || "",
+                          address_complement: prev.address_complement || data.complemento || "",
+                          address_neighborhood: prev.address_neighborhood || data.bairro || "",
+                          address_city: prev.address_city || data.municipio || "",
+                          address_state: prev.address_state || data.uf || "",
+                          address_zip: prev.address_zip || data.cep || "",
+                          phone: prev.phone || data.telefone || "",
+                          email: prev.email || data.email || "",
+                          ie: prev.ie || data.inscricao_estadual || "",
+                        }));
+                        toast({ title: "Dados do CNPJ carregados" });
+                      }
+                    }
+                  }}
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Nome *</Label>

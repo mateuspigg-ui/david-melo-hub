@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { fetchCnpj } from '@/lib/cnpjLookup';
 
 export default function FornecedoresPage() {
   const { toast } = useToast();
@@ -272,7 +273,35 @@ export default function FornecedoresPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">CPF/CNPJ</Label>
-                  <Input value={form.cpf_cnpj} onChange={e => setForm({...form, cpf_cnpj: e.target.value})} className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" placeholder="00.000.000/0000-00 ou 000.000.000-00" />
+                  <Input
+                    value={form.cpf_cnpj}
+                    onChange={e => setForm({...form, cpf_cnpj: e.target.value})}
+                    onBlur={async () => {
+                      const digits = form.cpf_cnpj.replace(/\D/g, "");
+                      if (digits.length === 14) {
+                        const data = await fetchCnpj(digits);
+                        if (data) {
+                          setForm(prev => ({
+                            ...prev,
+                            company_name: prev.company_name || data.nome || data.fantasia || "",
+                            address_street: prev.address_street || data.logradouro || "",
+                            address_number: prev.address_number || data.numero || "",
+                            address_complement: prev.address_complement || data.complemento || "",
+                            address_neighborhood: prev.address_neighborhood || data.bairro || "",
+                            address_city: prev.address_city || data.municipio || "",
+                            address_state: prev.address_state || data.uf || "",
+                            address_zip: prev.address_zip || data.cep || "",
+                            phone: prev.phone || data.telefone || "",
+                            email: prev.email || data.email || "",
+                            ie: prev.ie || data.inscricao_estadual || "",
+                          }));
+                          toast({ title: "Dados do CNPJ carregados", style: { backgroundColor: '#C5A059', color: '#fff' } });
+                        }
+                      }
+                    }}
+                    className="h-12 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold"
+                    placeholder="00.000.000/0000-00 ou 000.000.000-00"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nome *</Label>
