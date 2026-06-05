@@ -197,6 +197,14 @@ export const PaymentReceiptDialog = ({ open, onOpenChange, data }: Props) => {
 
   if (!data) return null;
 
+  const formattedDate = (() => {
+    try {
+      return format(new Date(data.paymentDate + "T12:00:00"), "dd/MM/yyyy");
+    } catch {
+      return data.paymentDate;
+    }
+  })();
+
   const handlePrint = () => {
     if (!selectedCompany) return;
     const html = getReceiptHtml(data, selectedCompany);
