@@ -134,7 +134,7 @@ export default function LancamentosPage() {
         const entryPending = p.has_entry_payment && !p.entry_paid_at && Number(p.entry_amount || 0) > 0;
 
         const totalBaixado = (paidInstallments.reduce((s, i) => s + Number(i.paid_amount ?? i.amount ?? 0), 0))
-          + (entryPaid ? Number(p.entry_paid_amount ?? p.entry_amount ?? 0) : 0);
+          + (entryPaid ? Number((p as any).entry_paid_amount ?? p.entry_amount ?? 0) : 0);
         const totalAberto = (pendingInstallments.reduce((s, i) => s + Number(i.amount || 0), 0))
           + (entryPending ? Number(p.entry_amount || 0) : 0)
           + additionalValue;
