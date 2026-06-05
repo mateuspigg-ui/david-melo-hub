@@ -26,7 +26,7 @@ const safeNum = (v: any): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const PAID_STATUS_VALUES = ["pago", "paid"] as const;
+const PAID_STATUS_VALUES = ["pago", "paid", "pago_parcial", "partial"] as const;
 const PENDING_STATUS_VALUES = ["nao_pago", "pending", "pendente"] as const;
 
 const normalizeStatus = (status: string | null | undefined) => String(status || "").toLowerCase();
@@ -149,6 +149,7 @@ export default function ContasPagarPage() {
   const [supplierForm, setSupplierForm] = useState({ company_name: "", cpf_cnpj: "", address: "", phone: "", pix_details: "", instagram: "" });
   const [paymentBankAccount, setPaymentBankAccount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentPaidAmount, setPaymentPaidAmount] = useState("");
   const [paymentDiscount, setPaymentDiscount] = useState("");
   const [paymentInterest, setPaymentInterest] = useState("");
   const [paymentFine, setPaymentFine] = useState("");
@@ -508,7 +509,7 @@ export default function ContasPagarPage() {
   });
 
   const togglePaidMutation = useMutation({
-    mutationFn: async ({ id, currentStatus, bankAccountId, paymentMethod, discount, interest, fine, paidAmount, documentNumber }: { id: string; currentStatus: string; bankAccountId?: string; paymentMethod?: string; discount?: number; interest?: number; fine?: number; paidAmount?: number; documentNumber?: string }) => {
+    mutationFn: async ({ id, currentStatus, bankAccountId, paymentMethod, discount, interest, fine, paidAmount, documentNumber, totalAmount }: { id: string; currentStatus: string; bankAccountId?: string; paymentMethod?: string; discount?: number; interest?: number; fine?: number; paidAmount?: number; documentNumber?: string; totalAmount?: number }) => {
       const tryUpdate = async (payload: any) => {
         let { error } = await supabase.from("accounts_payable").update(payload).eq("id", id);
         if (error && isMissingBankAccountIdColumnError(error)) {
@@ -530,7 +531,11 @@ export default function ContasPagarPage() {
       }
 
       const paidAt = new Date().toISOString();
-      let error = await tryUpdate({ payment_status: "pago", paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null, discount: discount || 0, interest: interest || 0, fine: fine || 0, paid_amount: paidAmount || null, document_number: documentNumber || null });
+      const effectiveTotal = (totalAmount || 0) - (discount || 0) + (interest || 0) + (fine || 0);
+      const isPartial = paidAmount != null && effectiveTotal > 0 && paidAmount < effectiveTotal;
+      const paymentStatus = isPartial ? "pago_parcial" : "pago";
+
+      let error = await tryUpdate({ payment_status: paymentStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null, discount: discount || 0, interest: interest || 0, fine: fine || 0, paid_amount: paidAmount || null, document_number: documentNumber || null });
       if (!error) return;
       for (const paidStatus of PAID_STATUS_VALUES) {
         error = await tryUpdate({ payment_status: paidStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, payment_method: paymentMethod || null, discount: discount || 0, interest: interest || 0, fine: fine || 0, paid_amount: paidAmount || null, document_number: documentNumber || null });
@@ -542,7 +547,8 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       const isReversal = isAccountPaid(variables.currentStatus);
-      toast({ title: isReversal ? 'Baixa desfeita com sucesso' : 'Conta marcada como paga' });
+      const isPartial = !isReversal && variables.paidAmount != null && (variables.totalAmount || 0) > 0 && variables.paidAmount < variables.totalAmount;
+      toast({ title: isReversal ? 'Baixa desfeita com sucesso' : isPartial ? 'Pagamento parcial registrado' : 'Conta marcada como paga' });
       if (!isReversal && editingItem) {
         const acc = bankAccounts.find((b: any) => b.id === variables.bankAccountId);
         setReceiptData({
@@ -1162,9 +1168,15 @@ export default function ContasPagarPage() {
                                 {bankAccounts.find((b: any) => b.id === item.bank_account_id)?.bank_name || "Conta bancaria"}
                               </span>
                             )}
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gold/10 text-gold">
-                              Baixado
-                            </span>
+                            {normalizeStatus(item.payment_status) === "pago_parcial" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700">
+                                Parcial: {currencyFmt(item.paid_amount || 0)} / {currencyFmt(item.amount || 0)}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gold/10 text-gold">
+                                Baixado
+                              </span>
+                            )}
                           </div>
                         )}
                      </div>
@@ -1230,6 +1242,7 @@ export default function ContasPagarPage() {
                             setEditingItem(item);
                             setPaymentBankAccount(item.bank_account_id || "");
                             setPaymentMethod(item.payment_method || "pix");
+                            setPaymentPaidAmount(item.paid_amount != null ? maskCurrencyInput(String(item.paid_amount)) : "");
                             setPaymentDiscount(item.discount != null ? maskCurrencyInput(String(item.discount)) : "");
                             setPaymentInterest(item.interest != null ? maskCurrencyInput(String(item.interest)) : "");
                             setPaymentFine(item.fine != null ? maskCurrencyInput(String(item.fine)) : "");
@@ -1675,6 +1688,23 @@ export default function ContasPagarPage() {
                       </div>
 
                       <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Valor Pago *</Label>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={paymentPaidAmount}
+                          onChange={(e) => setPaymentPaidAmount(maskCurrencyInput(e.target.value))}
+                          className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-lg text-gold transition-all hover:border-gold/40"
+                          placeholder="0,00"
+                        />
+                        {editingItem && paymentPaidAmount && safeNum(paymentPaidAmount) < safeNum(editingItem.amount) && (
+                          <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">
+                            Pagamento parcial: restante de {currencyFmt(safeNum(editingItem.amount) - safeNum(paymentPaidAmount))}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Forma de Pagamento *</Label>
                         <div className="grid grid-cols-3 gap-3">
                           {[
@@ -1755,9 +1785,11 @@ export default function ContasPagarPage() {
 
                       {editingItem && (
                         <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-widest text-gold">Total liquido da baixa:</span>
-                          <span className="text-xl font-bold text-gold" title={`amount=${JSON.stringify(editingItem.amount)} disc=${JSON.stringify(paymentDiscount)} juros=${JSON.stringify(paymentInterest)} multa=${JSON.stringify(paymentFine)}`}>
-                            {currencyFmt(safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine))}
+                          <span className="text-xs font-bold uppercase tracking-widest text-gold">
+                            {paymentPaidAmount && safeNum(paymentPaidAmount) < safeNum(editingItem.amount) ? "Valor pago:" : "Total liquido da baixa:"}
+                          </span>
+                          <span className="text-xl font-bold text-gold">
+                            {currencyFmt(paymentPaidAmount ? safeNum(paymentPaidAmount) : safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine))}
                           </span>
                         </div>
                       )}
@@ -1771,7 +1803,9 @@ export default function ContasPagarPage() {
                           const discount = safeNum(paymentDiscount);
                           const interest = safeNum(paymentInterest);
                           const fine = safeNum(paymentFine);
-                          const paidAmount = safeNum(editingItem.amount) - discount + interest + fine;
+                          const paidAmount = paymentPaidAmount
+                            ? safeNum(paymentPaidAmount)
+                            : safeNum(editingItem.amount) - discount + interest + fine;
                           togglePaidMutation.mutate({
                             id: editingItem.id,
                             currentStatus: editingItem.payment_status,
@@ -1782,6 +1816,7 @@ export default function ContasPagarPage() {
                             fine,
                             paidAmount,
                             documentNumber: paymentDocumentNumber || undefined,
+                            totalAmount: editingItem.amount || 0,
                           });
                           setDialogOpen(false);
                           setEditingItem(null);
