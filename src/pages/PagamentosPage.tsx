@@ -319,7 +319,7 @@ export default function PagamentosPage() {
             event_id: form.event_id || null,
             additional_value: parseCurrencyInput(form.additional_value) || 0,
             additional_description: form.additional_description || "",
-          });
+          } as any);
         if (error) throw error;
       }
 
