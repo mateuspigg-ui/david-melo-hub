@@ -10,6 +10,11 @@ export const maskCurrencyInput = (value: string) => {
   return amount.toLocaleString('pt-BR', MONEY_LOCALE_OPTIONS);
 };
 
+export const maskCurrencyFromNumber = (value: number | null | undefined) => {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '';
+  return value.toLocaleString('pt-BR', MONEY_LOCALE_OPTIONS);
+};
+
 export const formatCurrencyInput = (value: string | number | null | undefined) => {
   if (value === null || value === undefined || value === '') return '';
   if (typeof value === 'number') {

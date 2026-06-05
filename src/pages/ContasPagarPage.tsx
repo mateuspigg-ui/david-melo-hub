@@ -16,7 +16,7 @@ import { addMonths, differenceInCalendarDays, format, startOfDay, startOfMonth, 
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ptBR } from "date-fns/locale";
-import { maskCurrencyInput, parseCurrencyInput } from "@/lib/currencyInput";
+import { maskCurrencyInput, parseCurrencyInput, formatCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -1279,10 +1279,10 @@ export default function ContasPagarPage() {
                                 setEditingItem(item);
                                 setPaymentBankAccount(item.bank_account_id || "");
                                 setPaymentMethod(item.payment_method || "pix");
-                                setPaymentPaidAmount(maskCurrencyInput(String(val)));
-                                setPaymentDiscount(item.discount != null ? maskCurrencyInput(String(item.discount)) : "");
-                                setPaymentInterest(item.interest != null ? maskCurrencyInput(String(item.interest)) : "");
-                                setPaymentFine(item.fine != null ? maskCurrencyInput(String(item.fine)) : "");
+                                setPaymentPaidAmount(formatCurrencyInput(val));
+                                setPaymentDiscount(item.discount != null ? formatCurrencyInput(item.discount) : "");
+                                setPaymentInterest(item.interest != null ? formatCurrencyInput(item.interest) : "");
+                                setPaymentFine(item.fine != null ? formatCurrencyInput(item.fine) : "");
                                 setPaymentDocumentNumber(item.document_number || "");
                                 setModalTab("baixa");
                                 setDialogOpen(true);
@@ -1307,7 +1307,7 @@ export default function ContasPagarPage() {
                           onClick={() => {
                             setForm({
                               description: item.description || "",
-                              amount: maskCurrencyInput(String(item.amount || "")),
+                              amount: formatCurrencyInput(item.amount || 0),
                               issue_date: (item as any).issue_date || "",
                               due_date: item.due_date || "",
                               supplier_id: item.supplier_id || "",
@@ -1333,12 +1333,12 @@ export default function ContasPagarPage() {
                             setPaymentMethod(item.payment_method || "pix");
                             setPaymentPaidAmount(
                               isAccountPartial(item.payment_status)
-                                ? maskCurrencyInput(String(safeNum(item.amount) - safeNum(item.paid_amount)))
-                                : item.paid_amount != null ? maskCurrencyInput(String(item.paid_amount)) : ""
+                                ? formatCurrencyInput(safeNum(item.amount) - safeNum(item.paid_amount))
+                                : item.paid_amount != null ? formatCurrencyInput(item.paid_amount) : ""
                             );
-                            setPaymentDiscount(item.discount != null ? maskCurrencyInput(String(item.discount)) : "");
-                            setPaymentInterest(item.interest != null ? maskCurrencyInput(String(item.interest)) : "");
-                            setPaymentFine(item.fine != null ? maskCurrencyInput(String(item.fine)) : "");
+                            setPaymentDiscount(item.discount != null ? formatCurrencyInput(item.discount) : "");
+                            setPaymentInterest(item.interest != null ? formatCurrencyInput(item.interest) : "");
+                            setPaymentFine(item.fine != null ? formatCurrencyInput(item.fine) : "");
                             setPaymentDocumentNumber(item.document_number || "");
                             setModalTab("baixa");
                             setDialogOpen(true);
@@ -1351,7 +1351,7 @@ export default function ContasPagarPage() {
                             setForm((prev) => ({
                               ...prev,
                               description: item.description || "",
-                              amount: maskCurrencyInput(String(item.amount || "")),
+                              amount: formatCurrencyInput(item.amount || 0),
                               due_date: item.due_date || "",
                               supplier_id: item.supplier_id || "",
                               company_id: item.company_id || "",
