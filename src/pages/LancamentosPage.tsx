@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, FileSpreadsheet, FileText, Filter, ArrowUpDown, ArrowDownCircle, ArrowUpCircle, Loader2, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import logoImg from "@/assets/logo.png";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -383,6 +384,18 @@ export default function LancamentosPage() {
       const { default: autoTable } = await import("jspdf-autotable");
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
+      // Load logo as base64
+      let logoBase64 = "";
+      try {
+        const resp = await fetch(logoImg);
+        const blob = await resp.blob();
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch {}
+
       const company = getSelectedCompany();
       const now = format(new Date(), "dd/MM/yyyy HH:mm:ss");
       const pageW = doc.internal.pageSize.getWidth();
@@ -393,7 +406,18 @@ export default function LancamentosPage() {
       doc.setLineWidth(0.8);
       doc.line(14, 8, pageW - 14, 8);
 
-      let rightColX = 55;
+      // Logo on the left
+      const logoX = 14;
+      const logoY = 10;
+      const logoW = 35;
+      const logoH = 30;
+      if (logoBase64) {
+        try {
+          doc.addImage(logoBase64, "PNG", logoX, logoY, logoW, logoH);
+        } catch {}
+      }
+
+      const rightColX = logoBase64 ? 55 : 14;
       let y = 14;
 
       if (company) {
