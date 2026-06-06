@@ -69,7 +69,7 @@ export default function LancamentosPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("companies")
-        .select("id, legal_name, trade_name, cnpj")
+        .select("id, legal_name, trade_name, cnpj, ie, address_street, address_number, address_complement, address_neighborhood, address_city, address_state, address_zip, phone")
         .order("trade_name", { ascending: true });
       if (error) {
         if (/could not find the table|schema cache/i.test(String(error?.message || ""))) return [];
@@ -288,19 +288,80 @@ export default function LancamentosPage() {
     return { totalEntradas, totalSaidas, totalBaixado, totalAberto };
   }, [filtered]);
 
+  const getSelectedCompany = () => {
+    if (companyFilter === "all") return null;
+    return (companies as any[]).find((c) => c.id === companyFilter) || null;
+  };
+
+  const buildCompanyAddress = (c: any) => {
+    const parts: string[] = [];
+    if (c.address_street) parts.push(c.address_street);
+    if (c.address_number) parts.push(c.address_number);
+    if (c.address_complement) parts.push(c.address_complement);
+    return parts.join(", ");
+  };
+
+  const buildCompanyBairroCidadeUf = (c: any) => {
+    const bairro = c.address_neighborhood || "";
+    const cidade = c.address_city || "";
+    const uf = c.address_state || "";
+    const bairroStr = bairro ? `BAIRRO: ${bairro}` : "";
+    const cidadeStr = cidade && uf ? `CIDADE: ${cidade} / ${uf}` : cidade ? `CIDADE: ${cidade}` : "";
+    return [bairroStr, cidadeStr].filter(Boolean).join("  |  ");
+  };
+
   const handleExportCsv = () => {
     setIsExporting(true);
     try {
-      const header = ["Tipo", "Cliente/Fornecedor", "Descricao", "Centro de Custo", "N Documento", "Status", "Vencimento", "Valor", "Valor Total", "Baixado", "Em Aberto", "Empresa"];
-      const rows = filtered.map((l) => [
-        l.tipo === "entrada" ? "Entrada" : "Saida",
-        l.cliente_fornecedor, l.descricao, l.centro_custo, l.documento,
-        getStatusLabel(l.status),
-        l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : "",
-        l.valor.toFixed(2), l.valor_total.toFixed(2), l.valor_baixado.toFixed(2), l.valor_aberto.toFixed(2),
-        l.empresa_nome,
-      ]);
-      const csv = [header, ...rows].map((line) => line.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+      const company = getSelectedCompany();
+      const lines: string[] = [];
+      const now = format(new Date(), "dd/MM/yyyy HH:mm:ss");
+
+      if (company) {
+        lines.push(`EMPRESA: ${company.trade_name || company.legal_name || ""}`);
+        if (company.cnpj) lines.push(`CNPJ: ${company.cnpj}`);
+        if (company.ie) lines.push(`IE: ${company.ie}`);
+        const logradouro = buildCompanyAddress(company);
+        if (logradouro) lines.push(`LOGRADOURO: ${logradouro}`);
+        const bairroCidade = buildCompanyBairroCidadeUf(company);
+        if (bairroCidade) lines.push(bairroCidade);
+        if (company.address_zip) lines.push(`CEP: ${company.address_zip}`);
+        if (company.phone) lines.push(`TELEFONE: ${company.phone}`);
+      } else {
+        lines.push("EMPRESA: DAVID MELO PRODUCOES");
+      }
+
+      lines.push("");
+      lines.push("Lancamentos:");
+      const periodoParts: string[] = [];
+      if (dateFrom) periodoParts.push(format(new Date(dateFrom + "T12:00:00"), "dd/MM/yyyy"));
+      if (dateTo) periodoParts.push(format(new Date(dateTo + "T12:00:00"), "dd/MM/yyyy"));
+      if (periodoParts.length === 2) lines.push(`Periodo de Vencimento: ${periodoParts[0]} ate ${periodoParts[1]}`);
+      else if (periodoParts.length === 1) lines.push(`A partir de: ${periodoParts[0]}`);
+      lines.push(`Emitido em: ${now}`);
+      lines.push("");
+      lines.push("David Melo Producoes - ERP For ME");
+      lines.push("");
+
+      const tableHeader = ["Pessoa", "Descricao", "Centro de Custo", "N Documento", "Status", "Vencimento", "Valor total", "Valor baixado", "Valor em aberto"];
+      lines.push(tableHeader.map((c) => `"${c}"`).join(";"));
+
+      for (const l of filtered) {
+        const row = [
+          l.cliente_fornecedor,
+          l.descricao,
+          l.centro_custo,
+          l.documento,
+          getStatusLabel(l.status),
+          l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : "",
+          l.valor_total.toFixed(2).replace(".", ","),
+          l.valor_baixado.toFixed(2).replace(".", ","),
+          l.valor_aberto.toFixed(2).replace(".", ","),
+        ];
+        lines.push(row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"));
+      }
+
+      const csv = lines.join("\n");
       const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -321,29 +382,120 @@ export default function LancamentosPage() {
       const { default: jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-      doc.setFontSize(16);
-      doc.text("Lancamentos Financeiros", 14, 15);
-      doc.setFontSize(9);
-      doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 14, 22);
+
+      const company = getSelectedCompany();
+      const now = format(new Date(), "dd/MM/yyyy HH:mm:ss");
+      const pageW = doc.internal.pageSize.getWidth();
+      const gold: [number, number, number] = [197, 160, 89];
+
+      // Header line
+      doc.setDrawColor(...gold);
+      doc.setLineWidth(0.8);
+      doc.line(14, 8, pageW - 14, 8);
+
+      let rightColX = 55;
+      let y = 14;
+
+      if (company) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60, 60, 60);
+        doc.text(`EMPRESA: ${company.trade_name || company.legal_name || ""}`, rightColX, y);
+
+        y += 6;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        if (company.cnpj) { doc.text(`CNPJ: ${company.cnpj}`, rightColX, y); y += 5; }
+        if (company.ie) { doc.text(`IE: ${company.ie}`, rightColX, y); y += 5; }
+        const logradouro = buildCompanyAddress(company);
+        if (logradouro) { doc.text(`LOGRADOURO: ${logradouro}`, rightColX, y); y += 5; }
+        const bairroCidade = buildCompanyBairroCidadeUf(company);
+        if (bairroCidade) { doc.text(bairroCidade, rightColX, y); y += 5; }
+        if (company.address_zip) { doc.text(`CEP: ${company.address_zip}`, rightColX, y); y += 5; }
+        if (company.phone) { doc.text(`TELEFONE: ${company.phone}`, rightColX, y); }
+      } else {
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60, 60, 60);
+        doc.text("DAVID MELO PRODUCOES", rightColX, y + 2);
+      }
+
+      // Timestamp right-aligned
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(120, 120, 120);
+      doc.text(now, pageW - 14, 14, { align: "right" });
+
+      // Bottom header line
+      const headerEndY = Math.max(y + 4, 42);
+      doc.setDrawColor(...gold);
+      doc.setLineWidth(0.4);
+      doc.line(14, headerEndY, pageW - 14, headerEndY);
+
+      // Title
+      let titleY = headerEndY + 7;
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(40, 40, 40);
+      doc.text("Lancamentos:", 14, titleY);
+
+      // Period
+      titleY += 6;
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80, 80, 80);
+      const periodoParts: string[] = [];
+      if (dateFrom) periodoParts.push(format(new Date(dateFrom + "T12:00:00"), "dd/MM/yyyy"));
+      if (dateTo) periodoParts.push(format(new Date(dateTo + "T12:00:00"), "dd/MM/yyyy"));
+      if (periodoParts.length === 2) {
+        doc.text(`Periodo de Vencimento: ${periodoParts[0]} ate ${periodoParts[1]}`, 14, titleY);
+      } else if (periodoParts.length === 1) {
+        doc.text(`A partir de: ${periodoParts[0]}`, 14, titleY);
+      }
+
+      // Table
+      const tableStartY = titleY + 6;
       const rows = filtered.map((l) => [
         l.tipo === "entrada" ? "Entrada" : "Saida",
-        l.cliente_fornecedor.substring(0, 30),
-        l.descricao.substring(0, 25),
-        l.centro_custo.substring(0, 20),
-        l.documento.substring(0, 15),
+        l.cliente_fornecedor.substring(0, 35),
+        l.descricao.substring(0, 30),
+        l.centro_custo.substring(0, 22),
+        l.documento.substring(0, 18),
         getStatusLabel(l.status),
         l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : "",
-        currencyFmt(l.valor), currencyFmt(l.valor_total), currencyFmt(l.valor_baixado), currencyFmt(l.valor_aberto),
+        currencyFmt(l.valor_total),
+        currencyFmt(l.valor_baixado),
+        currencyFmt(l.valor_aberto),
       ]);
+
       autoTable(doc, {
-        startY: 28,
-        head: [["Tipo", "Cliente/Forn.", "Descricao", "Centro Custo", "Documento", "Status", "Vencimento", "Valor", "V. Total", "Baixado", "Aberto"]],
+        startY: tableStartY,
+        head: [["Tipo", "Pessoa", "Descricao", "Centro Custo", "Documento", "Status", "Vencimento", "Valor total", "Valor baixado", "Valor em aberto"]],
         body: rows,
-        styles: { fontSize: 7, cellPadding: 2 },
-        headStyles: { fillColor: [197, 160, 89], textColor: 255, fontStyle: "bold" },
+        styles: { fontSize: 7, cellPadding: 2, textColor: [40, 40, 40] },
+        headStyles: { fillColor: gold, textColor: 255, fontStyle: "bold", fontSize: 7 },
         alternateRowStyles: { fillColor: [249, 245, 235] },
-        columnStyles: { 0: { cellWidth: 15 }, 7: { halign: "right" }, 8: { halign: "right" }, 9: { halign: "right" }, 10: { halign: "right" } },
+        columnStyles: {
+          0: { cellWidth: 16 },
+          7: { halign: "right" },
+          8: { halign: "right" },
+          9: { halign: "right" },
+        },
+        didDrawPage: (data: any) => {
+          const pageH = doc.internal.pageSize.getHeight();
+          // Footer line
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.3);
+          doc.line(14, pageH - 14, pageW - 14, pageH - 14);
+          // Footer text
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(140, 140, 140);
+          doc.text("Emitido por: ERP For ME", 14, pageH - 10);
+          doc.text(`Pagina ${doc.getCurrentPageInfo().pageNumber}`, pageW - 14, pageH - 10, { align: "right" });
+        },
       });
+
       doc.save(`lancamentos-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     } finally {
       setIsExporting(false);
