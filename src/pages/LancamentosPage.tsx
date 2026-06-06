@@ -510,13 +510,49 @@ export default function LancamentosPage() {
           // Footer line
           doc.setDrawColor(200, 200, 200);
           doc.setLineWidth(0.3);
-          doc.line(14, pageH - 14, pageW - 14, pageH - 14);
-          // Footer text
+          doc.line(14, pageH - 20, pageW - 14, pageH - 20);
+
+          // Totals footer
+          const totReceitas = { valor: 0, baixado: 0, aberto: 0 };
+          const totDespesas = { valor: 0, baixado: 0, aberto: 0 };
+          for (const l of filtered) {
+            if (l.tipo === "entrada") {
+              totReceitas.valor += l.valor_total;
+              totReceitas.baixado += l.valor_baixado;
+              totReceitas.aberto += l.valor_aberto;
+            } else {
+              totDespesas.valor += l.valor_total;
+              totDespesas.baixado += l.valor_baixado;
+              totDespesas.aberto += l.valor_aberto;
+            }
+          }
+
+          const footerY = pageH - 16;
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(40, 40, 40);
+          doc.text("Total de Receitas", 14, footerY);
+          doc.text("Total de Despesas", 14, footerY + 6);
+
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(60, 60, 60);
+          const col2 = pageW - 90;
+          const col3 = pageW - 55;
+          const col4 = pageW - 14;
+
+          doc.text(currencyFmt(totReceitas.valor), col2, footerY, { align: "right" });
+          doc.text(currencyFmt(totReceitas.baixado), col3, footerY, { align: "right" });
+          doc.text(currencyFmt(totReceitas.aberto), col4, footerY, { align: "right" });
+
+          doc.text(currencyFmt(totDespesas.valor), col2, footerY + 6, { align: "right" });
+          doc.text(currencyFmt(totDespesas.baixado), col3, footerY + 6, { align: "right" });
+          doc.text(currencyFmt(totDespesas.aberto), col4, footerY + 6, { align: "right" });
+
+          // Page number
           doc.setFontSize(7);
           doc.setFont("helvetica", "italic");
           doc.setTextColor(140, 140, 140);
-          doc.text("Emitido por: ERP For ME", 14, pageH - 10);
-          doc.text(`Pagina ${doc.getCurrentPageInfo().pageNumber}`, pageW - 14, pageH - 10, { align: "right" });
+          doc.text(`Pagina ${doc.getCurrentPageInfo().pageNumber}`, pageW - 14, pageH - 6, { align: "right" });
         },
       });
 
