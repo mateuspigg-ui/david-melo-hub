@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, FileSpreadsheet, FileText, Filter, ArrowUpDown, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Search, FileSpreadsheet, FileText, Filter, ArrowUpDown, ArrowDownCircle, ArrowUpCircle, Loader2, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { maskCurrencyInput, parseCurrencyInput, formatCurrencyInput } from "@/lib/currencyInput";
 
 const currencyFmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -31,15 +30,6 @@ type Lancamento = {
   original: any;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  recebido: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  pago: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  pendente: "bg-amber-100 text-amber-700 border-amber-200",
-  vencido: "bg-red-100 text-red-700 border-red-200",
-  atrasado: "bg-red-100 text-red-700 border-red-200",
-  parcial: "bg-blue-100 text-blue-700 border-blue-200",
-};
-
 const getStatusLabel = (status: string) => {
   const s = String(status || "").toLowerCase();
   if (s === "paid" || s === "pago") return "Pago";
@@ -50,13 +40,17 @@ const getStatusLabel = (status: string) => {
   return status || "-";
 };
 
-const getStatusClass = (status: string) => {
+const getStatusStyle = (status: string) => {
   const s = String(status || "").toLowerCase();
-  if (s === "paid" || s === "pago" || s === "recebido") return STATUS_COLORS.pago;
-  if (s === "pending" || s === "pendente") return STATUS_COLORS.pendente;
-  if (s === "vencido" || s === "overdue" || s === "atrasado") return STATUS_COLORS.vencido;
-  if (s === "parcial" || s === "partial") return STATUS_COLORS.parcial;
-  return "bg-secondary text-muted-foreground border-border/30";
+  if (s === "paid" || s === "pago" || s === "recebido")
+    return "bg-emerald-50 text-emerald-700 border border-emerald-200/60";
+  if (s === "pending" || s === "pendente")
+    return "bg-amber-50 text-amber-700 border border-amber-200/60";
+  if (s === "vencido" || s === "overdue" || s === "atrasado")
+    return "bg-red-50 text-red-700 border border-red-200/60";
+  if (s === "parcial" || s === "partial")
+    return "bg-sky-50 text-sky-700 border border-sky-200/60";
+  return "bg-secondary text-muted-foreground border border-border/30";
 };
 
 export default function LancamentosPage() {
@@ -141,8 +135,6 @@ export default function LancamentosPage() {
         const pInstallments = (installments || []).filter((i: any) => i.payment_id === p.id);
         for (const inst of pInstallments) {
           const isPaid = inst.status === "paid" || inst.paid_at;
-          const instStatus = isPaid ? "pago" : "pendente";
-
           result.push({
             id: `rec-inst-${inst.id}`,
             tipo: "entrada",
@@ -150,7 +142,7 @@ export default function LancamentosPage() {
             descricao: `${description} - Parcela ${String(inst.installment_number).padStart(2, "0")}`,
             centro_custo: "",
             documento: "",
-            status: instStatus,
+            status: isPaid ? "pago" : "pendente",
             vencimento: inst.due_date || "",
             valor: Number(inst.amount || 0),
             valor_total: Number(inst.amount || 0),
@@ -246,13 +238,10 @@ export default function LancamentosPage() {
     for (const c of companies as any[]) {
       companyMap.set(c.id, c.trade_name || c.legal_name || "");
     }
-
-    const merged = [...(recebimentos || []), ...(saidas || [])].map((l) => ({
+    return [...(recebimentos || []), ...(saidas || [])].map((l) => ({
       ...l,
       empresa_nome: l.empresa_id ? companyMap.get(l.empresa_id) || "" : "",
     }));
-
-    return merged;
   }, [recebimentos, saidas, companies]);
 
   const filtered = useMemo(() => {
@@ -302,23 +291,13 @@ export default function LancamentosPage() {
   const handleExportCsv = () => {
     setIsExporting(true);
     try {
-      const header = [
-        "Tipo", "Cliente/Fornecedor", "Descrição", "Centro de Custo",
-        "Nº Documento", "Status", "Vencimento", "Valor", "Valor Total",
-        "Valor Baixado", "Valor em Aberto", "Empresa"
-      ];
+      const header = ["Tipo", "Cliente/Fornecedor", "Descricao", "Centro de Custo", "N Documento", "Status", "Vencimento", "Valor", "Valor Total", "Baixado", "Em Aberto", "Empresa"];
       const rows = filtered.map((l) => [
-        l.tipo === "entrada" ? "Entrada" : "Saída",
-        l.cliente_fornecedor,
-        l.descricao,
-        l.centro_custo,
-        l.documento,
+        l.tipo === "entrada" ? "Entrada" : "Saida",
+        l.cliente_fornecedor, l.descricao, l.centro_custo, l.documento,
         getStatusLabel(l.status),
         l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : "",
-        l.valor.toFixed(2),
-        l.valor_total.toFixed(2),
-        l.valor_baixado.toFixed(2),
-        l.valor_aberto.toFixed(2),
+        l.valor.toFixed(2), l.valor_total.toFixed(2), l.valor_baixado.toFixed(2), l.valor_aberto.toFixed(2),
         l.empresa_nome,
       ]);
       const csv = [header, ...rows].map((line) => line.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -341,13 +320,11 @@ export default function LancamentosPage() {
     try {
       const { default: jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
-
       const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       doc.setFontSize(16);
       doc.text("Lancamentos Financeiros", 14, 15);
       doc.setFontSize(9);
       doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy HH:mm")}`, 14, 22);
-
       const rows = filtered.map((l) => [
         l.tipo === "entrada" ? "Entrada" : "Saida",
         l.cliente_fornecedor.substring(0, 30),
@@ -356,38 +333,44 @@ export default function LancamentosPage() {
         l.documento.substring(0, 15),
         getStatusLabel(l.status),
         l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : "",
-        currencyFmt(l.valor),
-        currencyFmt(l.valor_total),
-        currencyFmt(l.valor_baixado),
-        currencyFmt(l.valor_aberto),
+        currencyFmt(l.valor), currencyFmt(l.valor_total), currencyFmt(l.valor_baixado), currencyFmt(l.valor_aberto),
       ]);
-
       autoTable(doc, {
         startY: 28,
-        head: [["Tipo", "Cliente/Forn.", "Descricao", "Centro Custo", "Documento", "Status", "Vencimento", "Valor", "V. Total", "V. Baixado", "V. Aberto"]],
+        head: [["Tipo", "Cliente/Forn.", "Descricao", "Centro Custo", "Documento", "Status", "Vencimento", "Valor", "V. Total", "Baixado", "Aberto"]],
         body: rows,
         styles: { fontSize: 7, cellPadding: 2 },
         headStyles: { fillColor: [197, 160, 89], textColor: 255, fontStyle: "bold" },
         alternateRowStyles: { fillColor: [249, 245, 235] },
-        columnStyles: {
-          0: { cellWidth: 15 },
-          7: { halign: "right" },
-          8: { halign: "right" },
-          9: { halign: "right" },
-          10: { halign: "right" },
-        },
+        columnStyles: { 0: { cellWidth: 15 }, 7: { halign: "right" }, 8: { halign: "right" }, 9: { halign: "right" }, 10: { halign: "right" } },
       });
-
       doc.save(`lancamentos-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     } finally {
       setIsExporting(false);
     }
   };
 
+  const handleSort = (field: "vencimento" | "valor") => {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(true); }
+  };
+
   const isLoading = loadingRecebimentos || loadingSaidas;
 
+  const hasActiveFilters = search || tipoFilter !== "all" || statusFilter !== "all" || companyFilter !== "all" || dateFrom || dateTo;
+
+  const resetFilters = () => {
+    setSearch("");
+    setTipoFilter("all");
+    setStatusFilter("all");
+    setCompanyFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  };
+
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2 pb-10">
+    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto pb-10">
+      {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 px-2">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
@@ -397,52 +380,95 @@ export default function LancamentosPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Producoes • Fluxo Financeiro Unificado</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={handleExportCsv} disabled={isExporting || isLoading} className="h-12 px-5 rounded-xl uppercase text-[11px] tracking-widest font-bold">
-            <FileSpreadsheet className="w-4 h-4 mr-2" /> CSV
+          <Button variant="outline" onClick={handleExportCsv} disabled={isExporting || isLoading} className="h-12 px-6 rounded-xl uppercase text-[11px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">
+            <FileSpreadsheet className="w-4 h-4 mr-2" /> Exportar CSV
           </Button>
-          <Button variant="outline" onClick={handleExportPdf} disabled={isExporting || isLoading} className="h-12 px-5 rounded-xl uppercase text-[11px] tracking-widest font-bold">
-            <FileText className="w-4 h-4 mr-2" /> PDF
+          <Button variant="outline" onClick={handleExportPdf} disabled={isExporting || isLoading} className="h-12 px-6 rounded-xl uppercase text-[11px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">
+            <FileText className="w-4 h-4 mr-2" /> Exportar PDF
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-2">
-        <div className="bg-white premium-shadow rounded-2xl p-5 border border-border/30 relative overflow-hidden">
-          <div className="absolute left-0 top-0 h-full w-1.5 bg-emerald-500/50" />
-          <p className="text-[10px] uppercase tracking-widest text-emerald-600 font-bold">Total Entradas</p>
-          <p className="text-2xl font-display mt-1 tracking-tight text-emerald-700">{currencyFmt(totals.totalEntradas)}</p>
-        </div>
-        <div className="bg-white premium-shadow rounded-2xl p-5 border border-border/30 relative overflow-hidden">
-          <div className="absolute left-0 top-0 h-full w-1.5 bg-red-500/50" />
-          <p className="text-[10px] uppercase tracking-widest text-red-600 font-bold">Total Saidas</p>
-          <p className="text-2xl font-display mt-1 tracking-tight text-red-700">{currencyFmt(totals.totalSaidas)}</p>
-        </div>
-        <div className="bg-white premium-shadow rounded-2xl p-5 border border-border/30 relative overflow-hidden">
-          <div className="absolute left-0 top-0 h-full w-1.5 bg-gold/50" />
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Total Baixado</p>
-          <p className="text-2xl font-display mt-1 tracking-tight">{currencyFmt(totals.totalBaixado)}</p>
-        </div>
-        <div className="bg-white premium-shadow rounded-2xl p-5 border border-border/30 relative overflow-hidden">
-          <div className="absolute left-0 top-0 h-full w-1.5 bg-amber-500/50" />
-          <p className="text-[10px] uppercase tracking-widest text-amber-700 font-bold">Em Aberto</p>
-          <p className="text-2xl font-display mt-1 tracking-tight text-amber-700">{currencyFmt(totals.totalAberto)}</p>
-        </div>
-      </div>
-
-      <div className="bg-white border border-border/30 rounded-2xl p-4 md:p-5 premium-shadow space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Filtros</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
-          <div className="relative md:col-span-2 xl:col-span-2">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11 h-11 rounded-xl" />
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 px-2">
+        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                <ArrowDownCircle size={18} className="text-emerald-600" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">Entradas</span>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Total Entradas</p>
+            <p className="text-2xl font-display mt-1 tracking-tight text-emerald-700">{currencyFmt(totals.totalEntradas)}</p>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Tipo</Label>
+        </div>
+        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-red-500/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center border border-red-100">
+                <ArrowUpCircle size={18} className="text-red-500" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">Saidas</span>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Total Saidas</p>
+            <p className="text-2xl font-display mt-1 tracking-tight text-red-600">{currencyFmt(totals.totalSaidas)}</p>
+          </div>
+        </div>
+        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gold/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                <DollarSign size={18} className="text-gold" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-gold bg-gold/5 px-2.5 py-1 rounded-lg border border-gold/15">Baixado</span>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Total Baixado</p>
+            <p className="text-2xl font-display mt-1 tracking-tight text-foreground">{currencyFmt(totals.totalBaixado)}</p>
+          </div>
+        </div>
+        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100">
+                <DollarSign size={18} className="text-amber-600" />
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">Aberto</span>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Em Aberto</p>
+            <p className="text-2xl font-display mt-1 tracking-tight text-amber-700">{currencyFmt(totals.totalAberto)}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-[24px] border border-border/30 p-6 premium-shadow space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center border border-gold/20">
+              <Filter size={14} className="text-gold" />
+            </div>
+            <p className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/70">Filtros e Organizacao</p>
+          </div>
+          {hasActiveFilters && (
+            <Button type="button" size="sm" variant="ghost" onClick={resetFilters} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-gold h-8 rounded-lg">
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 items-end">
+          <div className="relative md:col-span-2 xl:col-span-3">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar cliente, descricao, documento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11 h-12 rounded-xl bg-white border-border/40 focus:border-gold/50 transition-all focus:ring-4 focus:ring-gold/5 premium-shadow" />
+          </div>
+          <div className="space-y-1.5 xl:col-span-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tipo</Label>
             <Select value={tipoFilter} onValueChange={(v: any) => setTipoFilter(v)}>
-              <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-12 rounded-xl bg-white border-border/40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="entrada">Entradas</SelectItem>
@@ -450,10 +476,10 @@ export default function LancamentosPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</Label>
+          <div className="space-y-1.5 xl:col-span-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-12 rounded-xl bg-white border-border/40"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pago">Pago / Recebido</SelectItem>
@@ -464,10 +490,10 @@ export default function LancamentosPage() {
             </Select>
           </div>
           {companies.length > 0 && (
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Empresa</Label>
+            <div className="space-y-1.5 xl:col-span-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Empresa</Label>
               <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-12 rounded-xl bg-white border-border/40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
                   {(companies as any[]).map((c) => (
@@ -477,89 +503,136 @@ export default function LancamentosPage() {
               </Select>
             </div>
           )}
-          <div className="space-y-1">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">De</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-11 rounded-xl" />
+          <div className="space-y-1.5 xl:col-span-1">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-12 rounded-xl bg-white border-border/40" />
           </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Ate</Label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-11 rounded-xl" />
+          <div className="space-y-1.5 xl:col-span-1">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ate</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-12 rounded-xl bg-white border-border/40" />
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-border/30 rounded-2xl premium-shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-border/30 bg-secondary/30">
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground w-16">Tipo</th>
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Cliente / Fornecedor</th>
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Descricao</th>
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Centro de Custo</th>
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">N Documento</th>
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Status</th>
-                <th className="text-left py-3 px-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:text-gold" onClick={() => { if (sortField === "vencimento") setSortAsc(!sortAsc); else { setSortField("vencimento"); setSortAsc(true); } }}>
-                  <span className="flex items-center gap-1">Vencimento <ArrowUpDown size={10} /></span>
-                </th>
-                <th className="text-right py-3 px-4 font-black uppercase tracking-widest text-muted-foreground cursor-pointer hover:text-gold" onClick={() => { if (sortField === "valor") setSortAsc(!sortAsc); else { setSortField("valor"); setSortAsc(true); } }}>
-                  <span className="flex items-center justify-end gap-1">Valor <ArrowUpDown size={10} /></span>
-                </th>
-                <th className="text-right py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Valor Total</th>
-                <th className="text-right py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Baixado</th>
-                <th className="text-right py-3 px-4 font-black uppercase tracking-widest text-muted-foreground">Em Aberto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={11} className="py-12 text-center text-muted-foreground">Carregando...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={11} className="py-12 text-center text-muted-foreground">Nenhum lancamento encontrado</td></tr>
-              ) : (
-                filtered.map((l) => (
-                  <tr key={l.id} className="border-b border-border/10 hover:bg-secondary/20 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className={cn("flex items-center gap-1.5", l.tipo === "entrada" ? "text-emerald-600" : "text-red-500")}>
-                        {l.tipo === "entrada" ? <ArrowDownCircle size={14} /> : <ArrowUpCircle size={14} />}
-                        <span className="text-[10px] font-black uppercase">{l.tipo === "entrada" ? "Entrada" : "Saida"}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-foreground max-w-[200px] truncate">{l.cliente_fornecedor}</td>
-                    <td className="py-3 px-4 text-muted-foreground max-w-[180px] truncate">{l.descricao}</td>
-                    <td className="py-3 px-4 text-muted-foreground max-w-[150px] truncate">{l.centro_custo || "-"}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{l.documento || "-"}</td>
-                    <td className="py-3 px-4">
-                      <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider", getStatusClass(l.status))}>
-                        {getStatusLabel(l.status)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-foreground font-medium">
-                      {l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : "-"}
-                    </td>
-                    <td className={cn("py-3 px-4 text-right font-bold font-display", l.tipo === "entrada" ? "text-emerald-700" : "text-red-600")}>
-                      {currencyFmt(l.valor)}
-                    </td>
-                    <td className="py-3 px-4 text-right font-display">{currencyFmt(l.valor_total)}</td>
-                    <td className="py-3 px-4 text-right font-display text-emerald-600">{currencyFmt(l.valor_baixado)}</td>
-                    <td className={cn("py-3 px-4 text-right font-bold font-display", l.valor_aberto > 0 ? "text-amber-600" : "text-muted-foreground")}>
-                      {currencyFmt(l.valor_aberto)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length > 0 && (
-          <div className="px-4 py-3 bg-secondary/20 border-t border-border/20 flex flex-wrap items-center justify-between gap-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            <span>{filtered.length} lancamento{filtered.length !== 1 ? "s" : ""}</span>
-            <div className="flex items-center gap-6">
-              <span>Entradas: <span className="text-emerald-600">{currencyFmt(totals.totalEntradas)}</span></span>
-              <span>Saidas: <span className="text-red-600">{currencyFmt(totals.totalSaidas)}</span></span>
-              <span>Baixado: <span className="text-foreground">{currencyFmt(totals.totalBaixado)}</span></span>
-              <span>Aberto: <span className="text-amber-600">{currencyFmt(totals.totalAberto)}</span></span>
+      {/* Table */}
+      <div className="bg-white rounded-[24px] border border-border/30 premium-shadow overflow-hidden">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="w-10 h-10 text-gold animate-spin" />
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold animate-pulse">Carregando lancamentos...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-secondary/30 flex items-center justify-center">
+              <DollarSign className="w-8 h-8 text-muted-foreground/30" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-foreground">Nenhum lancamento encontrado</p>
+              <p className="text-xs text-muted-foreground mt-1">Ajuste os filtros ou cadastre novos lancamentos</p>
             </div>
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/30 bg-gradient-to-r from-secondary/30 via-secondary/20 to-secondary/30">
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Tipo</th>
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 min-w-[180px]">Cliente / Fornecedor</th>
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 min-w-[160px]">Descricao</th>
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden xl:table-cell">Centro de Custo</th>
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden lg:table-cell">Documento</th>
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[120px]">Status</th>
+                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 cursor-pointer hover:text-gold transition-colors w-[120px]" onClick={() => handleSort("vencimento")}>
+                      <span className="flex items-center gap-1.5">Vencimento <ArrowUpDown size={10} className="opacity-40" /></span>
+                    </th>
+                    <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 cursor-pointer hover:text-gold transition-colors w-[130px]" onClick={() => handleSort("valor")}>
+                      <span className="flex items-center justify-end gap-1.5">Valor <ArrowUpDown size={10} className="opacity-40" /></span>
+                    </th>
+                    <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[130px]">Baixado</th>
+                    <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[130px]">Em Aberto</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/15">
+                  {filtered.map((l, idx) => (
+                    <tr key={l.id} className={cn("group hover:bg-gold/[0.02] transition-all duration-200", idx % 2 === 0 ? "bg-white" : "bg-secondary/[0.08]")}>
+                      <td className="py-4 px-5">
+                        <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border", l.tipo === "entrada" ? "bg-emerald-50/80 text-emerald-700 border-emerald-200/50" : "bg-red-50/80 text-red-600 border-red-200/50")}>
+                          {l.tipo === "entrada" ? <ArrowDownCircle size={11} /> : <ArrowUpCircle size={11} />}
+                          {l.tipo === "entrada" ? "Entrada" : "Saida"}
+                        </div>
+                      </td>
+                      <td className="py-4 px-5">
+                        <span className="text-[13px] font-semibold text-foreground leading-tight">{l.cliente_fornecedor}</span>
+                      </td>
+                      <td className="py-4 px-5">
+                        <span className="text-[12px] text-muted-foreground leading-tight">{l.descricao}</span>
+                      </td>
+                      <td className="py-4 px-5 hidden xl:table-cell">
+                        <span className="text-[12px] text-muted-foreground">{l.centro_custo || <span className="text-muted-foreground/40">-</span>}</span>
+                      </td>
+                      <td className="py-4 px-5 hidden lg:table-cell">
+                        <span className="text-[12px] text-muted-foreground font-medium">{l.documento || <span className="text-muted-foreground/40">-</span>}</span>
+                      </td>
+                      <td className="py-4 px-5">
+                        <span className={cn("inline-flex items-center rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest", getStatusStyle(l.status))}>
+                          {getStatusLabel(l.status)}
+                        </span>
+                      </td>
+                      <td className="py-4 px-5">
+                        <span className="text-[12px] font-medium text-foreground tabular-nums">
+                          {l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : <span className="text-muted-foreground/40">-</span>}
+                        </span>
+                      </td>
+                      <td className={cn("py-4 px-5 text-right font-display text-[14px] font-bold tabular-nums", l.tipo === "entrada" ? "text-emerald-700" : "text-red-600")}>
+                        {currencyFmt(l.valor)}
+                      </td>
+                      <td className="py-4 px-5 text-right font-display text-[13px] text-muted-foreground tabular-nums hidden md:table-cell">
+                        {currencyFmt(l.valor_baixado)}
+                      </td>
+                      <td className={cn("py-4 px-5 text-right font-display text-[13px] font-semibold tabular-nums hidden md:table-cell", l.valor_aberto > 0.01 ? "text-amber-600" : "text-muted-foreground/40")}>
+                        {currencyFmt(l.valor_aberto)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gradient-to-r from-secondary/20 via-secondary/10 to-secondary/20 border-t border-border/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-bold text-muted-foreground">{filtered.length} lancamento{filtered.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Entradas:</span>
+                    <span className="text-[12px] font-bold text-emerald-700 font-display tabular-nums">{currencyFmt(totals.totalEntradas)}</span>
+                  </div>
+                  <div className="w-px h-4 bg-border/40" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Saidas:</span>
+                    <span className="text-[12px] font-bold text-red-600 font-display tabular-nums">{currencyFmt(totals.totalSaidas)}</span>
+                  </div>
+                  <div className="w-px h-4 bg-border/40" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gold" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Baixado:</span>
+                    <span className="text-[12px] font-bold text-foreground font-display tabular-nums">{currencyFmt(totals.totalBaixado)}</span>
+                  </div>
+                  <div className="w-px h-4 bg-border/40" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Aberto:</span>
+                    <span className="text-[12px] font-bold text-amber-600 font-display tabular-nums">{currencyFmt(totals.totalAberto)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
