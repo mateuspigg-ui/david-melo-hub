@@ -110,61 +110,78 @@ export default function LancamentosPage() {
         .select("*")
         .order("due_date", { ascending: true });
 
-      const instByPayment = new Map<string, any[]>();
-      for (const inst of installments || []) {
-        const list = instByPayment.get(inst.payment_id) || [];
-        list.push(inst);
-        instByPayment.set(inst.payment_id, list);
-      }
-
       const result: Lancamento[] = [];
+
       for (const p of payments || []) {
         const clientName = p.clients ? `${p.clients.first_name} ${p.clients.last_name}` : "Sem cliente";
         const eventTitle = p.events?.title || "";
         const description = eventTitle || "Recebimento";
-        const totalValue = Number(p.total_event_value || 0);
+
+        if (p.has_entry_payment && Number(p.entry_amount || 0) > 0) {
+          const entryStatus = p.entry_paid_at ? "pago" : "pendente";
+          result.push({
+            id: `rec-entry-${p.id}`,
+            tipo: "entrada",
+            cliente_fornecedor: clientName,
+            descricao: `${description} - Entrada`,
+            centro_custo: "",
+            documento: "",
+            status: entryStatus,
+            vencimento: p.entry_date || "",
+            valor: Number(p.entry_amount || 0),
+            valor_total: Number(p.entry_amount || 0),
+            valor_baixado: p.entry_paid_at ? Number(p.entry_paid_amount ?? p.entry_amount ?? 0) : 0,
+            valor_aberto: p.entry_paid_at ? 0 : Number(p.entry_amount || 0),
+            empresa_id: (p as any).company_id || null,
+            empresa_nome: "",
+            original: p,
+          });
+        }
+
+        const pInstallments = (installments || []).filter((i: any) => i.payment_id === p.id);
+        for (const inst of pInstallments) {
+          const isPaid = inst.status === "paid" || inst.paid_at;
+          const instStatus = isPaid ? "pago" : "pendente";
+
+          result.push({
+            id: `rec-inst-${inst.id}`,
+            tipo: "entrada",
+            cliente_fornecedor: clientName,
+            descricao: `${description} - Parcela ${String(inst.installment_number).padStart(2, "0")}`,
+            centro_custo: "",
+            documento: "",
+            status: instStatus,
+            vencimento: inst.due_date || "",
+            valor: Number(inst.amount || 0),
+            valor_total: Number(inst.amount || 0),
+            valor_baixado: isPaid ? Number(inst.paid_amount ?? inst.amount ?? 0) : 0,
+            valor_aberto: isPaid ? 0 : Number(inst.amount || 0),
+            empresa_id: (p as any).company_id || null,
+            empresa_nome: "",
+            original: inst,
+          });
+        }
+
         const additionalValue = Number((p as any).additional_value || 0);
-        const effectiveTotal = totalValue + additionalValue;
-
-        const pInstallments = instByPayment.get(p.id) || [];
-        const paidInstallments = pInstallments.filter((i) => i.status === "paid" || i.paid_at);
-        const pendingInstallments = pInstallments.filter((i) => i.status !== "paid" && !i.paid_at);
-
-        const entryPaid = p.has_entry_payment && p.entry_paid_at;
-        const entryPending = p.has_entry_payment && !p.entry_paid_at && Number(p.entry_amount || 0) > 0;
-
-        const totalBaixado = (paidInstallments.reduce((s, i) => s + Number(i.paid_amount ?? i.amount ?? 0), 0))
-          + (entryPaid ? Number(p.entry_paid_amount ?? p.entry_amount ?? 0) : 0);
-        const totalAberto = (pendingInstallments.reduce((s, i) => s + Number(i.amount || 0), 0))
-          + (entryPending ? Number(p.entry_amount || 0) : 0)
-          + additionalValue;
-
-        let status = "pendente";
-        if (totalAberto <= 0.01 && effectiveTotal > 0) status = "recebido";
-        else if (totalBaixado > 0 && totalAberto > 0) status = "parcial";
-
-        const nextDuePending = pendingInstallments
-          .filter((i) => i.due_date)
-          .sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
-        const vencimento = nextDuePending?.due_date || "";
-
-        result.push({
-          id: `rec-${p.id}`,
-          tipo: "entrada",
-          cliente_fornecedor: clientName,
-          descricao: description,
-          centro_custo: "",
-          documento: "",
-          status,
-          vencimento,
-          valor: effectiveTotal,
-          valor_total: effectiveTotal,
-          valor_baixado: totalBaixado,
-          valor_aberto: totalAberto,
-          empresa_id: (p as any).company_id || null,
-          empresa_nome: "",
-          original: p,
-        });
+        if (additionalValue > 0) {
+          result.push({
+            id: `rec-additional-${p.id}`,
+            tipo: "entrada",
+            cliente_fornecedor: clientName,
+            descricao: `${description} - ${(p as any).additional_description || "Adicional"}`,
+            centro_custo: "",
+            documento: "",
+            status: "pendente",
+            vencimento: "",
+            valor: additionalValue,
+            valor_total: additionalValue,
+            valor_baixado: 0,
+            valor_aberto: additionalValue,
+            empresa_id: (p as any).company_id || null,
+            empresa_nome: "",
+            original: p,
+          });
+        }
       }
       return result;
     },
