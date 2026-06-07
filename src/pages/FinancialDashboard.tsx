@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import {
   DollarSign, TrendingUp, Calendar, Landmark, Receipt,
-  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet
+  ArrowDownCircle, ArrowUpCircle, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,6 @@ const FinancialDashboard = () => {
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [showValues, setShowValues] = useState(true);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies-select'],
@@ -245,12 +244,7 @@ const FinancialDashboard = () => {
                             <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white/80 focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all shadow-sm" />
                           </div>
                           <div className="flex items-center gap-5 ml-auto pb-1">
-                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Valores:</span>
-                            <div className="flex items-center gap-1 p-1 bg-white/60 rounded-xl border border-border/20 shadow-inner">
-                              <button onClick={() => setShowValues(true)} className={cn("px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-300", showValues ? "bg-gradient-to-r from-gold to-gold/90 text-white shadow-md shadow-gold/20" : "text-muted-foreground/60 hover:text-foreground")}>Bruto</button>
-                              <button onClick={() => setShowValues(false)} className={cn("px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-300", !showValues ? "bg-gradient-to-r from-gold to-gold/90 text-white shadow-md shadow-gold/20" : "text-muted-foreground/60 hover:text-foreground")}>Líquido</button>
-                            </div>
-                          </div>
+                          
                         </div>
                       </div>
 
@@ -283,16 +277,16 @@ const FinancialDashboard = () => {
                                 </div>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{showValues ? fmt(stats.receitaEmAberto) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{fmt(stats.receitaEmAberto)}</span>
                               </td>
                               <td className="py-5 px-6 text-right">
                                 <span className="inline-flex items-center gap-1 font-display text-[15px] tabular-nums text-emerald-600 font-medium">
-                                  {showValues && stats.receitaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                                  {showValues ? fmt(stats.receitaVencida) : '*****'}
+                                  {stats.receitaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                  {fmt(stats.receitaVencida)}
                                 </span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.receitaTotal)}</span>
                               </td>
                               <td className="py-5 px-6 text-center">
                                 <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-300 hover:shadow-md hover:shadow-gold/10">
@@ -316,16 +310,16 @@ const FinancialDashboard = () => {
                                 </div>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{showValues ? fmt(stats.despesaEmAberto) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{fmt(stats.despesaEmAberto)}</span>
                               </td>
                               <td className="py-5 px-6 text-right">
                                 <span className="inline-flex items-center gap-1 font-display text-[15px] tabular-nums text-red-400 font-medium">
-                                  {showValues && stats.despesaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
-                                  {showValues ? fmt(stats.despesaVencida) : '*****'}
+                                  {stats.despesaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                                  {fmt(stats.despesaVencida)}
                                 </span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.despesaTotal) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.despesaTotal)}</span>
                               </td>
                               <td className="py-5 px-6 text-center">
                                 <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-300 hover:shadow-md hover:shadow-gold/10">
@@ -339,14 +333,14 @@ const FinancialDashboard = () => {
                                 <p className="text-[14px] font-bold text-foreground">Total</p>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaEmAberto + stats.despesaEmAberto) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.receitaEmAberto + stats.despesaEmAberto)}</span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaVencida + stats.despesaVencida) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.receitaVencida + stats.despesaVencida)}</span>
                               </td>
                               <td className="py-5 px-6 text-right">
                                 <div className="inline-flex items-center gap-2 bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
-                                  <span className="font-display text-[16px] tabular-nums text-gold font-black">{showValues ? fmt(stats.receitaTotal + stats.despesaTotal) : '*****'}</span>
+                                  <span className="font-display text-[16px] tabular-nums text-gold font-black">{fmt(stats.receitaTotal + stats.despesaTotal)}</span>
                                 </div>
                               </td>
                               <td></td>
@@ -379,9 +373,6 @@ const FinancialDashboard = () => {
                             <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-medium">{format(new Date(), 'dd/MM/yyyy')}</p>
                           </div>
                         </div>
-                        <button onClick={() => setShowValues(!showValues)} className="w-9 h-9 rounded-xl bg-secondary/30 flex items-center justify-center border border-border/15 hover:bg-gold/5 hover:border-gold/20 transition-all duration-200">
-                          {showValues ? <Eye size={15} className="text-muted-foreground/50" /> : <EyeOff size={15} className="text-muted-foreground/50" />}
-                        </button>
                       </div>
 
                       {/* Accounts */}
@@ -424,7 +415,7 @@ const FinancialDashboard = () => {
                                       "text-[14px] font-display font-bold tabular-nums whitespace-nowrap",
                                       isNegative ? "text-red-400" : "text-foreground"
                                     )}>
-                                      {showValues ? fmt(balance) : '*****'}
+                                      {fmt(balance)}
                                     </span>
                                   </div>
                                 </div>
@@ -445,7 +436,7 @@ const FinancialDashboard = () => {
                             </div>
                             <div className="bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
                               <p className="text-[16px] font-display font-black tabular-nums text-gold">
-                                {showValues ? fmt(stats.saldoHoje) : '*****'}
+                                {fmt(stats.saldoHoje)}
                               </p>
                             </div>
                           </div>
