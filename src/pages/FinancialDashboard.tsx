@@ -299,85 +299,96 @@ const FinancialDashboard = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Pagamentos e Recebimentos */}
-                <div className="lg:col-span-2 bg-white rounded-[32px] border border-border/30 premium-shadow overflow-hidden">
-                  <div className="bg-gradient-to-r from-gold to-gold/80 px-8 py-5 flex items-center justify-between">
-                    <h3 className="text-white font-bold text-sm drop-shadow-sm">Pagamentos e Recebimentos</h3>
-                    <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5 backdrop-blur-sm">
-                      <Calendar size={14} className="text-white/90" />
-                      <span className="text-white text-xs font-medium">{dateLabel}</span>
+                <div className="lg:col-span-2">
+                  <div className="bg-white rounded-2xl border border-border/20 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                    {/* Header */}
+                    <div className="px-8 pt-7 pb-5 border-b border-border/10">
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                          <div className="h-6 w-[3px] bg-gold rounded-full" />
+                          <h3 className="text-base font-semibold text-foreground tracking-tight">Pagamentos e Recebimentos</h3>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground bg-secondary/40 px-3 py-1.5 rounded-lg">
+                          <Calendar size={12} className="text-gold" />
+                          <span className="font-medium">{dateLabel}</span>
+                        </div>
+                      </div>
+                      {/* Filters */}
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">De</Label>
+                          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 rounded-lg border-border/30 text-[13px] px-3 bg-secondary/20 focus:bg-white transition-colors" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">Ate</Label>
+                          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 rounded-lg border-border/30 text-[13px] px-3 bg-secondary/20 focus:bg-white transition-colors" />
+                        </div>
+                        <div className="flex items-center gap-4 ml-auto pb-0.5">
+                          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/70">Exibir:</span>
+                          <label className="flex items-center gap-1.5 cursor-pointer group">
+                            <input type="radio" checked={showValues} onChange={() => setShowValues(true)} className="w-3.5 h-3.5 accent-[#C5A059]" />
+                            <span className="text-[12px] text-foreground/70 group-hover:text-foreground transition-colors">Valor Bruto</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer group">
+                            <input type="radio" checked={!showValues} onChange={() => setShowValues(false)} className="w-3.5 h-3.5 accent-[#C5A059]" />
+                            <span className="text-[12px] text-foreground/70 group-hover:text-foreground transition-colors">Valor Líquido</span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-8 space-y-6">
-                    <div className="flex flex-wrap items-end gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">De</Label>
-                        <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-border/40" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ate</Label>
-                        <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/40" />
-                      </div>
-                      <div className="flex items-center gap-3 ml-auto">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Exibir:</span>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" checked={showValues} onChange={() => setShowValues(true)} className="accent-[#C5A059]" />
-                          <span className="text-xs font-medium">Valor Bruto</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="radio" checked={!showValues} onChange={() => setShowValues(false)} className="accent-[#C5A059]" />
-                          <span className="text-xs font-medium">Valor Líquido</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
+                    {/* Table */}
+                    <div className="px-8 py-2">
                       <table className="w-full">
                         <thead>
-                          <tr className="border-b border-border/20">
-                            <th className="text-left py-3 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-[140px]"></th>
-                            <th className="text-right py-3 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Em Aberto</th>
-                            <th className="text-right py-3 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Vencidos</th>
-                            <th className="text-right py-3 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Total</th>
-                            <th className="text-center py-3 px-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-[80px]">Detalhes</th>
+                          <tr>
+                            <th className="text-left py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 w-[140px]"></th>
+                            <th className="text-right py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Em Aberto</th>
+                            <th className="text-right py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Vencidos</th>
+                            <th className="text-right py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Total</th>
+                            <th className="text-center py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 w-[60px]"></th>
                           </tr>
                         </thead>
-                        <tbody>
-                          <tr className="border-b border-border/10 hover:bg-gold/[0.02] transition-colors">
-                            <td className="py-4 px-4 text-sm font-semibold text-emerald-700 flex items-center gap-2">
-                              <ArrowDownCircle size={16} className="text-emerald-600" />
+                        <tbody className="divide-y divide-border/10">
+                          <tr className="group hover:bg-secondary/20 transition-colors">
+                            <td className="py-4 text-sm font-medium text-foreground flex items-center gap-2.5">
+                              <span className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100/80">
+                                <ArrowDownCircle size={14} className="text-emerald-600" />
+                              </span>
                               A Receber
                             </td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground">{showValues ? fmt(stats.receitaEmAberto) : '*****'}</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-emerald-700 font-medium">{showValues ? fmt(stats.receitaVencida) : '*****'}</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal) : '*****'}</td>
-                            <td className="py-4 px-4 text-center">
-                              <button className="p-1.5 rounded-lg hover:bg-gold/10 transition-colors">
-                                <FileText size={16} className="text-gold" />
+                            <td className="py-4 text-right font-display text-[13px] tabular-nums text-foreground/80">{showValues ? fmt(stats.receitaEmAberto) : '*****'}</td>
+                            <td className="py-4 text-right font-display text-[13px] tabular-nums text-emerald-600">{showValues ? fmt(stats.receitaVencida) : '*****'}</td>
+                            <td className="py-4 text-right font-display text-[13px] tabular-nums text-foreground font-semibold">{showValues ? fmt(stats.receitaTotal) : '*****'}</td>
+                            <td className="py-4 text-center">
+                              <button className="p-1.5 rounded-lg hover:bg-gold/10 transition-colors opacity-0 group-hover:opacity-100">
+                                <FileText size={14} className="text-gold/60" />
                               </button>
                             </td>
                           </tr>
-                          <tr className="border-b border-border/10 hover:bg-gold/[0.02] transition-colors">
-                            <td className="py-4 px-4 text-sm font-semibold text-red-500 flex items-center gap-2">
-                              <ArrowUpCircle size={16} className="text-red-400" />
+                          <tr className="group hover:bg-secondary/20 transition-colors">
+                            <td className="py-4 text-sm font-medium text-foreground flex items-center gap-2.5">
+                              <span className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center border border-red-100/80">
+                                <ArrowUpCircle size={14} className="text-red-400" />
+                              </span>
                               A Pagar
                             </td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground">{showValues ? fmt(stats.despesaEmAberto) : '*****'}</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-red-500 font-medium">{showValues ? fmt(stats.despesaVencida) : '*****'}</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.despesaTotal) : '*****'}</td>
-                            <td className="py-4 px-4 text-center">
-                              <button className="p-1.5 rounded-lg hover:bg-gold/10 transition-colors">
-                                <FileText size={16} className="text-gold" />
+                            <td className="py-4 text-right font-display text-[13px] tabular-nums text-foreground/80">{showValues ? fmt(stats.despesaEmAberto) : '*****'}</td>
+                            <td className="py-4 text-right font-display text-[13px] tabular-nums text-red-400">{showValues ? fmt(stats.despesaVencida) : '*****'}</td>
+                            <td className="py-4 text-right font-display text-[13px] tabular-nums text-foreground font-semibold">{showValues ? fmt(stats.despesaTotal) : '*****'}</td>
+                            <td className="py-4 text-center">
+                              <button className="p-1.5 rounded-lg hover:bg-gold/10 transition-colors opacity-0 group-hover:opacity-100">
+                                <FileText size={14} className="text-gold/60" />
                               </button>
                             </td>
                           </tr>
-                          <tr className="bg-secondary/20">
-                            <td className="py-4 px-4 text-sm font-bold text-foreground">Total</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaEmAberto + stats.despesaEmAberto) : '*****'}</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaVencida + stats.despesaVencida) : '*****'}</td>
-                            <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal + stats.despesaTotal) : '*****'}</td>
+                          <tr className="bg-secondary/30">
+                            <td className="py-3.5 text-[13px] font-semibold text-foreground">Total</td>
+                            <td className="py-3.5 text-right font-display text-[13px] tabular-nums text-foreground font-semibold">{showValues ? fmt(stats.receitaEmAberto + stats.despesaEmAberto) : '*****'}</td>
+                            <td className="py-3.5 text-right font-display text-[13px] tabular-nums text-foreground font-semibold">{showValues ? fmt(stats.receitaVencida + stats.despesaVencida) : '*****'}</td>
+                            <td className="py-3.5 text-right font-display text-[13px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal + stats.despesaTotal) : '*****'}</td>
                             <td></td>
                           </tr>
                         </tbody>
@@ -387,108 +398,126 @@ const FinancialDashboard = () => {
                 </div>
 
                 {/* Right: Saldo das contas */}
-                <div className="bg-white rounded-[32px] border border-border/30 premium-shadow overflow-hidden">
-                  <div className="bg-gradient-to-r from-gold to-gold/80 px-6 py-5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-white font-bold text-sm drop-shadow-sm">Saldo das contas</h3>
-                      <button onClick={() => setShowValues(!showValues)} className="text-white/80 hover:text-white transition-colors">
-                        {showValues ? <Eye size={16} /> : <EyeOff size={16} />}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-xs">{format(new Date(), 'dd/MM/yyyy')}</span>
-                      <Calendar size={14} className="text-white/80" />
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="space-y-1 max-h-[320px] overflow-y-auto">
-                      {bankAccounts.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Nenhuma conta cadastrada</p>
-                      ) : (
-                        bankAccounts.map((acc: any) => (
-                          <div key={acc.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-gold/[0.03] transition-colors border-b border-border/10 last:border-0">
-                            <div>
-                              <p className="text-sm font-semibold text-foreground">{acc.bank_name || 'Sem banco'}</p>
-                              {(acc.agency || acc.account_number) && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5">
-                                  {acc.agency && `Ag. ${acc.agency}`}
-                                  {acc.agency && acc.account_number ? ' | ' : ''}
-                                  {acc.account_number && `Cc ${acc.account_number}${acc.account_digit || ''}`}
-                                </p>
-                              )}
-                              {acc.description && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{acc.description}</p>}
-                            </div>
-                        <span className="text-sm font-display font-bold tabular-nums text-foreground">
-                          {showValues ? fmt(getBalance(acc.id)) : '*****'}
-                            </span>
-                          </div>
-                        ))
-                      )}
+                <div>
+                  <div className="bg-white rounded-2xl border border-border/20 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden h-full flex flex-col">
+                    {/* Header */}
+                    <div className="px-6 pt-7 pb-4 border-b border-border/10">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-6 w-[3px] bg-gold rounded-full" />
+                          <h3 className="text-base font-semibold text-foreground tracking-tight">Saldo das contas</h3>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setShowValues(!showValues)} className="text-muted-foreground/40 hover:text-gold transition-colors">
+                            {showValues ? <Eye size={15} /> : <EyeOff size={15} />}
+                          </button>
+                          <span className="text-[11px] text-muted-foreground/60 font-medium">{format(new Date(), 'dd/MM/yyyy')}</span>
+                        </div>
+                      </div>
                     </div>
 
+                    {/* Accounts List */}
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="divide-y divide-border/8">
+                        {bankAccounts.length === 0 ? (
+                          <p className="text-[13px] text-muted-foreground/50 text-center py-12">Nenhuma conta cadastrada</p>
+                        ) : (
+                          bankAccounts.map((acc: any) => {
+                            const balance = getBalance(acc.id);
+                            const isNegative = balance < -0.01;
+                            return (
+                              <div key={acc.id} className="px-6 py-4 hover:bg-secondary/15 transition-colors group">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <p className="text-[13px] font-semibold text-foreground truncate">{acc.bank_name || 'Sem banco'}</p>
+                                    {(acc.agency || acc.account_number) && (
+                                      <p className="text-[11px] text-muted-foreground/50 mt-0.5 tabular-nums">
+                                        {acc.agency && `Ag. ${acc.agency}`}
+                                        {acc.agency && acc.account_number ? ' | ' : ''}
+                                        {acc.account_number && `Cc ${acc.account_number}${acc.account_digit || ''}`}
+                                      </p>
+                                    )}
+                                    {acc.description && <p className="text-[10px] text-muted-foreground/35 mt-0.5 truncate">{acc.description}</p>}
+                                  </div>
+                                  <span className={cn(
+                                    "text-[13px] font-display font-semibold tabular-nums whitespace-nowrap",
+                                    isNegative ? "text-red-400" : "text-foreground"
+                                  )}>
+                                    {showValues ? fmt(balance) : '*****'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Total */}
                     {bankAccounts.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-border/20 flex items-center justify-between">
-                        <span className="text-sm font-bold text-foreground">Total</span>
-                        <span className="text-sm font-display font-bold tabular-nums text-foreground">
-                          {showValues ? fmt(stats.saldoHoje) : '*****'}
-                        </span>
+                      <div className="px-6 py-4 border-t border-border/10 bg-secondary/10">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px] font-semibold text-foreground">Total</span>
+                          <span className="text-[13px] font-display font-bold tabular-nums text-foreground">
+                            {showValues ? fmt(stats.saldoHoje) : '*****'}
+                          </span>
+                        </div>
                       </div>
                     )}
 
-                    <div className="mt-6 p-4 rounded-2xl bg-secondary/30 border border-border/10 space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-foreground/60">Você também pode se interessar:</p>
-                      <a href="/conciliacao" className="flex items-center gap-2 text-sm text-gold hover:text-gold/80 font-medium transition-colors">
-                        <ExternalLink size={14} />
-                        Conciliação bancária
-                      </a>
-                      <a href="/contas-bancarias" className="flex items-center gap-2 text-sm text-gold hover:text-gold/80 font-medium transition-colors">
-                        <ExternalLink size={14} />
-                        Transferência entre contas
-                      </a>
+                    {/* Links */}
+                    <div className="px-6 py-5 border-t border-border/10">
+                      <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40 mb-3">Atalhos</p>
+                      <div className="space-y-1.5">
+                        <a href="/conciliacao" className="flex items-center gap-2 text-[12px] text-muted-foreground/60 hover:text-gold font-medium transition-colors py-1">
+                          <ExternalLink size={12} />
+                          Conciliação bancária
+                        </a>
+                        <a href="/contas-bancarias" className="flex items-center gap-2 text-[12px] text-muted-foreground/60 hover:text-gold font-medium transition-colors py-1">
+                          <ExternalLink size={12} />
+                          Transferência entre contas
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Bottom Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="group relative bg-white rounded-[24px] border border-border/30 p-8 premium-shadow flex items-center justify-between overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/8 to-transparent rounded-full -mr-8 -mt-8" />
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Saldo Hoje</p>
-                    <p className="text-2xl font-display mt-2 tracking-tight text-foreground tabular-nums">{fmt(stats.saldoHoje)}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="bg-white rounded-2xl border border-border/20 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 flex items-center justify-between group hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-300">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">Saldo Hoje</p>
+                    <p className="text-xl font-display mt-1.5 tracking-tight text-foreground tabular-nums">{fmt(stats.saldoHoje)}</p>
                   </div>
-                  <div className="relative z-10 w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                    <Landmark size={20} className="text-emerald-600" />
+                  <div className="w-11 h-11 rounded-xl bg-emerald-50/80 flex items-center justify-center border border-emerald-100/60">
+                    <Landmark size={18} className="text-emerald-600/80" />
                   </div>
                 </div>
 
-                <div className="group relative bg-white rounded-[24px] border border-border/30 p-8 premium-shadow flex items-center justify-between overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gold/8 to-transparent rounded-full -mr-8 -mt-8" />
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Movimentações previstas para hoje</p>
+                <div className="bg-white rounded-2xl border border-border/20 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 flex items-center justify-between group hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-300">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">Movimentações previstas para hoje</p>
                     <p className={cn(
-                      "text-2xl font-display mt-2 tracking-tight tabular-nums",
-                      stats.movPrevistasHoje >= 0 ? "text-emerald-600" : "text-red-500"
+                      "text-xl font-display mt-1.5 tracking-tight tabular-nums",
+                      stats.movPrevistasHoje >= 0 ? "text-emerald-600" : "text-red-400"
                     )}>{fmt(stats.movPrevistasHoje)}</p>
                   </div>
-                  <div className="relative z-10 w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center border border-gold/20">
-                    <TrendingUp size={20} className="text-gold" />
+                  <div className="w-11 h-11 rounded-xl bg-gold/5 flex items-center justify-center border border-gold/10">
+                    <TrendingUp size={18} className="text-gold/70" />
                   </div>
                 </div>
 
-                <div className="group relative bg-white rounded-[24px] border border-border/30 p-8 premium-shadow flex items-center justify-between overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/8 to-transparent rounded-full -mr-8 -mt-8" />
-                  <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Saldo previsto para hoje</p>
+                <div className="bg-white rounded-2xl border border-border/20 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 flex items-center justify-between group hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-300">
+                  <div>
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/50">Saldo previsto para hoje</p>
                     <p className={cn(
-                      "text-2xl font-display mt-2 tracking-tight tabular-nums",
-                      stats.saldoPrevisto >= 0 ? "text-emerald-600" : "text-red-500"
+                      "text-xl font-display mt-1.5 tracking-tight tabular-nums",
+                      stats.saldoPrevisto >= 0 ? "text-emerald-600" : "text-red-400"
                     )}>{fmt(stats.saldoPrevisto)}</p>
                   </div>
-                  <div className="relative z-10 w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-100">
-                    <DollarSign size={20} className="text-amber-600" />
+                  <div className="w-11 h-11 rounded-xl bg-amber-50/80 flex items-center justify-center border border-amber-100/60">
+                    <DollarSign size={18} className="text-amber-500/80" />
                   </div>
                 </div>
               </div>
