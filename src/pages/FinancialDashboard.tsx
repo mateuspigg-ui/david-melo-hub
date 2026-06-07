@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import {
   DollarSign, TrendingUp, Calendar, Landmark, Receipt,
-  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight
+  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -38,17 +38,10 @@ const FinancialDashboard = () => {
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ['bank-accounts-dashboard', selectedCompany],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('bank_accounts')
-        .select('*');
-      if (selectedCompany !== 'all') {
-        query = query.eq('company_id', selectedCompany);
-      }
+      let query = (supabase as any).from('bank_accounts').select('*');
+      if (selectedCompany !== 'all') query = query.eq('company_id', selectedCompany);
       const { data, error } = await query.order('bank_name');
-      if (error) {
-        if (/could not find the table|schema cache/i.test(String(error?.message || ''))) return [];
-        throw error;
-      }
+      if (error) { if (/could not find the table|schema cache/i.test(String(error?.message || ''))) return []; throw error; }
       return data || [];
     },
   });
@@ -57,67 +50,40 @@ const FinancialDashboard = () => {
     queryKey: ['bank-tx-dashboard', selectedCompany],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from('bank_transactions').select('bank_account_id, amount');
-      if (error) return [];
-      return data || [];
+      if (error) return []; return data || [];
     },
   });
 
   const { data: payablePayments = [] } = useQuery({
     queryKey: ['payable-payments-dashboard', selectedCompany],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('accounts_payable')
-        .select('bank_account_id, paid_amount, amount, payment_status, paid_at')
-        .not('bank_account_id', 'is', null);
-      if (error) return [];
-      return data || [];
+      const { data, error } = await (supabase as any).from('accounts_payable').select('bank_account_id, paid_amount, amount, payment_status, paid_at').not('bank_account_id', 'is', null);
+      if (error) return []; return data || [];
     },
   });
 
   const { data: entryPayments = [] } = useQuery({
     queryKey: ['entry-payments-dashboard', selectedCompany],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('payments')
-        .select('entry_bank_account_id, entry_paid_amount, entry_amount, entry_paid_at')
-        .not('entry_bank_account_id', 'is', null)
-        .not('entry_paid_at', 'is', null);
-      if (error) return [];
-      return data || [];
+      const { data, error } = await (supabase as any).from('payments').select('entry_bank_account_id, entry_paid_amount, entry_amount, entry_paid_at').not('entry_bank_account_id', 'is', null).not('entry_paid_at', 'is', null);
+      if (error) return []; return data || [];
     },
   });
 
   const { data: installmentPayments = [] } = useQuery({
     queryKey: ['installment-payments-dashboard', selectedCompany],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('payment_installments')
-        .select('bank_account_id, paid_amount, amount, paid_at')
-        .not('bank_account_id', 'is', null)
-        .not('paid_at', 'is', null);
-      if (error) return [];
-      return data || [];
+      const { data, error } = await (supabase as any).from('payment_installments').select('bank_account_id, paid_amount, amount, paid_at').not('bank_account_id', 'is', null).not('paid_at', 'is', null);
+      if (error) return []; return data || [];
     },
   });
 
   const balanceMap = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const t of bankTx) {
-      map[t.bank_account_id] = (map[t.bank_account_id] || 0) + Number(t.amount || 0);
-    }
-    for (const p of payablePayments) {
-      if (p.payment_status === 'pago' || p.paid_at) {
-        map[p.bank_account_id] = (map[p.bank_account_id] || 0) - Number(p.paid_amount || p.amount || 0);
-      }
-    }
-    for (const ep of entryPayments) {
-      const id = ep.entry_bank_account_id;
-      map[id] = (map[id] || 0) + Number(ep.entry_paid_amount || ep.entry_amount || 0);
-    }
-    for (const ip of installmentPayments) {
-      const id = ip.bank_account_id;
-      map[id] = (map[id] || 0) + Number(ip.paid_amount || ip.amount || 0);
-    }
+    for (const t of bankTx) map[t.bank_account_id] = (map[t.bank_account_id] || 0) + Number(t.amount || 0);
+    for (const p of payablePayments) { if (p.payment_status === 'pago' || p.paid_at) map[p.bank_account_id] = (map[p.bank_account_id] || 0) - Number(p.paid_amount || p.amount || 0); }
+    for (const ep of entryPayments) { map[ep.entry_bank_account_id] = (map[ep.entry_bank_account_id] || 0) + Number(ep.entry_paid_amount || ep.entry_amount || 0); }
+    for (const ip of installmentPayments) { map[ip.bank_account_id] = (map[ip.bank_account_id] || 0) + Number(ip.paid_amount || ip.amount || 0); }
     return map;
   }, [bankTx, payablePayments, entryPayments, installmentPayments]);
 
@@ -129,30 +95,18 @@ const FinancialDashboard = () => {
   const { data: payments = [], isLoading: loadingPayments } = useQuery({
     queryKey: ['dash-payments', selectedCompany],
     queryFn: async () => {
-      let query = supabase
-        .from('payments')
-        .select('*, payment_installments(*)');
-      if (selectedCompany !== 'all') {
-        query = query.eq('company_id', selectedCompany);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
+      let query = supabase.from('payments').select('*, payment_installments(*)');
+      if (selectedCompany !== 'all') query = query.eq('company_id', selectedCompany);
+      const { data, error } = await query; if (error) throw error; return data || [];
     },
   });
 
   const { data: payables = [], isLoading: loadingPayables } = useQuery({
     queryKey: ['dash-payables', selectedCompany],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('accounts_payable')
-        .select('*');
-      if (selectedCompany !== 'all') {
-        query = query.eq('company_id', selectedCompany);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
+      let query = (supabase as any).from('accounts_payable').select('*');
+      if (selectedCompany !== 'all') query = query.eq('company_id', selectedCompany);
+      const { data, error } = await query; if (error) throw error; return data || [];
     },
   });
 
@@ -161,24 +115,18 @@ const FinancialDashboard = () => {
   const stats = useMemo(() => {
     const dateFromStr = dateFrom || '0000-01-01';
     const dateToStr = dateTo || '9999-12-31';
-
-    let receitaEmAberto = 0;
-    let receitaVencida = 0;
-    let receitaTotal = 0;
-    let receitaMovHoje = 0;
+    let receitaEmAberto = 0, receitaVencida = 0, receitaTotal = 0, receitaMovHoje = 0;
 
     for (const p of payments) {
       const installments = (p.payment_installments || []) as any[];
       if (installments.length > 0) {
         for (const inst of installments) {
-          const instPaid = inst.status === 'paid' || inst.paid_at;
+          if (inst.status === 'paid' || inst.paid_at) continue;
           const dueDate = inst.due_date as string;
           if (!dueDate || dueDate < dateFromStr || dueDate > dateToStr) continue;
-          if (instPaid) continue;
           const amount = Number(inst.amount || 0);
           receitaTotal += amount;
-          if (dueDate < today) receitaVencida += amount;
-          else receitaEmAberto += amount;
+          if (dueDate < today) receitaVencida += amount; else receitaEmAberto += amount;
           if (dueDate === today) receitaMovHoje += amount;
         }
       } else if (p.has_entry_payment && !p.entry_paid_at) {
@@ -186,42 +134,28 @@ const FinancialDashboard = () => {
         if (!entryDate || entryDate < dateFromStr || entryDate > dateToStr) continue;
         const amount = Number(p.entry_amount || 0);
         receitaTotal += amount;
-        if (entryDate < today) receitaVencida += amount;
-        else receitaEmAberto += amount;
+        if (entryDate < today) receitaVencida += amount; else receitaEmAberto += amount;
         if (entryDate === today) receitaMovHoje += amount;
       }
     }
 
-    let despesaEmAberto = 0;
-    let despesaVencida = 0;
-    let despesaTotal = 0;
-    let despesaMovHoje = 0;
-
+    let despesaEmAberto = 0, despesaVencida = 0, despesaTotal = 0, despesaMovHoje = 0;
     for (const ap of payables) {
-      const isPaid = ap.payment_status === 'pago' || ap.payment_status === 'paid' || ap.paid_at;
+      if (ap.payment_status === 'pago' || ap.payment_status === 'paid' || ap.paid_at) continue;
       const dueDate = ap.due_date as string;
       if (!dueDate || dueDate < dateFromStr || dueDate > dateToStr) continue;
-      if (isPaid) continue;
       const amount = Number(ap.amount || 0);
-      const discount = Number(ap.discount || 0);
-      const interest = Number(ap.interest || 0);
-      const fine = Number(ap.fine || 0);
-      const totalLiquido = amount - discount + interest + fine;
+      const totalLiquido = amount - Number(ap.discount || 0) + Number(ap.interest || 0) + Number(ap.fine || 0);
       despesaTotal += totalLiquido;
-      if (dueDate < today) despesaVencida += totalLiquido;
-      else despesaEmAberto += totalLiquido;
+      if (dueDate < today) despesaVencida += totalLiquido; else despesaEmAberto += totalLiquido;
       if (dueDate === today) despesaMovHoje += totalLiquido;
     }
 
     const totalBank = bankAccounts.reduce((sum: number, acc: any) => sum + getBalance(acc.id), 0);
-
     return {
-      receitaEmAberto, receitaVencida, receitaTotal,
-      despesaEmAberto, despesaVencida, despesaTotal,
-      receitaMovHoje, despesaMovHoje,
-      saldoHoje: totalBank,
-      movPrevistasHoje: receitaMovHoje - despesaMovHoje,
-      saldoPrevisto: totalBank + receitaMovHoje - despesaMovHoje,
+      receitaEmAberto, receitaVencida, receitaTotal, despesaEmAberto, despesaVencida, despesaTotal,
+      receitaMovHoje, despesaMovHoje, saldoHoje: totalBank,
+      movPrevistasHoje: receitaMovHoje - despesaMovHoje, saldoPrevisto: totalBank + receitaMovHoje - despesaMovHoje,
     };
   }, [payments, payables, bankAccounts, today, dateFrom, dateTo]);
 
@@ -245,16 +179,10 @@ const FinancialDashboard = () => {
         <div className="px-2">
           <div className="bg-white rounded-2xl border border-border/30 p-4 max-w-xl">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Empresa / CNPJ</p>
-            <select
-              value={selectedCompany}
-              onChange={(e) => setSelectedCompany(e.target.value)}
-              className="h-11 w-full rounded-xl border border-border/40 px-3 text-sm"
-            >
+            <select value={selectedCompany} onChange={(e) => setSelectedCompany(e.target.value)} className="h-11 w-full rounded-xl border border-border/40 px-3 text-sm">
               <option value="all">Consolidado (todas as empresas)</option>
               {companies.map((company: any) => (
-                <option key={company.id} value={company.id}>
-                  {(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}
-                </option>
+                <option key={company.id} value={company.id}>{(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}</option>
               ))}
             </select>
           </div>
@@ -263,14 +191,8 @@ const FinancialDashboard = () => {
 
       <Tabs defaultValue="dashboard" className="px-2">
         <TabsList className="bg-white rounded-xl border border-border/30 p-1 h-12">
-          <TabsTrigger value="dashboard" className="text-[10px] font-bold uppercase tracking-widest rounded-lg px-6 data-[state=active]:bg-gold data-[state=active]:text-white">
-            <Receipt size={14} className="mr-2" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="calendario" className="text-[10px] font-bold uppercase tracking-widest rounded-lg px-6 data-[state=active]:bg-gold data-[state=active]:text-white">
-            <Calendar size={14} className="mr-2" />
-            Calendário
-          </TabsTrigger>
+          <TabsTrigger value="dashboard" className="text-[10px] font-bold uppercase tracking-widest rounded-lg px-6 data-[state=active]:bg-gold data-[state=active]:text-white"><Receipt size={14} className="mr-2" />Dashboard</TabsTrigger>
+          <TabsTrigger value="calendario" className="text-[10px] font-bold uppercase tracking-widest rounded-lg px-6 data-[state=active]:bg-gold data-[state=active]:text-white"><Calendar size={14} className="mr-2" />Calendário</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-8 space-y-8">
@@ -281,135 +203,151 @@ const FinancialDashboard = () => {
             </div>
           ) : (
             <>
-              {/* Main Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Pagamentos e Recebimentos */}
                 <div className="lg:col-span-2">
-                  <div className="relative bg-white rounded-3xl border border-border/20 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                    {/* Gold accent line */}
-                    <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-gold/40 via-gold to-gold/40" />
+                  <div className="relative overflow-hidden rounded-3xl border border-gold/10 bg-gradient-to-br from-white via-white to-gold/[0.02] shadow-[0_20px_60px_-15px_rgba(197,160,89,0.12)]">
+                    {/* Decorative elements */}
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-gold/8 to-transparent rounded-full blur-2xl" />
+                    <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-gradient-to-tr from-gold/5 to-transparent rounded-full blur-xl" />
 
-                    <div className="px-10 pt-8 pb-6">
-                      {/* Header row */}
+                    <div className="relative px-10 pt-8 pb-6">
+                      {/* Header */}
                       <div className="flex items-center justify-between mb-8">
-                        <div>
-                          <h3 className="text-lg font-bold text-foreground tracking-tight">Pagamentos e Recebimentos</h3>
-                          <p className="text-[11px] text-muted-foreground/50 mt-1 font-medium">Valores por parcela no período selecionado</p>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-lg" />
+                            <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-gold via-gold/90 to-gold/70 flex items-center justify-center shadow-lg shadow-gold/20">
+                              <Receipt size={20} className="text-white" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-foreground tracking-tight">Pagamentos e Recebimentos</h3>
+                            <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-medium">Valores por parcela no período</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 bg-gradient-to-r from-gold/5 to-gold/[0.02] border border-gold/10 rounded-xl px-4 py-2">
-                          <Calendar size={13} className="text-gold/70" />
-                          <span className="text-[12px] text-foreground/70 font-semibold tabular-nums">{dateLabel}</span>
+                        <div className="flex items-center gap-2.5 bg-gradient-to-r from-gold/10 via-gold/5 to-transparent border border-gold/15 rounded-2xl px-5 py-2.5 shadow-inner shadow-gold/5">
+                          <Calendar size={14} className="text-gold" />
+                          <span className="text-[12px] text-foreground/80 font-semibold tabular-nums">{dateLabel}</span>
                         </div>
                       </div>
 
                       {/* Filters */}
-                      <div className="flex flex-wrap items-end gap-3 mb-8 p-4 bg-secondary/20 rounded-2xl border border-border/10">
-                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Periodo inicial</Label>
-                          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Periodo final</Label>
-                          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all" />
-                        </div>
-                        <div className="flex items-center gap-5 ml-auto pb-1">
-                          <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Exibir valores:</span>
-                          <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer group">
-                              <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all", showValues ? "border-gold bg-gold" : "border-border/40")}>
-                                {showValues && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                              </div>
-                              <span className={cn("text-[12px] font-medium transition-colors", showValues ? "text-foreground" : "text-muted-foreground/60 group-hover:text-foreground/80")}>Bruto</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer group">
-                              <div className={cn("w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all", !showValues ? "border-gold bg-gold" : "border-border/40")}>
-                                {!showValues && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                              </div>
-                              <span className={cn("text-[12px] font-medium transition-colors", !showValues ? "text-foreground" : "text-muted-foreground/60 group-hover:text-foreground/80")}>Líquido</span>
-                            </label>
+                      <div className="relative mb-8 p-5 bg-gradient-to-r from-secondary/30 via-secondary/20 to-secondary/30 rounded-2xl border border-border/10 backdrop-blur-sm">
+                        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
+                        <div className="flex flex-wrap items-end gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Periodo inicial</Label>
+                            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white/80 focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all shadow-sm" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Periodo final</Label>
+                            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white/80 focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all shadow-sm" />
+                          </div>
+                          <div className="flex items-center gap-5 ml-auto pb-1">
+                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Valores:</span>
+                            <div className="flex items-center gap-1 p-1 bg-white/60 rounded-xl border border-border/20 shadow-inner">
+                              <button onClick={() => setShowValues(true)} className={cn("px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-300", showValues ? "bg-gradient-to-r from-gold to-gold/90 text-white shadow-md shadow-gold/20" : "text-muted-foreground/60 hover:text-foreground")}>Bruto</button>
+                              <button onClick={() => setShowValues(false)} className={cn("px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-300", !showValues ? "bg-gradient-to-r from-gold to-gold/90 text-white shadow-md shadow-gold/20" : "text-muted-foreground/60 hover:text-foreground")}>Líquido</button>
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Table */}
-                      <div className="overflow-hidden rounded-xl border border-border/15">
+                      <div className="overflow-hidden rounded-2xl border border-border/15 shadow-lg shadow-black/[0.03]">
                         <table className="w-full">
                           <thead>
-                            <tr className="bg-gradient-to-b from-secondary/40 to-secondary/20">
-                              <th className="text-left py-3.5 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 w-[160px]">Tipo</th>
-                              <th className="text-right py-3.5 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Em Aberto</th>
-                              <th className="text-right py-3.5 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Vencidos</th>
-                              <th className="text-right py-3.5 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Total</th>
-                              <th className="text-center py-3.5 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 w-[60px]"></th>
+                            <tr className="bg-gradient-to-r from-foreground/[0.03] via-foreground/[0.02] to-foreground/[0.03]">
+                              <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 w-[180px]">Tipo</th>
+                              <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Em Aberto</th>
+                              <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Vencidos</th>
+                              <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Total</th>
+                              <th className="text-center py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 w-[60px]"></th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border/10">
-                            <tr className="group hover:bg-gradient-to-r hover:from-gold/[0.02] hover:to-transparent transition-all duration-300">
+                            <tr className="group hover:bg-gradient-to-r hover:from-emerald-50/40 hover:via-emerald-50/20 hover:to-transparent transition-all duration-500">
                               <td className="py-5 px-6">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 flex items-center justify-center border border-emerald-200/50 shadow-sm">
-                                    <ArrowDownCircle size={16} className="text-emerald-600" />
+                                <div className="flex items-center gap-3.5">
+                                  <div className="relative">
+                                    <div className="absolute inset-0 bg-emerald-500/10 rounded-xl blur-md group-hover:blur-lg transition-all" />
+                                    <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 via-emerald-100/80 to-emerald-50 flex items-center justify-center border border-emerald-200/50 shadow-sm">
+                                      <ArrowDownCircle size={18} className="text-emerald-600" />
+                                    </div>
                                   </div>
                                   <div>
-                                    <p className="text-[13px] font-semibold text-foreground">A Receber</p>
-                                    <p className="text-[10px] text-muted-foreground/40 font-medium">Receitas pendentes</p>
+                                    <p className="text-[14px] font-semibold text-foreground">A Receber</p>
+                                    <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">Receitas pendentes</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-foreground/70">{showValues ? fmt(stats.receitaEmAberto) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{showValues ? fmt(stats.receitaEmAberto) : '*****'}</span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-emerald-600 font-medium">{showValues ? fmt(stats.receitaVencida) : '*****'}</span>
+                                <span className="inline-flex items-center gap-1 font-display text-[15px] tabular-nums text-emerald-600 font-medium">
+                                  {showValues && stats.receitaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                  {showValues ? fmt(stats.receitaVencida) : '*****'}
+                                </span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal) : '*****'}</span>
                               </td>
                               <td className="py-5 px-6 text-center">
-                                <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-200">
-                                  <FileText size={15} className="text-gold/50 group-hover:text-gold transition-colors" />
+                                <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-300 hover:shadow-md hover:shadow-gold/10">
+                                  <FileText size={15} className="text-gold/40 group-hover:text-gold transition-colors" />
                                 </button>
                               </td>
                             </tr>
-                            <tr className="group hover:bg-gradient-to-r hover:from-red-50/30 hover:to-transparent transition-all duration-300">
+                            <tr className="group hover:bg-gradient-to-r hover:from-red-50/40 hover:via-red-50/20 hover:to-transparent transition-all duration-500">
                               <td className="py-5 px-6">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 flex items-center justify-center border border-red-200/50 shadow-sm">
-                                    <ArrowUpCircle size={16} className="text-red-400" />
+                                <div className="flex items-center gap-3.5">
+                                  <div className="relative">
+                                    <div className="absolute inset-0 bg-red-500/10 rounded-xl blur-md group-hover:blur-lg transition-all" />
+                                    <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-red-50 via-red-100/80 to-red-50 flex items-center justify-center border border-red-200/50 shadow-sm">
+                                      <ArrowUpCircle size={18} className="text-red-400" />
+                                    </div>
                                   </div>
                                   <div>
-                                    <p className="text-[13px] font-semibold text-foreground">A Pagar</p>
-                                    <p className="text-[10px] text-muted-foreground/40 font-medium">Despesas pendentes</p>
+                                    <p className="text-[14px] font-semibold text-foreground">A Pagar</p>
+                                    <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">Despesas pendentes</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-foreground/70">{showValues ? fmt(stats.despesaEmAberto) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{showValues ? fmt(stats.despesaEmAberto) : '*****'}</span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-red-400 font-medium">{showValues ? fmt(stats.despesaVencida) : '*****'}</span>
+                                <span className="inline-flex items-center gap-1 font-display text-[15px] tabular-nums text-red-400 font-medium">
+                                  {showValues && stats.despesaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
+                                  {showValues ? fmt(stats.despesaVencida) : '*****'}
+                                </span>
                               </td>
                               <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.despesaTotal) : '*****'}</span>
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.despesaTotal) : '*****'}</span>
                               </td>
                               <td className="py-5 px-6 text-center">
-                                <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-200">
-                                  <FileText size={15} className="text-gold/50 group-hover:text-gold transition-colors" />
+                                <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-300 hover:shadow-md hover:shadow-gold/10">
+                                  <FileText size={15} className="text-gold/40 group-hover:text-gold transition-colors" />
                                 </button>
                               </td>
                             </tr>
-                            <tr className="bg-gradient-to-r from-secondary/30 via-secondary/20 to-secondary/30">
-                              <td className="py-4 px-6">
-                                <p className="text-[13px] font-bold text-foreground pl-12">Total</p>
+                            <tr className="relative">
+                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+                              <td className="py-5 px-6 pl-16">
+                                <p className="text-[14px] font-bold text-foreground">Total</p>
                               </td>
-                              <td className="py-4 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaEmAberto + stats.despesaEmAberto) : '*****'}</span>
+                              <td className="py-5 px-6 text-right">
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaEmAberto + stats.despesaEmAberto) : '*****'}</span>
                               </td>
-                              <td className="py-4 px-6 text-right">
-                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaVencida + stats.despesaVencida) : '*****'}</span>
+                              <td className="py-5 px-6 text-right">
+                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaVencida + stats.despesaVencida) : '*****'}</span>
                               </td>
-                              <td className="py-4 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-gold font-black">{showValues ? fmt(stats.receitaTotal + stats.despesaTotal) : '*****'}</span>
+                              <td className="py-5 px-6 text-right">
+                                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
+                                  <span className="font-display text-[16px] tabular-nums text-gold font-black">{showValues ? fmt(stats.receitaTotal + stats.despesaTotal) : '*****'}</span>
+                                </div>
                               </td>
                               <td></td>
                             </tr>
@@ -422,63 +360,72 @@ const FinancialDashboard = () => {
 
                 {/* Right: Saldo das contas */}
                 <div className="lg:col-span-1">
-                  <div className="relative bg-white rounded-3xl border border-border/20 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] h-full flex flex-col">
-                    {/* Gold accent line */}
-                    <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-gold/40 via-gold to-gold/40" />
+                  <div className="relative overflow-hidden rounded-3xl border border-gold/10 bg-gradient-to-br from-white via-white to-gold/[0.02] shadow-[0_20px_60px_-15px_rgba(197,160,89,0.12)] h-full flex flex-col">
+                    {/* Decorative */}
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-gold/8 to-transparent rounded-full blur-2xl" />
 
-                    <div className="px-8 pt-8 pb-5 flex-1 flex flex-col">
+                    <div className="relative px-8 pt-8 pb-6 flex-1 flex flex-col">
                       {/* Header */}
-                      <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <h3 className="text-lg font-bold text-foreground tracking-tight">Saldo das contas</h3>
-                          <p className="text-[11px] text-muted-foreground/50 mt-1 font-medium">{format(new Date(), 'dd/MM/yyyy')}</p>
+                      <div className="flex items-center justify-between mb-7">
+                        <div className="flex items-center gap-3.5">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-lg" />
+                            <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-gold via-gold/90 to-gold/70 flex items-center justify-center shadow-lg shadow-gold/20">
+                              <Wallet size={18} className="text-white" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-bold text-foreground tracking-tight">Saldo das contas</h3>
+                            <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-medium">{format(new Date(), 'dd/MM/yyyy')}</p>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => setShowValues(!showValues)}
-                          className="w-9 h-9 rounded-xl bg-secondary/30 flex items-center justify-center border border-border/15 hover:bg-gold/5 hover:border-gold/20 transition-all duration-200"
-                        >
+                        <button onClick={() => setShowValues(!showValues)} className="w-9 h-9 rounded-xl bg-secondary/30 flex items-center justify-center border border-border/15 hover:bg-gold/5 hover:border-gold/20 transition-all duration-200">
                           {showValues ? <Eye size={15} className="text-muted-foreground/50" /> : <EyeOff size={15} className="text-muted-foreground/50" />}
                         </button>
                       </div>
 
-                      {/* Accounts List */}
+                      {/* Accounts */}
                       <div className="flex-1 overflow-y-auto -mx-2 px-2">
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {bankAccounts.length === 0 ? (
                             <div className="text-center py-12">
-                              <div className="w-12 h-12 rounded-2xl bg-secondary/30 flex items-center justify-center mx-auto mb-3">
-                                <Landmark size={20} className="text-muted-foreground/30" />
+                              <div className="relative inline-block mb-3">
+                                <div className="absolute inset-0 bg-gold/10 rounded-2xl blur-lg" />
+                                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-secondary/50 to-secondary/30 flex items-center justify-center border border-border/15">
+                                  <Landmark size={22} className="text-muted-foreground/25" />
+                                </div>
                               </div>
-                              <p className="text-[13px] text-muted-foreground/40 font-medium">Nenhuma conta cadastrada</p>
+                              <p className="text-[13px] text-muted-foreground/40 font-medium">Nenhuma conta</p>
                             </div>
                           ) : (
                             bankAccounts.map((acc: any) => {
                               const balance = getBalance(acc.id);
                               const isNegative = balance < -0.01;
                               return (
-                                <div key={acc.id} className="group/item p-4 rounded-2xl hover:bg-secondary/25 transition-all duration-200 cursor-pointer">
+                                <div key={acc.id} className="group/item relative p-4 rounded-2xl bg-gradient-to-r from-secondary/10 to-transparent hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 cursor-pointer">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-[13px] font-semibold text-foreground truncate group-hover/item:text-gold transition-colors">{acc.bank_name || 'Sem banco'}</p>
-                                      <div className="flex items-center gap-1.5 mt-1">
+                                      <div className="flex items-center gap-2">
+                                        <div className={cn("w-2 h-2 rounded-full", isNegative ? "bg-red-400" : "bg-emerald-500")} />
+                                        <p className="text-[13px] font-semibold text-foreground truncate group-hover/item:text-gold transition-colors">{acc.bank_name || 'Sem banco'}</p>
+                                      </div>
+                                      <div className="ml-4 mt-1.5">
                                         {(acc.agency || acc.account_number) && (
-                                          <p className="text-[10px] text-muted-foreground/45 tabular-nums font-medium">
+                                          <p className="text-[10px] text-muted-foreground/40 tabular-nums font-medium">
                                             {acc.agency && `Ag. ${acc.agency}`}
-                                            {acc.agency && acc.account_number ? <span className="mx-1 text-border/30">·</span> : ''}
+                                            {acc.agency && acc.account_number && <span className="mx-1 text-border/30">·</span>}
                                             {acc.account_number && `Cc ${acc.account_number}${acc.account_digit || ''}`}
                                           </p>
                                         )}
+                                        {acc.description && <p className="text-[10px] text-muted-foreground/25 mt-0.5 truncate">{acc.description}</p>}
                                       </div>
-                                      {acc.description && <p className="text-[10px] text-muted-foreground/30 mt-0.5 truncate">{acc.description}</p>}
                                     </div>
-                                    <div className="text-right">
-                                      <span className={cn(
-                                        "text-[14px] font-display font-bold tabular-nums whitespace-nowrap",
-                                        isNegative ? "text-red-400" : "text-foreground"
-                                      )}>
-                                        {showValues ? fmt(balance) : '*****'}
-                                      </span>
-                                    </div>
+                                    <span className={cn(
+                                      "text-[14px] font-display font-bold tabular-nums whitespace-nowrap",
+                                      isNegative ? "text-red-400" : "text-foreground"
+                                    )}>
+                                      {showValues ? fmt(balance) : '*****'}
+                                    </span>
                                   </div>
                                 </div>
                               );
@@ -489,35 +436,42 @@ const FinancialDashboard = () => {
 
                       {/* Total */}
                       {bankAccounts.length > 0 && (
-                        <div className="mt-4 pt-5 border-t border-border/10">
+                        <div className="mt-5 pt-5 border-t border-border/10 relative">
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
                           <div className="flex items-center justify-between">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Saldo Total</p>
-                            <p className="text-[16px] font-display font-black tabular-nums text-foreground">
-                              {showValues ? fmt(stats.saldoHoje) : '*****'}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-gold" />
+                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Saldo Total</p>
+                            </div>
+                            <div className="bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
+                              <p className="text-[16px] font-display font-black tabular-nums text-gold">
+                                {showValues ? fmt(stats.saldoHoje) : '*****'}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {/* Quick Links */}
-                      <div className="mt-6 space-y-1">
-                        <a href="/conciliacao" className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/25 transition-all group/link">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-gold/5 flex items-center justify-center border border-gold/10">
-                              <ExternalLink size={12} className="text-gold/60" />
+                      <div className="mt-6 space-y-2">
+                        <div className="h-px bg-gradient-to-r from-transparent via-border/20 to-transparent" />
+                        <a href="/conciliacao" className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-gradient-to-r hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 group/link">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold/10 to-gold/5 flex items-center justify-center border border-gold/10">
+                              <ExternalLink size={13} className="text-gold/60" />
                             </div>
                             <span className="text-[12px] text-muted-foreground/60 font-medium group-hover/link:text-gold transition-colors">Conciliação bancária</span>
                           </div>
-                          <ChevronRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 transition-colors" />
+                          <ArrowRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
                         </a>
-                        <a href="/contas-bancarias" className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/25 transition-all group/link">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-lg bg-gold/5 flex items-center justify-center border border-gold/10">
-                              <ExternalLink size={12} className="text-gold/60" />
+                        <a href="/contas-bancarias" className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-gradient-to-r hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 group/link">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold/10 to-gold/5 flex items-center justify-center border border-gold/10">
+                              <ExternalLink size={13} className="text-gold/60" />
                             </div>
                             <span className="text-[12px] text-muted-foreground/60 font-medium group-hover/link:text-gold transition-colors">Transferência entre contas</span>
                           </div>
-                          <ChevronRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 transition-colors" />
+                          <ArrowRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
                         </a>
                       </div>
                     </div>
@@ -528,51 +482,63 @@ const FinancialDashboard = () => {
               {/* Bottom Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Saldo Hoje */}
-                <div className="relative bg-white rounded-3xl border border-border/20 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] group hover:shadow-[0_12px_40px_rgb(0,0,0,0.07)] transition-all duration-500">
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-200/30 bg-gradient-to-br from-white via-emerald-50/20 to-emerald-50/40 shadow-[0_20px_60px_-15px_rgba(16,185,129,0.12)] group hover:shadow-[0_25px_70px_-15px_rgba(16,185,129,0.18)] transition-all duration-500">
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-emerald-500/8 to-transparent rounded-full blur-2xl" />
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400/40 via-emerald-500 to-emerald-400/40" />
-                  <div className="p-7">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 flex items-center justify-center border border-emerald-200/40 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                        <Landmark size={18} className="text-emerald-600" />
+                  <div className="relative p-7">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-emerald-500/15 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-100/80 to-emerald-50 flex items-center justify-center border border-emerald-200/50 shadow-sm group-hover:scale-110 transition-transform duration-500">
+                          <Landmark size={20} className="text-emerald-600" />
+                        </div>
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-600/60 bg-emerald-50/80 px-2.5 py-1 rounded-lg">Hoje</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-600/70 bg-emerald-100/50 px-3 py-1.5 rounded-xl border border-emerald-200/30">Hoje</span>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">Saldo Hoje</p>
-                    <p className="text-2xl font-display font-black tracking-tight text-foreground tabular-nums">{fmt(stats.saldoHoje)}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1.5">Saldo Hoje</p>
+                    <p className="text-[26px] font-display font-black tracking-tight text-foreground tabular-nums leading-none">{fmt(stats.saldoHoje)}</p>
                   </div>
                 </div>
 
                 {/* Movimentações previstas */}
-                <div className="relative bg-white rounded-3xl border border-border/20 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] group hover:shadow-[0_12px_40px_rgb(0,0,0,0.07)] transition-all duration-500">
+                <div className="relative overflow-hidden rounded-3xl border border-gold/15 bg-gradient-to-br from-white via-gold/[0.02] to-gold/[0.04] shadow-[0_20px_60px_-15px_rgba(197,160,89,0.12)] group hover:shadow-[0_25px_70px_-15px_rgba(197,160,89,0.18)] transition-all duration-500">
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-gold/8 to-transparent rounded-full blur-2xl" />
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-gold/40 via-gold to-gold/40" />
-                  <div className="p-7">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-gold/5 to-gold/10 flex items-center justify-center border border-gold/15 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                        <TrendingUp size={18} className="text-gold" />
+                  <div className="relative p-7">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gold/15 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-gold/10 via-gold/15 to-gold/10 flex items-center justify-center border border-gold/20 shadow-sm group-hover:scale-110 transition-transform duration-500">
+                          <TrendingUp size={20} className="text-gold" />
+                        </div>
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold/60 bg-gold/5 px-2.5 py-1 rounded-lg">Previsão</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold/70 bg-gold/10 px-3 py-1.5 rounded-xl border border-gold/15">Previsão</span>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">Movimentações previstas para hoje</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1.5">Movimentações previstas para hoje</p>
                     <p className={cn(
-                      "text-2xl font-display font-black tracking-tight tabular-nums",
+                      "text-[26px] font-display font-black tracking-tight tabular-nums leading-none",
                       stats.movPrevistasHoje >= 0 ? "text-emerald-600" : "text-red-400"
                     )}>{fmt(stats.movPrevistasHoje)}</p>
                   </div>
                 </div>
 
                 {/* Saldo previsto */}
-                <div className="relative bg-white rounded-3xl border border-border/20 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] group hover:shadow-[0_12px_40px_rgb(0,0,0,0.07)] transition-all duration-500">
+                <div className="relative overflow-hidden rounded-3xl border border-amber-200/30 bg-gradient-to-br from-white via-amber-50/20 to-amber-50/40 shadow-[0_20px_60px_-15px_rgba(245,158,11,0.12)] group hover:shadow-[0_25px_70px_-15px_rgba(245,158,11,0.18)] transition-all duration-500">
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-amber-500/8 to-transparent rounded-full blur-2xl" />
                   <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400/40 via-amber-500 to-amber-400/40" />
-                  <div className="p-7">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 flex items-center justify-center border border-amber-200/40 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                        <DollarSign size={18} className="text-amber-500" />
+                  <div className="relative p-7">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-amber-500/15 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
+                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100/80 to-amber-50 flex items-center justify-center border border-amber-200/50 shadow-sm group-hover:scale-110 transition-transform duration-500">
+                          <DollarSign size={20} className="text-amber-500" />
+                        </div>
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-600/60 bg-amber-50/80 px-2.5 py-1 rounded-lg">Projetado</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-600/70 bg-amber-100/50 px-3 py-1.5 rounded-xl border border-amber-200/30">Projetado</span>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1">Saldo previsto para hoje</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1.5">Saldo previsto para hoje</p>
                     <p className={cn(
-                      "text-2xl font-display font-black tracking-tight tabular-nums",
+                      "text-[26px] font-display font-black tracking-tight tabular-nums leading-none",
                       stats.saldoPrevisto >= 0 ? "text-emerald-600" : "text-red-400"
                     )}>{fmt(stats.saldoPrevisto)}</p>
                   </div>
