@@ -1,21 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, AreaChart, Area, PieChart, Pie, Cell 
-} from 'recharts';
-import { 
-  DollarSign, TrendingUp, AlertCircle, CheckCircle2, 
-  ArrowUpRight, ArrowDownRight, Landmark, Receipt, Calendar
+import { format, subDays } from 'date-fns';
+import {
+  DollarSign, TrendingUp, Calendar, Landmark, Receipt,
+  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import CalendarTab from '@/components/CalendarTab';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 const FinancialDashboard = () => {
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
+  const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [showValues, setShowValues] = useState(true);
+
   const { data: companies = [] } = useQuery({
     queryKey: ['companies-select'],
     queryFn: async () => {
@@ -31,141 +35,152 @@ const FinancialDashboard = () => {
     },
   });
 
-  // Fetch summary from the view created in SQL
-  const { data: summary, isLoading } = useQuery({
-    queryKey: ['financial_summary', selectedCompany],
+  // Bank accounts with balances
+  const { data: bankAccounts = [] } = useQuery({
+    queryKey: ['bank-accounts-dashboard', selectedCompany],
     queryFn: async () => {
+      let query = (supabase as any)
+        .from('bank_accounts')
+        .select('id, bank_name, account_name, balance, company_id');
       if (selectedCompany !== 'all') {
-        const { data: bankAccounts } = await (supabase as any)
-          .from('bank_accounts')
-          .select('id, bank_name')
-          .eq('company_id', selectedCompany);
-
-        const accountIds = (bankAccounts || []).map((acc: any) => acc.id);
-        if (!accountIds.length) return [];
-
-        const [{ data: bankTx }, { data: accounting }] = await Promise.all([
-          (supabase as any).from('bank_transactions').select('bank_account_id, amount').in('bank_account_id', accountIds),
-          (supabase as any).from('accounting_entries').select('bank_account_id, amount').in('bank_account_id', accountIds),
-        ]);
-
-        return (bankAccounts || []).map((acc: any) => ({
-          bank_name: acc.bank_name,
-          bank_balance: (bankTx || []).filter((row: any) => row.bank_account_id === acc.id).reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0),
-          accounting_balance: (accounting || []).filter((row: any) => row.bank_account_id === acc.id).reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0),
-        }));
+        query = query.eq('company_id', selectedCompany);
       }
+      const { data, error } = await query.order('bank_name');
+      if (error) {
+        if (/could not find the table|schema cache/i.test(String(error?.message || ''))) return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
 
-      const { data, error } = await (supabase as any).from('vw_financial_summary').select('*');
+  // Payments (recebimentos)
+  const { data: payments = [] } = useQuery({
+    queryKey: ['dash-payments', selectedCompany, dateFrom, dateTo],
+    queryFn: async () => {
+      let query = supabase
+        .from('payments')
+        .select('*, payment_installments(*)');
+      if (selectedCompany !== 'all') {
+        query = query.eq('company_id', selectedCompany);
+      }
+      const { data, error } = await query;
       if (error) throw error;
-      return data;
-    }
+      return data || [];
+    },
   });
 
-  const { data: pendingStats } = useQuery({
-    queryKey: ['reconciliation_pending', selectedCompany],
+  // Accounts payable (saidas)
+  const { data: payables = [] } = useQuery({
+    queryKey: ['dash-payables', selectedCompany, dateFrom, dateTo],
     queryFn: async () => {
-      let extQuery: any = (supabase as any).from('bank_transactions').select('amount').eq('status', 'pendente');
-      let contQuery: any = (supabase as any).from('accounting_entries').select('amount').eq('status', 'pendente');
-
+      let query = (supabase as any)
+        .from('accounts_payable')
+        .select('*');
       if (selectedCompany !== 'all') {
-        extQuery = extQuery.eq('company_id', selectedCompany);
-        contQuery = contQuery.eq('company_id', selectedCompany);
+        query = query.eq('company_id', selectedCompany);
       }
-
-      const { data: extData } = await extQuery;
-      const { data: contData } = await contQuery;
-      
-      const extTotal = extData?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
-      const contTotal = contData?.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0) || 0;
-      
-      return { extTotal, contTotal };
-    }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
   });
 
-  const totalBankBalance = summary?.reduce((acc: number, curr: any) => acc + Number(curr.bank_balance), 0) || 0;
-  const totalAccBalance = summary?.reduce((acc: number, curr: any) => acc + Number(curr.accounting_balance), 0) || 0;
-  const totalDiff = totalBankBalance - totalAccBalance;
+  // Today's date for calculations
+  const today = format(new Date(), 'yyyy-MM-dd');
 
-  const chartData = summary?.map((s: any) => ({
-    name: s.bank_name,
-    Banco: Number(s.bank_balance),
-    Contábil: Number(s.accounting_balance)
-  })) || [];
+  const stats = useMemo(() => {
+    const todayDate = new Date(today + 'T12:00:00');
+    const dateFromD = dateFrom ? new Date(dateFrom + 'T12:00:00') : null;
+    const dateToD = dateTo ? new Date(dateTo + 'T12:00:00') : null;
 
-  const pieData = [
-    { name: 'Pendente Extrato', value: pendingStats?.extTotal || 0, color: '#C5A059' },
-    { name: 'Pendente Contábil', value: pendingStats?.contTotal || 0, color: '#1A1A1A' },
-    { name: 'Diferença Total', value: Math.abs(totalDiff), color: '#94A3B8' }
-  ];
+    // A RECEBER
+    let receitaEmAberto = 0;
+    let receitaVencida = 0;
+    let receitaTotal = 0;
+    let receitaMovHoje = 0;
 
-  const formatCurrency = (value: number) => 
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  const formatCurrencyNoCents = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value || 0);
-
-  const kpis = [
-    {
-      label: 'Saldo Bancário Total',
-      value: totalBankBalance,
-      icon: Landmark,
-      trend: '+2.4%',
-      trendUp: true,
-      subtext: 'Consolidado em conta',
-      color: 'gold'
-    },
-    {
-      label: 'Saldo Contábil Total',
-      value: totalAccBalance,
-      icon: Receipt,
-      trend: 'Sincronizado',
-      trendUp: true,
-      subtext: 'Base David Melo CRM',
-      color: 'dark'
-    },
-    {
-      label: 'Pendências Financeiras',
-      value: Math.abs(totalDiff),
-      icon: AlertCircle,
-      trend: totalDiff === 0 ? 'Zerado' : 'Auditando',
-      trendUp: totalDiff === 0,
-      subtext: 'Diferença a conciliar',
-      color: totalDiff === 0 ? 'emerald' : 'amber'
-    },
-    {
-      label: 'Fluxo de Caixa',
-      value: totalBankBalance - (pendingStats?.extTotal || 0),
-      icon: TrendingUp,
-      trend: 'Estável',
-      trendUp: true,
-      subtext: 'Líquido projetado',
-      color: 'emerald'
+    for (const p of payments) {
+      const installments = p.payment_installments || [];
+      if (installments.length === 0) {
+        // Single payment (no installments)
+        const isPaid = p.status === 'paid' || p.entry_paid_at;
+        const amount = Number(p.total_amount || p.entry_amount || 0);
+        if (isPaid) continue;
+        receitaTotal += amount;
+        receitaEmAberto += amount;
+      } else {
+        for (const inst of installments) {
+          const instPaid = inst.status === 'paid' || inst.paid_at;
+          const amount = Number(inst.amount || 0);
+          const dueDate = inst.due_date;
+          if (instPaid) continue;
+          receitaTotal += amount;
+          if (dueDate && dueDate < today) {
+            receitaVencida += amount;
+          } else {
+            receitaEmAberto += amount;
+          }
+          if (dueDate === today) {
+            receitaMovHoje += amount;
+          }
+        }
+      }
     }
-  ];
+
+    // A PAGAR
+    let despesaEmAberto = 0;
+    let despesaVencida = 0;
+    let despesaTotal = 0;
+    let despesaMovHoje = 0;
+
+    for (const ap of payables) {
+      const isPaid = ap.payment_status === 'pago' || ap.payment_status === 'paid' || ap.paid_at;
+      const amount = Number(ap.amount || 0);
+      const discount = Number(ap.discount || 0);
+      const interest = Number(ap.interest || 0);
+      const fine = Number(ap.fine || 0);
+      const totalLiquido = amount - discount + interest + fine;
+      if (isPaid) continue;
+      despesaTotal += totalLiquido;
+      if (ap.due_date && ap.due_date < today) {
+        despesaVencida += totalLiquido;
+      } else {
+        despesaEmAberto += totalLiquido;
+      }
+      if (ap.due_date === today) {
+        despesaMovHoje += totalLiquido;
+      }
+    }
+
+    const totalBank = bankAccounts.reduce((sum: number, acc: any) => sum + Number(acc.balance || 0), 0);
+
+    return {
+      receitaEmAberto, receitaVencida, receitaTotal,
+      despesaEmAberto, despesaVencida, despesaTotal,
+      receitaMovHoje, despesaMovHoje,
+      saldoHoje: totalBank,
+      movPrevistasHoje: receitaMovHoje - despesaMovHoje,
+      saldoPrevisto: totalBank + receitaMovHoje - despesaMovHoje,
+    };
+  }, [payments, payables, bankAccounts, today]);
+
+  const dateLabel = `${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} ate ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`;
 
   return (
-    <div className="space-y-12 animate-fade-in max-w-[1700px] mx-auto pb-12">
-      {/* Header Section */}
+    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto pb-12">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Console Financeiro</h1>
+            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Dashboard Financeiro</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Auditoria e Controle de Fluxo</p>
-        </div>
-        <div className="flex items-center gap-3 px-6 py-3 bg-white/50 backdrop-blur-md rounded-2xl border border-gold/20 shadow-sm transition-all hover:shadow-md">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-foreground/70">Sistemas Sincronizados</span>
+          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Controle de Fluxo</p>
         </div>
       </div>
 
+      {/* Company Selector */}
       {companies.length > 0 && (
         <div className="px-2">
           <div className="bg-white rounded-2xl border border-border/30 p-4 max-w-xl">
@@ -199,159 +214,195 @@ const FinancialDashboard = () => {
         </TabsList>
 
         <TabsContent value="dashboard" className="mt-8 space-y-8">
-          {/* KPI Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {kpis.map((kpi, i) => (
-              <div 
-                key={i} 
-                className="group relative bg-white rounded-[32px] p-8 border border-border/30 premium-shadow transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gold/10 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-700" />
-                <div className="relative z-10 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-transform duration-500 group-hover:rotate-6",
-                      kpi.color === 'gold' ? 'bg-gold text-white shadow-gold-sm' : 'bg-secondary text-foreground/40'
-                    )}>
-                      <kpi.icon size={20} />
-                    </div>
-                    <div className={cn(
-                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                      kpi.trendUp ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
-                    )}>
-                      {kpi.trend}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{kpi.label}</p>
-                    <h3 className="text-3xl font-display text-foreground tracking-tighter">{typeof kpi.value === 'number' ? formatCurrency(kpi.value) : kpi.value}</h3>
-                  </div>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 border-t border-border/10 pt-4">{kpi.subtext}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Charts Section */}
+          {/* Main Layout: Two columns */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Bar Chart */}
-            <div className="lg:col-span-2 bg-white rounded-[40px] border border-border/30 p-10 premium-shadow relative overflow-hidden group">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-gold opacity-50" />
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
-                <div>
-                  <h3 className="text-2xl font-display text-foreground uppercase tracking-tight">Comparativo de Saldos</h3>
-                  <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mt-2">Visão por instituição financeira</p>
-                </div>
-                <div className="flex items-center gap-6 bg-secondary/30 px-6 py-3 rounded-2xl border border-border/10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gold shadow-gold-sm" />
-                    <span className="text-[10px] font-black uppercase text-foreground/60 tracking-widest">Banco</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-slate-200" />
-                    <span className="text-[10px] font-black uppercase text-foreground/60 tracking-widest">Contábil</span>
-                  </div>
+            {/* Left: Pagamentos e Recebimentos */}
+            <div className="lg:col-span-2 bg-white rounded-[32px] border border-border/30 premium-shadow overflow-hidden">
+              {/* Purple Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-8 py-5 flex items-center justify-between">
+                <h3 className="text-white font-bold text-sm">Pagamentos e Recebimentos</h3>
+                <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
+                  <Calendar size={14} className="text-white/80" />
+                  <span className="text-white text-xs font-medium">{dateLabel}</span>
                 </div>
               </div>
-              
-              <div className="h-[450px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} barGap={12}>
-                    <defs>
-                      <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#C5A059" stopOpacity={1}/>
-                        <stop offset="100%" stopColor="#C5A059" stopOpacity={0.8}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#94A3B8" 
-                      fontSize={10} 
-                      fontFamily="Outfit" 
-                      fontWeight="bold"
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ dy: 15 }}
-                    />
-                    <YAxis 
-                      stroke="#94A3B8" 
-                      fontSize={10} 
-                      fontFamily="Outfit"
-                      fontWeight="bold"
-                      axisLine={false} 
-                      tickLine={false} 
-                      tickFormatter={(v) => formatCurrencyNoCents(Number(v))} 
-                    />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(197, 160, 89, 0.03)' }}
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)', 
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(197, 160, 89, 0.2)', 
-                        borderRadius: '24px', 
-                        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)',
-                        padding: '20px'
-                      }}
-                      itemStyle={{ fontSize: '11px', color: '#C5A059', fontWeight: 'bold', textTransform: 'uppercase', fontFamily: 'Outfit' }}
-                      labelStyle={{ fontWeight: '900', color: '#1A1A1A', marginBottom: '10px', fontSize: '13px', letterSpacing: '0.05em', textTransform: 'uppercase', fontFamily: 'Outfit' }}
-                    />
-                    <Bar dataKey="Banco" fill="url(#goldGradient)" radius={[10, 10, 0, 0]} barSize={40} />
-                    <Bar dataKey="Contábil" fill="#F1F5F9" radius={[10, 10, 0, 0]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
+
+              <div className="p-8 space-y-6">
+                {/* Date filters */}
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">De</Label>
+                    <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-border/40" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ate</Label>
+                    <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/40" />
+                  </div>
+                  <div className="flex items-center gap-3 ml-auto">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Exibir:</span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" checked={showValues} onChange={() => setShowValues(true)} className="accent-purple-600" />
+                      <span className="text-xs font-medium">Valor Bruto</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" checked={!showValues} onChange={() => setShowValues(false)} className="accent-purple-600" />
+                      <span className="text-xs font-medium">Valor Líquido</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border/20">
+                        <th className="text-left py-3 px-4 text-xs font-bold text-muted-foreground w-[140px]"></th>
+                        <th className="text-right py-3 px-4 text-xs font-bold text-muted-foreground">Em Aberto</th>
+                        <th className="text-right py-3 px-4 text-xs font-bold text-muted-foreground">Vencidos</th>
+                        <th className="text-right py-3 px-4 text-xs font-bold text-muted-foreground">Total</th>
+                        <th className="text-center py-3 px-4 text-xs font-bold text-muted-foreground w-[80px]">Detalhes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-border/10 hover:bg-purple-50/30 transition-colors">
+                        <td className="py-4 px-4 text-sm font-semibold text-emerald-600 flex items-center gap-2">
+                          <ArrowDownCircle size={16} className="text-emerald-500" />
+                          A Receber
+                        </td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground">{showValues ? fmt(stats.receitaEmAberto) : '*****'}</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-emerald-600 font-medium">{showValues ? fmt(stats.receitaVencida) : '*****'}</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal) : '*****'}</td>
+                        <td className="py-4 px-4 text-center">
+                          <button className="p-1.5 rounded-lg hover:bg-purple-100 transition-colors">
+                            <FileText size={16} className="text-purple-600" />
+                          </button>
+                        </td>
+                      </tr>
+                      <tr className="border-b border-border/10 hover:bg-purple-50/30 transition-colors">
+                        <td className="py-4 px-4 text-sm font-semibold text-red-500 flex items-center gap-2">
+                          <ArrowUpCircle size={16} className="text-red-400" />
+                          A Pagar
+                        </td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground">{showValues ? fmt(stats.despesaEmAberto) : '*****'}</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-red-500 font-medium">{showValues ? fmt(stats.despesaVencida) : '*****'}</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.despesaTotal) : '*****'}</td>
+                        <td className="py-4 px-4 text-center">
+                          <button className="p-1.5 rounded-lg hover:bg-purple-100 transition-colors">
+                            <FileText size={16} className="text-purple-600" />
+                          </button>
+                        </td>
+                      </tr>
+                      <tr className="bg-secondary/20">
+                        <td className="py-4 px-4 text-sm font-bold text-foreground">Total</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaEmAberto + stats.despesaEmAberto) : '*****'}</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaVencida + stats.despesaVencida) : '*****'}</td>
+                        <td className="py-4 px-4 text-right font-display text-sm tabular-nums text-foreground font-bold">{showValues ? fmt(stats.receitaTotal + stats.despesaTotal) : '*****'}</td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
 
-            {/* Pendency Pie Chart */}
-            <div className="bg-white rounded-[40px] border border-border/30 p-10 premium-shadow flex flex-col group">
-              <div className="mb-12">
-                <h3 className="text-2xl font-display text-foreground uppercase tracking-tight">Status de Conciliação</h3>
-                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mt-2">Distribuição de fluxos abertos</p>
-              </div>
-              
-              <div className="flex-1 flex flex-col items-center justify-center relative">
-                <div className="h-[320px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={85}
-                        outerRadius={120}
-                        paddingAngle={8}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+            {/* Right: Saldo das contas */}
+            <div className="bg-white rounded-[32px] border border-border/30 premium-shadow overflow-hidden">
+              {/* Purple Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-purple-500 px-6 py-5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-white font-bold text-sm">Saldo das contas</h3>
+                  {showValues ? (
+                    <Eye size={16} className="text-white/70 cursor-pointer" onClick={() => setShowValues(false)} />
+                  ) : (
+                    <EyeOff size={16} className="text-white/70 cursor-pointer" onClick={() => setShowValues(true)} />
+                  )}
                 </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none pt-8">
-                  <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em]">Total Auditado</p>
-                  <p className="text-2xl font-display text-foreground tracking-tighter mt-1">
-                    {formatCurrency(pieData.reduce((a, b) => a + b.value, 0))}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-white text-xs">{format(new Date(), 'dd/MM/yyyy')}</span>
+                  <Calendar size={14} className="text-white/70" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 mt-8">
-                {pieData.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-secondary/20 border border-border/10 transition-all hover:bg-secondary/40">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: item.color }} />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-foreground/70">{item.name}</span>
-                    </div>
-                    <span className="text-xs font-bold font-display text-foreground tabular-nums">{formatCurrency(item.value)}</span>
+              <div className="p-6">
+                <div className="space-y-1 max-h-[320px] overflow-y-auto">
+                  {bankAccounts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Nenhuma conta cadastrada</p>
+                  ) : (
+                    bankAccounts.map((acc: any) => (
+                      <div key={acc.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-secondary/30 transition-colors border-b border-border/10 last:border-0">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{acc.bank_name || 'Sem banco'}</p>
+                          {acc.account_name && <p className="text-[10px] text-muted-foreground mt-0.5">{acc.account_name}</p>}
+                        </div>
+                        <span className="text-sm font-display font-bold tabular-nums text-foreground">
+                          {showValues ? fmt(Number(acc.balance || 0)) : '*****'}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Total */}
+                {bankAccounts.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border/20 flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground">Total</span>
+                    <span className="text-sm font-display font-bold tabular-nums text-foreground">
+                      {showValues ? fmt(stats.saldoHoje) : '*****'}
+                    </span>
                   </div>
-                ))}
+                )}
+
+                {/* Links */}
+                <div className="mt-6 p-4 rounded-2xl bg-secondary/30 border border-border/10 space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-foreground/60">Você também pode se interessar:</p>
+                  <a href="/conciliacao" className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors">
+                    <ExternalLink size={14} />
+                    Conciliação bancária
+                  </a>
+                  <a href="/contas-bancarias" className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 font-medium transition-colors">
+                    <ExternalLink size={14} />
+                    Transferência entre contas
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-[24px] border border-border/30 p-8 premium-shadow flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Saldo Hoje</p>
+                <p className="text-2xl font-display mt-2 tracking-tight text-foreground tabular-nums">{fmt(stats.saldoHoje)}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                <Landmark size={20} className="text-emerald-600" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[24px] border border-border/30 p-8 premium-shadow flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Movimentações previstas para hoje</p>
+                <p className={cn(
+                  "text-2xl font-display mt-2 tracking-tight tabular-nums",
+                  stats.movPrevistasHoje >= 0 ? "text-emerald-600" : "text-red-500"
+                )}>{fmt(stats.movPrevistasHoje)}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center border border-purple-100">
+                <TrendingUp size={20} className="text-purple-600" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[24px] border border-border/30 p-8 premium-shadow flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Saldo previsto para hoje</p>
+                <p className={cn(
+                  "text-2xl font-display mt-2 tracking-tight tabular-nums",
+                  stats.saldoPrevisto >= 0 ? "text-emerald-600" : "text-red-500"
+                )}>{fmt(stats.saldoPrevisto)}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                <DollarSign size={20} className="text-gold" />
               </div>
             </div>
           </div>
