@@ -86,6 +86,9 @@ const FinancialDashboard = () => {
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const stats = useMemo(() => {
+    const dateFromStr = dateFrom || '0000-01-01';
+    const dateToStr = dateTo || '9999-12-31';
+
     let receitaEmAberto = 0;
     let receitaVencida = 0;
     let receitaTotal = 0;
@@ -93,34 +96,38 @@ const FinancialDashboard = () => {
 
     for (const p of payments) {
       const installments = (p.payment_installments || []) as any[];
-      for (const inst of installments) {
-        const instPaid = inst.status === 'paid' || inst.paid_at;
-        if (instPaid) continue;
-        const amount = Number(inst.amount || 0);
-        const dueDate = inst.due_date as string;
+
+      if (installments.length > 0) {
+        for (const inst of installments) {
+          const instPaid = inst.status === 'paid' || inst.paid_at;
+          const dueDate = inst.due_date as string;
+          // Filtrar por período: parcela com vencimento dentro do range
+          if (!dueDate || dueDate < dateFromStr || dueDate > dateToStr) continue;
+          if (instPaid) continue;
+          const amount = Number(inst.amount || 0);
+          receitaTotal += amount;
+          if (dueDate < today) {
+            receitaVencida += amount;
+          } else {
+            receitaEmAberto += amount;
+          }
+          if (dueDate === today) {
+            receitaMovHoje += amount;
+          }
+        }
+      } else if (p.has_entry_payment && !p.entry_paid_at) {
+        // Sem parcelas: usa entrada como única parcela
+        const entryDate = p.entry_date as string;
+        if (!entryDate || entryDate < dateFromStr || entryDate > dateToStr) continue;
+        const amount = Number(p.entry_amount || 0);
         receitaTotal += amount;
-        if (dueDate && dueDate < today) {
+        if (entryDate < today) {
           receitaVencida += amount;
         } else {
           receitaEmAberto += amount;
         }
-        if (dueDate === today) {
-          receitaMovHoje += amount;
-        }
-      }
-
-      // Entrada (entry payment)
-      if (p.has_entry_payment && !p.entry_paid_at) {
-        const entryAmount = Number(p.entry_amount || 0);
-        const entryDate = p.entry_date as string;
-        receitaTotal += entryAmount;
-        if (entryDate && entryDate < today) {
-          receitaVencida += entryAmount;
-        } else {
-          receitaEmAberto += entryAmount;
-        }
         if (entryDate === today) {
-          receitaMovHoje += entryAmount;
+          receitaMovHoje += amount;
         }
       }
     }
@@ -132,6 +139,8 @@ const FinancialDashboard = () => {
 
     for (const ap of payables) {
       const isPaid = ap.payment_status === 'pago' || ap.payment_status === 'paid' || ap.paid_at;
+      const dueDate = ap.due_date as string;
+      if (!dueDate || dueDate < dateFromStr || dueDate > dateToStr) continue;
       if (isPaid) continue;
       const amount = Number(ap.amount || 0);
       const discount = Number(ap.discount || 0);
@@ -139,12 +148,12 @@ const FinancialDashboard = () => {
       const fine = Number(ap.fine || 0);
       const totalLiquido = amount - discount + interest + fine;
       despesaTotal += totalLiquido;
-      if (ap.due_date && ap.due_date < today) {
+      if (dueDate < today) {
         despesaVencida += totalLiquido;
       } else {
         despesaEmAberto += totalLiquido;
       }
-      if (ap.due_date === today) {
+      if (dueDate === today) {
         despesaMovHoje += totalLiquido;
       }
     }
@@ -159,7 +168,7 @@ const FinancialDashboard = () => {
       movPrevistasHoje: receitaMovHoje - despesaMovHoje,
       saldoPrevisto: totalBank + receitaMovHoje - despesaMovHoje,
     };
-  }, [payments, payables, bankAccounts, today]);
+  }, [payments, payables, bankAccounts, today, dateFrom, dateTo]);
 
   const dateLabel = `${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} ate ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`;
   const isLoading = loadingPayments || loadingPayables;
