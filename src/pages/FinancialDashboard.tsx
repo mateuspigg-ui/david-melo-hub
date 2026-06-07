@@ -40,7 +40,7 @@ const FinancialDashboard = () => {
     queryFn: async () => {
       let query = (supabase as any)
         .from('bank_accounts')
-        .select('id, bank_name, account_name, balance, company_id');
+        .select('*');
       if (selectedCompany !== 'all') {
         query = query.eq('company_id', selectedCompany);
       }
@@ -52,6 +52,74 @@ const FinancialDashboard = () => {
       return data || [];
     },
   });
+
+  const { data: bankTx = [] } = useQuery({
+    queryKey: ['bank-tx-dashboard', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('bank_transactions').select('bank_account_id, amount');
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: payablePayments = [] } = useQuery({
+    queryKey: ['payable-payments-dashboard', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('accounts_payable')
+        .select('bank_account_id, paid_amount, amount, payment_status, paid_at')
+        .not('bank_account_id', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: entryPayments = [] } = useQuery({
+    queryKey: ['entry-payments-dashboard', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('payments')
+        .select('entry_bank_account_id, entry_paid_amount, entry_amount, entry_paid_at')
+        .not('entry_bank_account_id', 'is', null)
+        .not('entry_paid_at', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: installmentPayments = [] } = useQuery({
+    queryKey: ['installment-payments-dashboard', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('payment_installments')
+        .select('bank_account_id, paid_amount, amount, paid_at')
+        .not('bank_account_id', 'is', null)
+        .not('paid_at', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const balanceMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const t of bankTx) {
+      map[t.bank_account_id] = (map[t.bank_account_id] || 0) + Number(t.amount || 0);
+    }
+    for (const p of payablePayments) {
+      if (p.payment_status === 'pago' || p.paid_at) {
+        map[p.bank_account_id] = (map[p.bank_account_id] || 0) - Number(p.paid_amount || p.amount || 0);
+      }
+    }
+    for (const ep of entryPayments) {
+      const id = ep.entry_bank_account_id;
+      map[id] = (map[id] || 0) + Number(ep.entry_paid_amount || ep.entry_amount || 0);
+    }
+    for (const ip of installmentPayments) {
+      const id = ip.bank_account_id;
+      map[id] = (map[id] || 0) + Number(ip.paid_amount || ip.amount || 0);
+    }
+    return map;
+  }, [bankTx, payablePayments, entryPayments, installmentPayments]);
 
   const { data: payments = [], isLoading: loadingPayments } = useQuery({
     queryKey: ['dash-payments', selectedCompany],
@@ -84,6 +152,11 @@ const FinancialDashboard = () => {
   });
 
   const today = format(new Date(), 'yyyy-MM-dd');
+
+  const getBalance = (accountId: string) => {
+    const initial = bankAccounts?.find((a: any) => a.id === accountId)?.default_initial_balance || 0;
+    return (balanceMap[accountId] || 0) + Number(initial);
+  };
 
   const stats = useMemo(() => {
     const dateFromStr = dateFrom || '0000-01-01';
@@ -158,7 +231,7 @@ const FinancialDashboard = () => {
       }
     }
 
-    const totalBank = bankAccounts.reduce((sum: number, acc: any) => sum + Number(acc.balance || 0), 0);
+    const totalBank = bankAccounts.reduce((sum: number, acc: any) => sum + getBalance(acc.id), 0);
 
     return {
       receitaEmAberto, receitaVencida, receitaTotal,
@@ -337,10 +410,17 @@ const FinancialDashboard = () => {
                           <div key={acc.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-gold/[0.03] transition-colors border-b border-border/10 last:border-0">
                             <div>
                               <p className="text-sm font-semibold text-foreground">{acc.bank_name || 'Sem banco'}</p>
-                              {acc.account_name && <p className="text-[10px] text-muted-foreground mt-0.5">{acc.account_name}</p>}
+                              {(acc.agency || acc.account_number) && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  {acc.agency && `Ag. ${acc.agency}`}
+                                  {acc.agency && acc.account_number ? ' | ' : ''}
+                                  {acc.account_number && `Cc ${acc.account_number}${acc.account_digit || ''}`}
+                                </p>
+                              )}
+                              {acc.description && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{acc.description}</p>}
                             </div>
-                            <span className="text-sm font-display font-bold tabular-nums text-foreground">
-                              {showValues ? fmt(Number(acc.balance || 0)) : '*****'}
+                        <span className="text-sm font-display font-bold tabular-nums text-foreground">
+                          {showValues ? fmt(getBalance(acc.id)) : '*****'}
                             </span>
                           </div>
                         ))
