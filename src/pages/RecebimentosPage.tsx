@@ -457,9 +457,20 @@ export default function RecebimentosPage() {
     return Array.from(map.entries()).map(([clientId, value]) => ({ clientId, ...value }));
   }, [filteredPayments]);
 
+  const allGroupedByClient = useMemo(() => {
+    const map = new Map<string, { clientName: string; payments: Payment[] }>();
+    for (const payment of payments) {
+      const key = payment.client_id || `sem-cliente-${payment.id}`;
+      const clientName = payment.clients ? `${payment.clients.first_name} ${payment.clients.last_name}`.trim() : "Cliente não identificado";
+      if (!map.has(key)) map.set(key, { clientName, payments: [] });
+      map.get(key)!.payments.push(payment);
+    }
+    return Array.from(map.entries()).map(([clientId, value]) => ({ clientId, ...value }));
+  }, [payments]);
+
   const selectedClientGroup = useMemo(
-    () => groupedByClient.find((group) => group.clientId === selectedClientId) || null,
-    [groupedByClient, selectedClientId]
+    () => allGroupedByClient.find((group) => group.clientId === selectedClientId) || null,
+    [allGroupedByClient, selectedClientId]
   );
   const selectedClientStats = useMemo(() => {
     if (!selectedClientGroup) return { pending: 0, received: 0, contracts: 0 };
