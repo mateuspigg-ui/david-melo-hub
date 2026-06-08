@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import {
   DollarSign, TrendingUp, Calendar, Landmark, Receipt,
-  ArrowDownCircle, ArrowUpCircle, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet
+  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ const FinancialDashboard = () => {
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [showValues, setShowValues] = useState(true);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies-select'],
@@ -374,6 +375,9 @@ const FinancialDashboard = () => {
                             <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-medium">{format(new Date(), 'dd/MM/yyyy')}</p>
                           </div>
                         </div>
+                        <button onClick={() => setShowValues(!showValues)} className="w-9 h-9 rounded-xl bg-secondary/30 flex items-center justify-center border border-border/15 hover:bg-gold/5 hover:border-gold/20 transition-all duration-200">
+                          {showValues ? <Eye size={15} className="text-muted-foreground/50" /> : <EyeOff size={15} className="text-muted-foreground/50" />}
+                        </button>
                       </div>
 
                       {/* Accounts */}
@@ -416,7 +420,7 @@ const FinancialDashboard = () => {
                                       "text-[14px] font-display font-bold tabular-nums whitespace-nowrap",
                                       isNegative ? "text-red-400" : "text-foreground"
                                     )}>
-                                      {fmt(balance)}
+                                      {showValues ? fmt(balance) : '···'}
                                     </span>
                                   </div>
                                 </div>
@@ -437,7 +441,7 @@ const FinancialDashboard = () => {
                             </div>
                             <div className="bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
                               <p className="text-[16px] font-display font-black tabular-nums text-gold">
-                                {fmt(stats.saldoHoje)}
+                                {showValues ? fmt(stats.saldoHoje) : '···'}
                               </p>
                             </div>
                           </div>
