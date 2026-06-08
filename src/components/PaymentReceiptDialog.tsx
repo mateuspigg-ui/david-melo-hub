@@ -121,6 +121,7 @@ const getReceiptHtml = (data: ReceiptData, company: CompanyInfo): string => {
     .amount-highlight { font-weight: 700; }
 
     @media print {
+      @page { size: A4; margin: 0; }
       body { background: #fff; }
       .page { margin: 0; padding: 15mm 20mm; }
       .no-print { display: none !important; }

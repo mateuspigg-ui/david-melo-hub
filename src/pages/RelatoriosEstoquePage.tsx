@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileSpreadsheet, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { buildCsv, categoryLabel, downloadCsv, fetchInventoryItems, fetchReservations, fetchStockMovements } from '@/lib/inventory';
 import { parseLocalDate } from '@/lib/dateUtils';
@@ -104,7 +105,30 @@ const RelatoriosEstoquePage = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    const printContent = document.querySelector('.report-content');
+    if (!printContent) { window.print(); return; }
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Relatório de Estoque</title>
+          <style>
+            @page { size: A4; margin: 0; }
+            body { font-family: Arial, sans-serif; padding: 12mm; color: #333; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th { text-align: left; padding: 6px 8px; border-bottom: 2px solid #333; font-size: 10px; text-transform: uppercase; }
+            td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+            h1 { font-size: 18px; margin-bottom: 4px; }
+            h2 { font-size: 12px; color: #888; font-weight: normal; margin-top: 0; }
+          </style>
+        </head>
+        <body>${printContent.innerHTML}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
   };
 
   const totalValuation = useMemo(() => {
@@ -147,13 +171,16 @@ const RelatoriosEstoquePage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-2">
-        <div className="bg-white rounded-[26px] border border-border/30 p-5 premium-shadow"><p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Itens no estoque</p><p className="text-3xl font-display mt-2">{items.length}</p></div>
-        <div className="bg-white rounded-[26px] border border-border/30 p-5 premium-shadow"><p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Reservas ativas</p><p className="text-3xl font-display mt-2">{reservations.filter((reservation) => reservation.reservation_status !== 'canceled').length}</p></div>
-        <div className="bg-white rounded-[26px] border border-border/30 p-5 premium-shadow"><p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Valoração estimada</p><p className="text-3xl font-display mt-2">{currency(totalValuation)}</p></div>
-      </div>
-
-      <div className="px-2">
+      <div className="report-content px-2 space-y-6">
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 4px' }}>Relatório de Estoque</h1>
+          <h2 style={{ fontSize: '12px', color: '#888', fontWeight: 'normal', marginTop: 0 }}>David Melo - {format(new Date(), 'dd/MM/yyyy')}</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div style={{ padding: '10px 16px', border: '1px solid #ddd', borderRadius: '8px' }}><div style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px' }}>Itens no estoque</div><div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>{items.length}</div></div>
+          <div style={{ padding: '10px 16px', border: '1px solid #ddd', borderRadius: '8px' }}><div style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px' }}>Reservas ativas</div><div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>{reservations.filter((r) => r.reservation_status !== 'canceled').length}</div></div>
+          <div style={{ padding: '10px 16px', border: '1px solid #ddd', borderRadius: '8px' }}><div style={{ fontSize: '10px', color: '#999', textTransform: 'uppercase', letterSpacing: '1px' }}>Valoração estimada</div><div style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '4px' }}>{currency(totalValuation)}</div></div>
+        </div>
         <div className="bg-white rounded-[30px] border border-border/30 premium-shadow overflow-auto">
           {reportRows.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">Nenhum dado disponível para este relatório.</div>

@@ -693,7 +693,9 @@ function ExtractDialog({ open, onOpenChange, account }: { open: boolean; onOpenC
         <head>
           <title>Extrato - ${account?.bank_name}</title>
           <style>
+            @page { size: A4; margin: 0; }
             body { font-family: Arial, sans-serif; padding: 30px; color: #333; }
+            @media print { body { margin: 12mm; padding: 0; } }
             h1 { font-size: 18px; margin-bottom: 4px; }
             h2 { font-size: 12px; color: #888; margin-top: 0; font-weight: normal; }
             .summary { display: flex; gap: 20px; margin: 20px 0; }

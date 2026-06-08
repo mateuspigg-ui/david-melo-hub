@@ -748,7 +748,7 @@ export default function ContasPagarPage() {
 
     .total-row td { padding: 8px; font-weight: 800; border-top: 2px solid #1a1a1a; font-size: 12px; }
 
-    @media print { body { margin: 0; } .page { padding: 15mm; } }
+    @media print { @page { size: A4; margin: 0; } body { margin: 0; } .page { padding: 15mm; } }
   </style>
 </head>
 <body>
@@ -959,7 +959,7 @@ export default function ContasPagarPage() {
             .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
             .label { font-weight: 700; }
             .obs { min-height: 160px; white-space: pre-wrap; }
-            @media print { body { margin: 12mm; } }
+            @media print { @page { size: A4; margin: 0; } body { margin: 12mm; } }
           </style>
         </head>
         <body>
