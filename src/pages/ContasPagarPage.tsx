@@ -121,7 +121,7 @@ type UploadQueueItem = {
   file?: File;
 };
 
-type Installment = { id: number; due_date: string; amount: string; description: string };
+type Installment = { id: number; due_date: string; amount: string; description: string; document_number: string };
 
 export default function ContasPagarPage() {
   const qc = useQueryClient();
@@ -181,7 +181,8 @@ export default function ContasPagarPage() {
     expense_type: "single",
     recurrence_mode: "repeat",
     recurrence_months: "2",
-    recurrence_interval_days: "7",
+    recurrence_interval_days: "15",
+    recurrence_repetitions: "2",
   });
 
   const [installments, setInstallments] = useState<Installment[]>([]);
@@ -191,7 +192,7 @@ export default function ContasPagarPage() {
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !form.due_date) return;
     const count = form.expense_type === "recurring"
       ? (form.recurrence_mode === "split" ? Math.max(2, Number(form.recurrence_months || "2"))
-        : form.recurrence_mode === "interval" ? Math.max(2, Math.ceil(30 / Math.max(1, Number(form.recurrence_interval_days || "7"))))
+        : form.recurrence_mode === "interval" ? Math.max(2, Number(form.recurrence_repetitions || "2"))
         : 12)
       : 1;
     const baseDate = new Date(`${form.due_date}T12:00:00`);
@@ -201,7 +202,7 @@ export default function ContasPagarPage() {
     const desc = form.description.trim() || "Despesa sem titulo";
     const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
     const isInterval = form.expense_type === "recurring" && form.recurrence_mode === "interval";
-    const intervalDays = Math.max(1, Number(form.recurrence_interval_days || "7"));
+    const intervalDays = Math.max(1, Number(form.recurrence_interval_days || "15"));
     const newInstallments: Installment[] = Array.from({ length: count }, (_, i) => {
       const dueDate = isInterval
         ? new Date(baseDate.getTime() + i * intervalDays * 86400000)
@@ -211,10 +212,11 @@ export default function ContasPagarPage() {
         due_date: dueDate.toISOString().split("T")[0],
         amount: perParcelStr,
         description: isSplit ? `${desc} (${i + 1}/${count})` : isInterval ? `${desc} (${i + 1}/${count})` : desc,
+        document_number: "",
       };
     });
     setInstallments(newInstallments);
-  }, [form.amount, form.due_date, form.expense_type, form.recurrence_mode, form.recurrence_months, form.recurrence_interval_days, form.description]);
+  }, [form.amount, form.due_date, form.expense_type, form.recurrence_mode, form.recurrence_months, form.recurrence_interval_days, form.recurrence_repetitions, form.description]);
 
   const updateInstallment = (id: number, field: keyof Installment, value: string | number) => {
     setInstallments((prev) => prev.map((inst) => inst.id === id ? { ...inst, [field]: value } : inst));
@@ -233,7 +235,7 @@ export default function ContasPagarPage() {
       lastGenKeyRef.current = "";
       return;
     }
-    const key = `${form.amount}|${form.due_date}|${form.recurrence_months}|${form.recurrence_mode}|${form.recurrence_interval_days}|${form.description}`;
+    const key = `${form.amount}|${form.due_date}|${form.recurrence_months}|${form.recurrence_mode}|${form.recurrence_interval_days}|${form.recurrence_repetitions}|${form.description}`;
     if (key === lastGenKeyRef.current) return;
     lastGenKeyRef.current = key;
     generateInstallments();
@@ -438,6 +440,7 @@ export default function ContasPagarPage() {
           category_id: form.category_id || null,
           company_id: form.company_id || null,
           cost_center_id: form.cost_center_id || null,
+          document_number: inst.document_number || null,
           payment_status: "nao_pago",
           paid_at: null,
         }));
@@ -517,7 +520,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2", recurrence_interval_days: "7" });
+      setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2", recurrence_interval_days: "15", recurrence_repetitions: "2" });
       setInstallments([]);
       toast({ title: "Conta criada com sucesso" });
     },
@@ -1773,17 +1776,36 @@ export default function ContasPagarPage() {
                 </div>
               )}
               {form.expense_type === "recurring" && form.recurrence_mode === "interval" && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Intervalo em dias</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={form.recurrence_interval_days}
-                      onChange={(e) => setForm({ ...form, recurrence_interval_days: e.target.value })}
-                      className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
-                      placeholder="Ex: 7, 15, 30"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Número de Repetições</Label>
+                      <Input
+                        type="number"
+                        min="2"
+                        value={form.recurrence_repetitions}
+                        onChange={(e) => setForm({ ...form, recurrence_repetitions: e.target.value })}
+                        className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Intervalo (dias)</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={form.recurrence_interval_days}
+                        onChange={(e) => setForm({ ...form, recurrence_interval_days: e.target.value })}
+                        className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={generateInstallments}
+                      className="h-12 px-6 rounded-xl border-gold/30 text-gold hover:bg-gold/10 font-bold text-xs uppercase tracking-wider"
+                    >
+                      Atualizar
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1935,6 +1957,9 @@ export default function ContasPagarPage() {
                           <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider w-10">#</th>
                           <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Data de Vencimento</th>
                           <th className="text-right py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Valor</th>
+                          {form.recurrence_mode === "interval" && (
+                            <th className="text-left py-3 px-4 font-bold text-gold/60 uppercase tracking-wider">Número do Documento</th>
+                          )}
                           <th className="w-12"></th>
                         </tr>
                       </thead>
@@ -1962,6 +1987,17 @@ export default function ContasPagarPage() {
                                 />
                               </div>
                             </td>
+                            {form.recurrence_mode === "interval" && (
+                              <td className="py-2 px-4">
+                                <Input
+                                  type="text"
+                                  value={inst.document_number || ""}
+                                  onChange={(e) => updateInstallment(inst.id, "document_number", e.target.value)}
+                                  placeholder="Nº documento"
+                                  className="h-9 rounded-lg text-xs bg-white border-border/40 focus:border-gold focus:ring-gold transition-all hover:border-gold/40"
+                                />
+                              </td>
+                            )}
                             <td className="py-2 px-4 text-right">
                               <Button
                                 type="button"
@@ -1978,7 +2014,7 @@ export default function ContasPagarPage() {
                       </tbody>
                       <tfoot>
                         <tr className="bg-gold/5 border-t border-gold/20">
-                          <td colSpan={2} className="py-3 px-4 text-gold uppercase tracking-wider text-[10px] font-bold">Total Geral</td>
+                          <td colSpan={form.recurrence_mode === "interval" ? 3 : 2} className="py-3 px-4 text-gold uppercase tracking-wider text-[10px] font-bold">Total Geral</td>
                           <td className="py-3 px-4 text-right font-bold text-gold text-sm">{currencyFmt(installmentTotal)}</td>
                           <td></td>
                         </tr>
