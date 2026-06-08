@@ -581,84 +581,76 @@ export default function LancamentosPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto pb-10">
+    <div className="space-y-4 animate-fade-in max-w-[1700px] mx-auto pb-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 px-2">
-        <div className="space-y-2">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 px-2">
+        <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Lancamentos</h1>
+            <div className="h-6 w-1 bg-gold rounded-full" />
+            <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-tighter uppercase leading-none">Lancamentos</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Producoes • Fluxo Financeiro Unificado</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Producoes • Fluxo Financeiro Unificado</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={handleExportCsv} disabled={isExporting || isLoading} className="h-12 px-6 rounded-xl uppercase text-[11px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">
-            <FileSpreadsheet className="w-4 h-4 mr-2" /> Exportar CSV
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={handleExportCsv} disabled={isExporting || isLoading} className="h-9 px-4 rounded-xl uppercase text-[10px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">
+            <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" /> CSV
           </Button>
-          <Button variant="outline" onClick={handleExportPdf} disabled={isExporting || isLoading} className="h-12 px-6 rounded-xl uppercase text-[11px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">
-            <FileText className="w-4 h-4 mr-2" /> Exportar PDF
+          <Button variant="outline" onClick={handleExportPdf} disabled={isExporting || isLoading} className="h-9 px-4 rounded-xl uppercase text-[10px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">
+            <FileText className="w-3.5 h-3.5 mr-1.5" /> PDF
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 px-2">
-        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-500/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                <ArrowDownCircle size={18} className="text-emerald-600" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">Entradas</span>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-2">
+        <div className="group relative bg-white rounded-2xl p-3.5 border border-border/30 premium-shadow overflow-hidden">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0">
+              <ArrowDownCircle size={14} className="text-emerald-600" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Total Entradas</p>
-            <p className="text-2xl font-display mt-1 tracking-tight text-emerald-700">{currencyFmt(totals.totalEntradas)}</p>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">Entradas</p>
+              <p className="text-lg font-display tracking-tight text-emerald-700">{currencyFmt(totals.totalEntradas)}</p>
+            </div>
           </div>
         </div>
-        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-red-500/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center border border-red-100">
-                <ArrowUpCircle size={18} className="text-red-500" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">Saidas</span>
+        <div className="group relative bg-white rounded-2xl p-3.5 border border-border/30 premium-shadow overflow-hidden">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center border border-red-100 shrink-0">
+              <ArrowUpCircle size={14} className="text-red-500" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Total Saidas</p>
-            <p className="text-2xl font-display mt-1 tracking-tight text-red-600">{currencyFmt(totals.totalSaidas)}</p>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">Saidas</p>
+              <p className="text-lg font-display tracking-tight text-red-600">{currencyFmt(totals.totalSaidas)}</p>
+            </div>
           </div>
         </div>
-        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gold/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center border border-gold/20">
-                <DollarSign size={18} className="text-gold" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-gold bg-gold/5 px-2.5 py-1 rounded-lg border border-gold/15">Baixado</span>
+        <div className="group relative bg-white rounded-2xl p-3.5 border border-border/30 premium-shadow overflow-hidden">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center border border-gold/20 shrink-0">
+              <DollarSign size={14} className="text-gold" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Total Baixado</p>
-            <p className="text-2xl font-display mt-1 tracking-tight text-foreground">{currencyFmt(totals.totalBaixado)}</p>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">Baixado</p>
+              <p className="text-lg font-display tracking-tight text-foreground">{currencyFmt(totals.totalBaixado)}</p>
+            </div>
           </div>
         </div>
-        <div className="group relative bg-white rounded-[24px] p-6 border border-border/30 premium-shadow overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-amber-500/8 to-transparent rounded-full -mr-8 -mt-8 group-hover:scale-110 transition-transform duration-500" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100">
-                <DollarSign size={18} className="text-amber-600" />
-              </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">Aberto</span>
+        <div className="group relative bg-white rounded-2xl p-3.5 border border-border/30 premium-shadow overflow-hidden">
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100 shrink-0">
+              <DollarSign size={14} className="text-amber-600" />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">Em Aberto</p>
-            <p className="text-2xl font-display mt-1 tracking-tight text-amber-700">{currencyFmt(totals.totalAberto)}</p>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">Aberto</p>
+              <p className="text-lg font-display tracking-tight text-amber-700">{currencyFmt(totals.totalAberto)}</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-[24px] border border-border/30 p-6 premium-shadow space-y-5">
+      <div className="bg-white rounded-2xl border border-border/30 p-4 premium-shadow space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gold/10 flex items-center justify-center border border-gold/20">
@@ -672,15 +664,15 @@ export default function LancamentosPage() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-3 items-end">
           <div className="relative md:col-span-2 xl:col-span-3">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar cliente, descricao, documento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-11 h-12 rounded-xl bg-white border-border/40 focus:border-gold/50 transition-all focus:ring-4 focus:ring-gold/5 premium-shadow" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 rounded-lg bg-white border-border/40 focus:border-gold/50 text-xs" />
           </div>
-          <div className="space-y-1.5 xl:col-span-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tipo</Label>
+          <div className="space-y-1 xl:col-span-2">
+            <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Tipo</Label>
             <Select value={tipoFilter} onValueChange={(v: any) => setTipoFilter(v)}>
-              <SelectTrigger className="h-12 rounded-xl bg-white border-border/40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 rounded-lg bg-white border-border/40 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="entrada">Entradas</SelectItem>
@@ -688,10 +680,10 @@ export default function LancamentosPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5 xl:col-span-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
+          <div className="space-y-1 xl:col-span-2">
+            <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-12 rounded-xl bg-white border-border/40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-9 rounded-lg bg-white border-border/40 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pago">Pago / Recebido</SelectItem>
@@ -702,10 +694,10 @@ export default function LancamentosPage() {
             </Select>
           </div>
           {companies.length > 0 && (
-            <div className="space-y-1.5 xl:col-span-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Empresa</Label>
+            <div className="space-y-1 xl:col-span-2">
+              <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Empresa</Label>
               <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                <SelectTrigger className="h-12 rounded-xl bg-white border-border/40"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-lg bg-white border-border/40 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
                   {(companies as any[]).map((c) => (
@@ -715,27 +707,27 @@ export default function LancamentosPage() {
               </Select>
             </div>
           )}
-          <div className="space-y-1.5 xl:col-span-1">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">De</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-12 rounded-xl bg-white border-border/40" />
+          <div className="space-y-1 xl:col-span-1">
+            <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 rounded-lg bg-white border-border/40 text-xs" />
           </div>
-          <div className="space-y-1.5 xl:col-span-1">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ate</Label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-12 rounded-xl bg-white border-border/40" />
+          <div className="space-y-1 xl:col-span-1">
+            <Label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Ate</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 rounded-lg bg-white border-border/40 text-xs" />
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-[24px] border border-border/30 premium-shadow overflow-hidden">
+      <div className="bg-white rounded-2xl border border-border/30 premium-shadow overflow-hidden">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="w-10 h-10 text-gold animate-spin" />
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="w-8 h-8 text-gold animate-spin" />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold animate-pulse">Carregando lancamentos...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-secondary/30 flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <div className="w-12 h-12 rounded-xl bg-secondary/30 flex items-center justify-center">
               <DollarSign className="w-8 h-8 text-muted-foreground/30" />
             </div>
             <div className="text-center">
@@ -821,8 +813,8 @@ export default function LancamentosPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-gradient-to-r from-secondary/20 via-secondary/10 to-secondary/20 border-t border-border/20">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="px-4 py-2.5 bg-gradient-to-r from-secondary/20 via-secondary/10 to-secondary/20 border-t border-border/20">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <span className="text-[11px] font-bold text-muted-foreground">{filtered.length} lancamento{filtered.length !== 1 ? "s" : ""}</span>
                 </div>
