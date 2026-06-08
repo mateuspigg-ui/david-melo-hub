@@ -630,14 +630,14 @@ function TransferDialog({ open, onOpenChange, accounts, getBalance, onSubmit, is
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setFromId(''); setToId(''); setAmount(''); setDescription(''); } }}>
-      <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden">
-        <div className="bg-gradient-to-r from-gold via-gold-light to-gold p-8 text-white">
-          <DialogTitle className="text-2xl font-display text-white tracking-tight">
+      <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="bg-gradient-to-r from-gold via-gold-light to-gold p-6 text-white shrink-0">
+          <DialogTitle className="text-xl font-display text-white tracking-tight">
             Transferência entre contas
           </DialogTitle>
-          <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Movimentação interna de fundos</p>
+          <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Movimentação interna de fundos</p>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
           <div className="space-y-2">
             <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conta origem</Label>
             <Select value={fromId} onValueChange={(v) => { setFromId(v); if (v === toId) setToId(''); }}>
@@ -702,7 +702,7 @@ function TransferDialog({ open, onOpenChange, accounts, getBalance, onSubmit, is
             <p className="text-[9px] text-muted-foreground/60 italic">* Comentários são visíveis apenas no extrato consolidado</p>
           </div>
         </div>
-        <div className="p-6 pt-0 flex justify-end gap-3">
+        <div className="p-5 pt-0 flex justify-end gap-3 shrink-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl uppercase text-[10px] font-bold tracking-widest">Cancelar</Button>
           <Button onClick={handleSubmit} disabled={isPending || !fromId || !toId || !Number.isFinite(parsedAmount) || parsedAmount <= 0} className="bg-gradient-to-r from-gold to-gold-light text-white font-bold h-11 px-8 rounded-xl uppercase text-[10px] tracking-widest">
             {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowRightLeft size={14} className="mr-2" />}
