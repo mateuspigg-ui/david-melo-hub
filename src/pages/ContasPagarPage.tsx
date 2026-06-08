@@ -166,6 +166,8 @@ export default function ContasPagarPage() {
   const [editingItem, setEditingItem] = useState<AccountPayable | null>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const [form, setForm] = useState({
     description: "",
@@ -593,6 +595,21 @@ export default function ContasPagarPage() {
       setPendingDeleteItem(null);
       toast({ title: "Conta excluída" });
     },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("accounts_payable").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ["accounts_payable"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      toast({ title: `${ids.length} conta(s) excluída(s)` });
+    },
+    onError: (e: any) => toast({ title: "Erro ao excluir", description: e?.message, variant: "destructive" }),
   });
 
   const filtered = items.filter((item) => {
@@ -1339,14 +1356,59 @@ export default function ContasPagarPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          {/* Bulk actions bar */}
+          <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-border/40 premium-shadow">
+            <label className="flex items-center gap-2.5 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={selectedIds.size === filtered.length && filtered.length > 0}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedIds(new Set(filtered.map((i) => i.id)));
+                  } else {
+                    setSelectedIds(new Set());
+                  }
+                }}
+                className="w-4 h-4 rounded border-border/40 accent-[#C5A059]"
+              />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
+                {selectedIds.size > 0 ? `${selectedIds.size} selecionado(s)` : `Selecionar todas (${filtered.length})`}
+              </span>
+            </label>
+            {selectedIds.size > 0 && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+                className="ml-auto h-8 rounded-lg text-[11px] font-bold uppercase tracking-wider"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Excluir {selectedIds.size} selecionado(s)
+              </Button>
+            )}
+          </div>
+
           {filtered.map((item) => {
             const overdueDays = getDaysOverdue(item.due_date);
             const overdue = isAccountPending(item.payment_status, item.paid_at) && overdueDays > 0;
             const updatedAmount = getUpdatedAmount(item.amount, item.due_date, isAccountPaid(item.payment_status, item.paid_at));
             const count = attachmentCounts[item.id] || 0;
             return (
-              <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border transition-all duration-300 hover:scale-[1.01] hover:shadow-xl group ${overdue ? "border-destructive/30 bg-destructive/[0.02]" : "border-border/40 premium-shadow"}`}>
+              <div key={item.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 bg-white rounded-2xl border transition-all duration-300 hover:scale-[1.01] hover:shadow-xl group ${overdue ? "border-destructive/30 bg-destructive/[0.02]" : "border-border/40 premium-shadow"} ${selectedIds.has(item.id) ? "ring-2 ring-gold/30 border-gold/40" : ""}`}>
                 <div className="flex items-center gap-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(item.id)}
+                    onChange={(e) => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(item.id);
+                        else next.delete(item.id);
+                        return next;
+                      });
+                    }}
+                    className="w-4 h-4 rounded border-border/40 accent-[#C5A059] shrink-0"
+                  />
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors shadow-sm ${overdue ? "bg-destructive/10 text-destructive" : "bg-gold/10 text-gold group-hover:bg-gold group-hover:text-white"}`}>
                     <Receipt className="w-5 h-5" />
                   </div>
@@ -2302,6 +2364,30 @@ export default function ContasPagarPage() {
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? "Excluindo..." : "Excluir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir selecionados</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            <p>
+              Deseja excluir <strong>{selectedIds.size}</strong> conta(s) selecionada(s)?
+            </p>
+            <p className="text-muted-foreground">Essa ação não pode ser desfeita.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBulkDeleteOpen(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? "Excluindo..." : `Excluir ${selectedIds.size}`}
             </Button>
           </DialogFooter>
         </DialogContent>
