@@ -749,64 +749,73 @@ export default function LancamentosPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/30 bg-gradient-to-r from-secondary/30 via-secondary/20 to-secondary/30">
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Tipo</th>
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 min-w-[180px]">Cliente / Fornecedor</th>
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 min-w-[160px]">Descricao</th>
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden xl:table-cell">Centro de Custo</th>
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden lg:table-cell">Documento</th>
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[120px]">Status</th>
-                    <th className="text-left py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 cursor-pointer hover:text-gold transition-colors w-[120px]" onClick={() => handleSort("vencimento")}>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[100px]">Tipo</th>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 min-w-[180px]">Cliente / Fornecedor</th>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 min-w-[160px]">Descricao</th>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden xl:table-cell">Centro de Custo</th>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden lg:table-cell">Documento</th>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 w-[120px]">Status</th>
+                    <th className="text-left py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 cursor-pointer hover:text-gold transition-colors w-[120px]" onClick={() => handleSort("vencimento")}>
                       <span className="flex items-center gap-1.5">Vencimento <ArrowUpDown size={10} className="opacity-40" /></span>
                     </th>
-                    <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 cursor-pointer hover:text-gold transition-colors w-[130px]" onClick={() => handleSort("valor")}>
+                    <th className="text-right py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 cursor-pointer hover:text-gold transition-colors w-[130px]" onClick={() => handleSort("valor")}>
                       <span className="flex items-center justify-end gap-1.5">Valor <ArrowUpDown size={10} className="opacity-40" /></span>
                     </th>
-                    <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[130px]">Baixado</th>
-                    <th className="text-right py-4 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[130px]">Em Aberto</th>
+                    <th className="text-right py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[130px]">Baixado</th>
+                    <th className="text-right py-2.5 px-5 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[130px]">Em Aberto</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/15">
-                  {filtered.map((l, idx) => (
+                  {filtered.map((l, idx) => {
+                    const s = String(l.status || "").toLowerCase();
+                    const isPago = s === "paid" || s === "pago" || s === "recebido";
+                    const isVencido = s === "vencido" || s === "overdue" || s === "atrasado";
+                    const isPendente = s === "pending" || s === "pendente";
+                    const valorColor = isPago ? "text-emerald-700" : isVencido ? "text-red-600" : isPendente ? "text-amber-600" : l.tipo === "entrada" ? "text-emerald-700" : "text-red-600";
+                    const baixadoColor = isPago ? "text-emerald-600" : "text-muted-foreground";
+                    const abertoColor = l.valor_aberto > 0.01 ? (isVencido ? "text-red-600" : "text-amber-600") : "text-muted-foreground/40";
+                    return (
                     <tr key={l.id} className={cn("group hover:bg-gold/[0.02] transition-all duration-200", idx % 2 === 0 ? "bg-white" : "bg-secondary/[0.08]")}>
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 px-5">
                         <div className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border", l.tipo === "entrada" ? "bg-emerald-50/80 text-emerald-700 border-emerald-200/50" : "bg-red-50/80 text-red-600 border-red-200/50")}>
                           {l.tipo === "entrada" ? <ArrowDownCircle size={11} /> : <ArrowUpCircle size={11} />}
                           {l.tipo === "entrada" ? "Entrada" : "Saida"}
                         </div>
                       </td>
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 px-5">
                         <span className="text-[13px] font-semibold text-foreground leading-tight">{l.cliente_fornecedor}</span>
                       </td>
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 px-5">
                         <span className="text-[12px] text-muted-foreground leading-tight">{l.descricao}</span>
                       </td>
-                      <td className="py-4 px-5 hidden xl:table-cell">
+                      <td className="py-2.5 px-5 hidden xl:table-cell">
                         <span className="text-[12px] text-muted-foreground">{l.centro_custo || <span className="text-muted-foreground/40">-</span>}</span>
                       </td>
-                      <td className="py-4 px-5 hidden lg:table-cell">
+                      <td className="py-2.5 px-5 hidden lg:table-cell">
                         <span className="text-[12px] text-muted-foreground font-medium">{l.documento || <span className="text-muted-foreground/40">-</span>}</span>
                       </td>
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 px-5">
                         <span className={cn("inline-flex items-center rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest", getStatusStyle(l.status))}>
                           {getStatusLabel(l.status)}
                         </span>
                       </td>
-                      <td className="py-4 px-5">
+                      <td className="py-2.5 px-5">
                         <span className="text-[12px] font-medium text-foreground tabular-nums">
                           {l.vencimento ? format(new Date(l.vencimento + "T12:00:00"), "dd/MM/yyyy") : <span className="text-muted-foreground/40">-</span>}
                         </span>
                       </td>
-                      <td className={cn("py-4 px-5 text-right font-display text-[14px] font-bold tabular-nums", l.tipo === "entrada" ? "text-emerald-700" : "text-red-600")}>
+                      <td className={cn("py-2.5 px-5 text-right font-display text-[14px] font-bold tabular-nums", valorColor)}>
                         {currencyFmt(l.valor)}
                       </td>
-                      <td className="py-4 px-5 text-right font-display text-[13px] text-muted-foreground tabular-nums hidden md:table-cell">
+                      <td className={cn("py-2.5 px-5 text-right font-display text-[13px] tabular-nums hidden md:table-cell", baixadoColor)}>
                         {currencyFmt(l.valor_baixado)}
                       </td>
-                      <td className={cn("py-4 px-5 text-right font-display text-[13px] font-semibold tabular-nums hidden md:table-cell", l.valor_aberto > 0.01 ? "text-amber-600" : "text-muted-foreground/40")}>
+                      <td className={cn("py-2.5 px-5 text-right font-display text-[13px] font-semibold tabular-nums hidden md:table-cell", abertoColor)}>
                         {currencyFmt(l.valor_aberto)}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
