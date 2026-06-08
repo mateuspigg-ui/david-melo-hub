@@ -181,6 +181,7 @@ export default function ContasPagarPage() {
     expense_type: "single",
     recurrence_mode: "repeat",
     recurrence_months: "2",
+    recurrence_interval_days: "7",
   });
 
   const [installments, setInstallments] = useState<Installment[]>([]);
@@ -189,7 +190,9 @@ export default function ContasPagarPage() {
     const parsedAmount = parseCurrencyInput(form.amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !form.due_date) return;
     const count = form.expense_type === "recurring"
-      ? (form.recurrence_mode === "split" ? Math.max(2, Number(form.recurrence_months || "2")) : 12)
+      ? (form.recurrence_mode === "split" ? Math.max(2, Number(form.recurrence_months || "2"))
+        : form.recurrence_mode === "interval" ? Math.max(2, Math.ceil(30 / Math.max(1, Number(form.recurrence_interval_days || "7"))))
+        : 12)
       : 1;
     const baseDate = new Date(`${form.due_date}T12:00:00`);
     if (Number.isNaN(baseDate.getTime())) return;
@@ -197,14 +200,21 @@ export default function ContasPagarPage() {
     const perParcelStr = perParcel.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const desc = form.description.trim() || "Despesa sem titulo";
     const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
-    const newInstallments: Installment[] = Array.from({ length: count }, (_, i) => ({
-      id: Date.now() + i,
-      due_date: addMonths(baseDate, i).toISOString().split("T")[0],
-      amount: perParcelStr,
-      description: isSplit ? `${desc} (${i + 1}/${count})` : desc,
-    }));
+    const isInterval = form.expense_type === "recurring" && form.recurrence_mode === "interval";
+    const intervalDays = Math.max(1, Number(form.recurrence_interval_days || "7"));
+    const newInstallments: Installment[] = Array.from({ length: count }, (_, i) => {
+      const dueDate = isInterval
+        ? new Date(baseDate.getTime() + i * intervalDays * 86400000)
+        : addMonths(baseDate, i);
+      return {
+        id: Date.now() + i,
+        due_date: dueDate.toISOString().split("T")[0],
+        amount: perParcelStr,
+        description: isSplit ? `${desc} (${i + 1}/${count})` : isInterval ? `${desc} (${i + 1}/${count})` : desc,
+      };
+    });
     setInstallments(newInstallments);
-  }, [form.amount, form.due_date, form.expense_type, form.recurrence_mode, form.recurrence_months, form.description]);
+  }, [form.amount, form.due_date, form.expense_type, form.recurrence_mode, form.recurrence_months, form.recurrence_interval_days, form.description]);
 
   const updateInstallment = (id: number, field: keyof Installment, value: string | number) => {
     setInstallments((prev) => prev.map((inst) => inst.id === id ? { ...inst, [field]: value } : inst));
@@ -223,7 +233,7 @@ export default function ContasPagarPage() {
       lastGenKeyRef.current = "";
       return;
     }
-    const key = `${form.amount}|${form.due_date}|${form.recurrence_months}|${form.recurrence_mode}|${form.description}`;
+    const key = `${form.amount}|${form.due_date}|${form.recurrence_months}|${form.recurrence_mode}|${form.recurrence_interval_days}|${form.description}`;
     if (key === lastGenKeyRef.current) return;
     lastGenKeyRef.current = key;
     generateInstallments();
@@ -507,7 +517,7 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       setDialogOpen(false);
-      setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2" });
+      setForm({ description: "", amount: "", issue_date: new Date().toISOString().split("T")[0], due_date: "", supplier_id: "", company_id: "", category_id: "", cost_center_id: "", expense_type: "single", recurrence_mode: "repeat", recurrence_months: "2", recurrence_interval_days: "7" });
       setInstallments([]);
       toast({ title: "Conta criada com sucesso" });
     },
@@ -1742,6 +1752,7 @@ export default function ContasPagarPage() {
                       <SelectContent className="bg-white shadow-2xl border-border/40 rounded-xl">
                         <SelectItem value="repeat" className="font-bold text-xs uppercase rounded-lg">Repete todo mes</SelectItem>
                         <SelectItem value="split" className="font-bold text-xs uppercase rounded-lg">Dividida em meses</SelectItem>
+                        <SelectItem value="interval" className="font-bold text-xs uppercase rounded-lg">Por intervalo de dias</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1757,6 +1768,21 @@ export default function ContasPagarPage() {
                       value={form.recurrence_months}
                       onChange={(e) => setForm({ ...form, recurrence_months: e.target.value })}
                       className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                    />
+                  </div>
+                </div>
+              )}
+              {form.expense_type === "recurring" && form.recurrence_mode === "interval" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Intervalo em dias</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={form.recurrence_interval_days}
+                      onChange={(e) => setForm({ ...form, recurrence_interval_days: e.target.value })}
+                      className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-medium transition-all hover:border-gold/40"
+                      placeholder="Ex: 7, 15, 30"
                     />
                   </div>
                 </div>
