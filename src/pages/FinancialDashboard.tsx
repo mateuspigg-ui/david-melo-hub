@@ -1,24 +1,33 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, subDays } from 'date-fns';
 import {
   DollarSign, TrendingUp, Calendar, Landmark, Receipt,
-  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet
+  ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet,
+  ArrowRightLeft, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import CalendarTab from '@/components/CalendarTab';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { maskCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput';
+import { toast } from '@/hooks/use-toast';
 
 const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
 const FinancialDashboard = () => {
+  const qc = useQueryClient();
   const [selectedCompany, setSelectedCompany] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [showValues, setShowValues] = useState(true);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const { data: companies = [] } = useQuery({
     queryKey: ['companies-select'],
@@ -91,6 +100,28 @@ const FinancialDashboard = () => {
     const initial = bankAccounts?.find((a: any) => a.id === accountId)?.default_initial_balance || 0;
     return (balanceMap[accountId] || 0) + Number(initial);
   };
+
+  const transferMutation = useMutation({
+    mutationFn: async ({ fromId, toId, amount, description, date }: { fromId: string; toId: string; amount: number; description: string; date: string }) => {
+      const { error: e1 } = await (supabase as any).from('bank_transactions').insert({
+        bank_account_id: fromId, amount: -amount, transaction_date: date,
+        description: description || 'Transferencia para outra conta', source: 'transfer',
+      });
+      if (e1) throw e1;
+      const { error: e2 } = await (supabase as any).from('bank_transactions').insert({
+        bank_account_id: toId, amount, transaction_date: date,
+        description: description || 'Transferencia de outra conta', source: 'transfer',
+      });
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bank-accounts-dashboard'] });
+      qc.invalidateQueries({ queryKey: ['bank-tx-dashboard'] });
+      setTransferOpen(false);
+      toast({ title: 'Transferencia realizada', style: { backgroundColor: '#C5A059', color: '#fff' } });
+    },
+    onError: (e: any) => toast({ title: 'Erro na transferencia', description: e.message, variant: 'destructive' }),
+  });
 
   const { data: payments = [], isLoading: loadingPayments } = useQuery({
     queryKey: ['dash-payments', selectedCompany],
@@ -460,15 +491,15 @@ const FinancialDashboard = () => {
                           </div>
                           <ArrowRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
                         </a>
-                        <a href="/contas-bancarias" className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-gradient-to-r hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 group/link">
+                        <button type="button" onClick={() => setTransferOpen(true)} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-gradient-to-r hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 group/link cursor-pointer">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold/10 to-gold/5 flex items-center justify-center border border-gold/10">
-                              <ExternalLink size={13} className="text-gold/60" />
+                              <ArrowRightLeft size={13} className="text-gold/60" />
                             </div>
                             <span className="text-[12px] text-muted-foreground/60 font-medium group-hover/link:text-gold transition-colors">Transferência entre contas</span>
                           </div>
                           <ArrowRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
-                        </a>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -548,8 +579,139 @@ const FinancialDashboard = () => {
           <CalendarTab selectedCompany={selectedCompany} />
         </TabsContent>
       </Tabs>
+
+      <TransferDialog
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+        accounts={bankAccounts}
+        getBalance={getBalance}
+        onSubmit={transferMutation.mutate}
+        isPending={transferMutation.isPending}
+      />
     </div>
   );
 };
+
+function TransferDialog({ open, onOpenChange, accounts, getBalance, onSubmit, isPending }: {
+  open: boolean; onOpenChange: (v: boolean) => void; accounts: any[]; getBalance: (id: string) => number;
+  onSubmit: (data: { fromId: string; toId: string; amount: number; description: string; date: string }) => void; isPending: boolean;
+}) {
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  const fromAccount = accounts.find((a: any) => a.id === fromId);
+  const toAccount = accounts.find((a: any) => a.id === toId);
+  const parsedAmount = parseCurrencyInput(amount);
+
+  const filteredTo = accounts.filter((a: any) => a.id !== fromId);
+
+  const fromBalance = fromId ? getBalance(fromId) : 0;
+  const toBalance = toId ? getBalance(toId) : 0;
+  const fromResult = fromBalance - (Number.isFinite(parsedAmount) ? parsedAmount : 0);
+  const toResult = toBalance + (Number.isFinite(parsedAmount) ? parsedAmount : 0);
+
+  const handleSubmit = () => {
+    if (!fromId || !toId || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      toast({ title: 'Preencha todos os campos', variant: 'destructive' });
+      return;
+    }
+    onSubmit({ fromId, toId, amount: parsedAmount, description: description || 'Transferencia entre contas', date });
+  };
+
+  const handleSwap = () => {
+    setFromId(toId);
+    setToId(fromId);
+  };
+
+  const fmtLocal = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setFromId(''); setToId(''); setAmount(''); setDescription(''); } }}>
+      <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden">
+        <div className="bg-gradient-to-r from-gold via-gold-light to-gold p-8 text-white">
+          <DialogTitle className="text-2xl font-display text-white tracking-tight">
+            Transferência entre contas
+          </DialogTitle>
+          <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Movimentação interna de fundos</p>
+        </div>
+        <div className="p-6 space-y-5">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conta origem</Label>
+            <Select value={fromId} onValueChange={(v) => { setFromId(v); if (v === toId) setToId(''); }}>
+              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Selecionar conta origem" /></SelectTrigger>
+              <SelectContent>{accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.bank_name} - {a.account_number}{a.account_digit ? `-${a.account_digit}` : ''}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-center">
+            <button type="button" onClick={handleSwap} className="w-8 h-8 rounded-full border border-border/30 flex items-center justify-center hover:bg-gold/10 hover:border-gold/30 transition-all">
+              <ArrowRightLeft size={14} className="text-gold rotate-90" />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conta destino</Label>
+            <Select value={toId} onValueChange={setToId}>
+              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Selecionar conta destino" /></SelectTrigger>
+              <SelectContent>{filteredTo.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.bank_name} - {a.account_number}{a.account_digit ? `-${a.account_digit}` : ''}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Data</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-12 rounded-xl" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor</Label>
+              <Input value={amount} onChange={(e) => setAmount(maskCurrencyInput(e.target.value))} className="h-12 rounded-xl font-bold" placeholder="0,00" />
+            </div>
+          </div>
+
+          {fromId && (
+            <div className="border border-border/20 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border-b border-border/10">
+                <div className="py-2 px-4">Conta</div>
+                <div className="py-2 px-4 text-right">Saldo resultante</div>
+              </div>
+              <div className="grid grid-cols-2 items-center border-b border-border/10 bg-red-50/30">
+                <div className="py-3 px-4 flex items-center gap-2">
+                  <ArrowUpRight size={14} className="text-red-500" />
+                  <span className="font-bold text-sm">{fromAccount?.bank_name} {fromAccount?.account_number}</span>
+                </div>
+                <div className="py-3 px-4 text-right font-black text-sm text-red-500 tabular-nums">{fmtLocal(fromResult)}</div>
+              </div>
+              {toId && (
+                <div className="grid grid-cols-2 items-center bg-emerald-50/30">
+                  <div className="py-3 px-4 flex items-center gap-2">
+                    <ArrowDownLeft size={14} className="text-emerald-500" />
+                    <span className="font-bold text-sm">{toAccount?.bank_name} {toAccount?.account_number}</span>
+                  </div>
+                  <div className="py-3 px-4 text-right font-black text-sm text-emerald-600 tabular-nums">{fmtLocal(toResult)}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Comentário</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[60px] rounded-xl" placeholder="Comentário sobre esta transferência" />
+            <p className="text-[9px] text-muted-foreground/60 italic">* Comentários são visíveis apenas no extrato consolidado</p>
+          </div>
+        </div>
+        <div className="p-6 pt-0 flex justify-end gap-3">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl uppercase text-[10px] font-bold tracking-widest">Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={isPending || !fromId || !toId || !Number.isFinite(parsedAmount) || parsedAmount <= 0} className="bg-gradient-to-r from-gold to-gold-light text-white font-bold h-11 px-8 rounded-xl uppercase text-[10px] tracking-widest">
+            {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowRightLeft size={14} className="mr-2" />}
+            Transferir
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default FinancialDashboard;
