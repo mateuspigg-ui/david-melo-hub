@@ -94,7 +94,7 @@ const FinancialDashboard = () => {
   const { data: payments = [], isLoading: loadingPayments } = useQuery({
     queryKey: ['dash-payments', selectedCompany],
     queryFn: async () => {
-      let query = supabase.from('payments').select('*, payment_installments(*)');
+      let query: any = supabase.from('payments').select('*, payment_installments(*)');
       if (selectedCompany !== 'all') query = query.eq('company_id', selectedCompany);
       const { data, error } = await query; if (error) throw error; return data || [];
     },
