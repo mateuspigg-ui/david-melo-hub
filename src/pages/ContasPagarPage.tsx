@@ -197,7 +197,7 @@ export default function ContasPagarPage() {
       : 1;
     const baseDate = new Date(`${form.due_date}T12:00:00`);
     if (Number.isNaN(baseDate.getTime())) return;
-    const perParcel = Math.round((parsedAmount * 100) / count) / 100;
+    const perParcel = parsedAmount;
     const perParcelStr = perParcel.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const desc = form.description.trim() || "Despesa sem titulo";
     const isSplit = form.expense_type === "recurring" && form.recurrence_mode === "split";
@@ -230,7 +230,12 @@ export default function ContasPagarPage() {
 
   const lastGenKeyRef = useRef("");
   useEffect(() => {
-    if (form.expense_type !== "recurring" || !form.amount || !form.due_date || !form.recurrence_months) {
+    if (form.expense_type !== "recurring" || !form.amount || !form.due_date) {
+      if (installments.length > 0) setInstallments([]);
+      lastGenKeyRef.current = "";
+      return;
+    }
+    if (form.recurrence_mode !== "interval" && !form.recurrence_months) {
       if (installments.length > 0) setInstallments([]);
       lastGenKeyRef.current = "";
       return;
@@ -239,7 +244,7 @@ export default function ContasPagarPage() {
     if (key === lastGenKeyRef.current) return;
     lastGenKeyRef.current = key;
     generateInstallments();
-  }, [form.expense_type, form.amount, form.due_date, form.recurrence_months, form.recurrence_mode, form.description]);
+  }, [form.expense_type, form.amount, form.due_date, form.recurrence_months, form.recurrence_mode, form.recurrence_interval_days, form.recurrence_repetitions, form.description]);
 
   const isMissingCompanyIdColumnError = (error: any) => /company_id.*does not exist|schema cache|could not find.*company_id/i.test(String(error?.message || ""));
   const isMissingCostCenterIdColumnError = (error: any) => /cost_center_id.*does not exist|schema cache|could not find.*cost_center_id/i.test(String(error?.message || ""));
