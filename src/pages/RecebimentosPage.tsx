@@ -881,23 +881,31 @@ export default function RecebimentosPage() {
   const toggleInstallmentMutation = useMutation({
     mutationFn: async ({ installment, bankAccountId, paidDate, paidAmount, paymentMethod }: { installment: Installment; bankAccountId?: string | null; paidDate?: string; paidAmount?: number | null; paymentMethod?: string | null }) => {
       const currentlyPaid = isInstallmentPaid(installment.status, installment.paid_at);
+      const paidAt = toIsoFromDateInput(paidDate);
+
       if (currentlyPaid) {
         let lastError: any = null;
-        for (const fallbackStatus of PENDING_STATUS_VALUES) {
+        for (const fallbackStatus of PAID_STATUS_VALUES) {
           const { error } = await supabase
             .from("payment_installments")
-            .update({ status: fallbackStatus, paid_at: null, bank_account_id: null, paid_amount: null, payment_method: null } as any)
+            .update({ status: fallbackStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, paid_amount: paidAmount ?? null, payment_method: paymentMethod || null } as any)
             .eq("id", installment.id);
-          if (!error) return;
+          if (!error) {
+            await recalculateOpenInstallments(installment.payment_id);
+            return;
+          }
           lastError = error;
         }
         if (lastError && (isMissingInstallmentBankAccountColumnError(lastError) || isMissingInstallmentPaidAmountColumnError(lastError) || isMissingInstallmentPaymentMethodColumnError(lastError))) {
-          for (const fallbackStatus of PENDING_STATUS_VALUES) {
+          for (const fallbackStatus of PAID_STATUS_VALUES) {
             const { error } = await supabase
               .from("payment_installments")
-              .update({ status: fallbackStatus, paid_at: null } as any)
+              .update({ status: fallbackStatus, paid_at: paidAt } as any)
               .eq("id", installment.id);
-            if (!error) return;
+            if (!error) {
+              await recalculateOpenInstallments(installment.payment_id);
+              return;
+            }
             lastError = error;
           }
         }
@@ -905,7 +913,6 @@ export default function RecebimentosPage() {
         return;
       }
 
-      const paidAt = toIsoFromDateInput(paidDate);
       let lastError: any = null;
       for (const fallbackStatus of PAID_STATUS_VALUES) {
         const { error } = await supabase
@@ -938,6 +945,46 @@ export default function RecebimentosPage() {
       await syncEventPaymentStatus(payment?.event_id || null);
     },
     onError: (e: any) => toast({ title: "Erro ao atualizar parcela", description: e?.message || "Tente novamente.", variant: "destructive" }),
+  });
+
+  const unpayInstallmentMutation = useMutation({
+    mutationFn: async (installment: Installment) => {
+      let lastError: any = null;
+      for (const fallbackStatus of PENDING_STATUS_VALUES) {
+        const { error } = await supabase
+          .from("payment_installments")
+          .update({ status: fallbackStatus, paid_at: null, bank_account_id: null, paid_amount: null, payment_method: null } as any)
+          .eq("id", installment.id);
+        if (!error) {
+          await recalculateOpenInstallments(installment.payment_id);
+          return;
+        }
+        lastError = error;
+      }
+      if (lastError && (isMissingInstallmentBankAccountColumnError(lastError) || isMissingInstallmentPaidAmountColumnError(lastError) || isMissingInstallmentPaymentMethodColumnError(lastError))) {
+        for (const fallbackStatus of PENDING_STATUS_VALUES) {
+          const { error } = await supabase
+            .from("payment_installments")
+            .update({ status: fallbackStatus, paid_at: null } as any)
+            .eq("id", installment.id);
+          if (!error) {
+            await recalculateOpenInstallments(installment.payment_id);
+            return;
+          }
+          lastError = error;
+        }
+      }
+      if (lastError) throw lastError;
+    },
+    onSuccess: async (_, variables) => {
+      const payment = payments.find((p) => p.id === variables.payment_id) || null;
+      qc.invalidateQueries({ queryKey: ["payment_installments_all"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      await syncEventPaymentStatus(payment?.event_id || null);
+      toast({ title: "Baixa desfeita com sucesso" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao desfazer baixa", description: e?.message || "Tente novamente.", variant: "destructive" }),
   });
 
   const issueInvoiceMutation = useMutation({
@@ -1283,7 +1330,7 @@ export default function RecebimentosPage() {
                           <div key={inst.id} className={cn("relative flex items-center justify-between p-4 rounded-xl border pl-8", overdue ? "border-destructive/30 bg-destructive/[0.03]" : dueToday ? "border-gold/40 bg-gold/5" : "border-border/30") }>
                             <div className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full", paid ? "bg-emerald-500" : overdue ? "bg-destructive" : dueToday ? "bg-gold" : "bg-slate-300")} />
                             <div className="flex-1 min-w-0"><p className="text-[11px] font-bold uppercase tracking-wider">Parcela {String(inst.installment_number).padStart(2, "0")}</p><p className="text-xs text-muted-foreground">Vencimento {format(new Date(inst.due_date + "T12:00:00"), "dd/MM/yyyy")}</p>{paid && inst.paid_at && <p className="text-[11px] text-emerald-700 font-semibold mt-1">Baixado em {format(new Date(inst.paid_at), "dd/MM/yyyy")}</p>}{paid && (() => { if (inst.bank_account_id) { const acc = bankAccounts.find((b: any) => b.id === inst.bank_account_id); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; } return <p className="text-[10px] text-amber-600 mt-1 font-semibold cursor-pointer hover:underline" onClick={() => setLinkInstallmentsOpen(true)}>Conta nao vinculada</p>; })()}</div>
-                            <div className="flex items-center gap-3"><p className="font-display">{currencyFmt(inst.amount)}</p><Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white")} onClick={() => { if (paid) { toggleInstallmentMutation.mutate({ installment: inst }); return; } setPendingInstallment(inst); setSelectedBankAccountId(""); setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at)); setSelectedInstallmentPaidAmount(formatCurrencyInput(inst.paid_amount ?? inst.amount ?? 0)); setSelectedInstallmentPaymentMethod(inst.payment_method || ""); setAccountPickerOpen(true); }}>{paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}</Button></div>
+                            <div className="flex flex-col items-end gap-1"><p className="font-display">{currencyFmt(inst.amount)}</p><Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", paid ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-secondary text-foreground/80 hover:bg-gold hover:text-white")} onClick={() => { setPendingInstallment(inst); setSelectedBankAccountId(inst.bank_account_id || ""); setSelectedInstallmentPaidDate(toDateInputValue(inst.paid_at || new Date().toISOString())); setSelectedInstallmentPaidAmount(formatCurrencyInput(inst.paid_amount ?? inst.amount ?? 0)); setSelectedInstallmentPaymentMethod(inst.payment_method || ""); setAccountPickerOpen(true); }}>{paid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}</Button>{paid && <button type="button" className="text-[9px] text-destructive/60 hover:text-destructive font-bold uppercase tracking-wider cursor-pointer" onClick={() => unpayInstallmentMutation.mutate(inst)}>Desfazer</button>}</div>
                           </div>
                         );
                       })}
