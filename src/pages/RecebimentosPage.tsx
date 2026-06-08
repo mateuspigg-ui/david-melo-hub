@@ -1209,8 +1209,18 @@ export default function RecebimentosPage() {
         <div className={cn("space-y-4", viewMode === "lista" && "bg-white border border-border/30 rounded-2xl p-3 premium-shadow") }>
           {groupedByClient.map((group) => {
             const clientInstallments = group.payments.flatMap((p) => installmentsByPayment.get(p.id) || []);
-            const clientPending = clientInstallments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
-            const clientReceived = clientInstallments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
+            const clientPendingInstallments = clientInstallments.filter((i) => !isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
+            const clientReceivedInstallments = clientInstallments.filter((i) => isInstallmentPaid(i.status, i.paid_at)).reduce((s, i) => s + i.amount, 0);
+            const clientPendingEntry = group.payments.reduce((s, p) => {
+              if (p.has_entry_payment && Number(p.entry_amount || 0) > 0 && !p.entry_paid_at) return s + Number(p.entry_amount);
+              return s;
+            }, 0);
+            const clientReceivedEntry = group.payments.reduce((s, p) => {
+              if (p.has_entry_payment && Number(p.entry_amount || 0) > 0 && p.entry_paid_at) return s + Number(p.entry_paid_amount ?? p.entry_amount ?? 0);
+              return s;
+            }, 0);
+            const clientPending = clientPendingInstallments + clientPendingEntry;
+            const clientReceived = clientReceivedInstallments + clientReceivedEntry;
             const clientTotal = clientPending + clientReceived;
             const receivedPct = clientTotal > 0 ? Math.min(100, (clientReceived / clientTotal) * 100) : 0;
             return (
