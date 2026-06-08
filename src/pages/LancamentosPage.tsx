@@ -147,7 +147,7 @@ export default function LancamentosPage() {
             vencimento: inst.due_date || "",
             valor: Number(inst.amount || 0),
             valor_total: Number(inst.amount || 0),
-            valor_baixado: isPaid ? Number(inst.paid_amount ?? inst.amount ?? 0) : 0,
+            valor_baixado: isPaid ? Number((inst as any).paid_amount ?? inst.amount ?? 0) : 0,
             valor_aberto: isPaid ? 0 : Number(inst.amount || 0),
             empresa_id: (p as any).company_id || null,
             empresa_nome: "",
