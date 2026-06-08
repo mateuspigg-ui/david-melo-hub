@@ -64,6 +64,7 @@ export default function LancamentosPage() {
   const [sortField, setSortField] = useState<"vencimento" | "valor">("vencimento");
   const [sortAsc, setSortAsc] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-select"],
@@ -578,6 +579,7 @@ export default function LancamentosPage() {
     setCompanyFilter("all");
     setDateFrom("");
     setDateTo("");
+    setVisibleCount(10);
   };
 
   return (
@@ -758,7 +760,7 @@ export default function LancamentosPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/15">
-                  {filtered.map((l, idx) => {
+                  {filtered.slice(0, visibleCount).map((l, idx) => {
                     const s = String(l.status || "").toLowerCase();
                     const isPago = s === "paid" || s === "pago" || s === "recebido";
                     const isVencido = s === "vencido" || s === "overdue" || s === "atrasado";
@@ -811,6 +813,18 @@ export default function LancamentosPage() {
                 </tbody>
               </table>
             </div>
+
+            {visibleCount < filtered.length && (
+              <div className="px-4 py-3 flex items-center justify-between border-t border-border/10 bg-secondary/5">
+                <span className="text-[11px] font-bold text-muted-foreground">
+                  Mostrando {Math.min(visibleCount, filtered.length)} de {filtered.length} lancamentos
+                </span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setVisibleCount((prev) => prev + 10)}
+                  className="h-8 px-4 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gold hover:bg-gold/10">
+                  Mostrar mais
+                </Button>
+              </div>
+            )}
 
             {/* Footer */}
             <div className="px-4 py-2.5 bg-gradient-to-r from-secondary/20 via-secondary/10 to-secondary/20 border-t border-border/20">
