@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format, subDays } from 'date-fns';
+import { format, subDays, eachDayOfInterval, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   DollarSign, TrendingUp, Calendar, Landmark, Receipt,
   ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet,
   ArrowRightLeft, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import CalendarTab from '@/components/CalendarTab';
@@ -189,6 +191,50 @@ const FinancialDashboard = () => {
       movPrevistasHoje: receitaMovHoje - despesaMovHoje, saldoPrevisto: totalBank + receitaMovHoje - despesaMovHoje,
     };
   }, [payments, payables, bankAccounts, today, dateFrom, dateTo]);
+
+  const chartData = useMemo(() => {
+    const from = dateFrom || format(subDays(new Date(), 7), 'yyyy-MM-dd');
+    const to = dateTo || format(new Date(), 'yyyy-MM-dd');
+    const days = eachDayOfInterval({ start: parseISO(from), end: parseISO(to) });
+    const map: Record<string, { receber: number; pagar: number }> = {};
+
+    for (const d of days) {
+      const key = format(d, 'yyyy-MM-dd');
+      map[key] = { receber: 0, pagar: 0 };
+    }
+
+    for (const p of payments) {
+      const installments = (p.payment_installments || []) as any[];
+      for (const inst of installments) {
+        if (inst.status === 'paid' || inst.paid_at) continue;
+        const due = inst.due_date as string;
+        if (map[due] !== undefined) map[due].receber += Number(inst.amount || 0);
+      }
+      if (p.has_entry_payment && !p.entry_paid_at) {
+        const entryDate = p.entry_date as string;
+        if (map[entryDate] !== undefined) map[entryDate].receber += Number(p.entry_amount || 0);
+      }
+    }
+
+    for (const ap of payables) {
+      if (ap.payment_status === 'pago' || ap.payment_status === 'paid' || ap.paid_at) continue;
+      const due = ap.due_date as string;
+      if (map[due] !== undefined) {
+        const amount = Number(ap.amount || 0);
+        map[due].pagar += amount - Number(ap.discount || 0) + Number(ap.interest || 0) + Number(ap.fine || 0);
+      }
+    }
+
+    return days.map((d) => {
+      const key = format(d, 'yyyy-MM-dd');
+      return {
+        date: format(d, 'dd/MM'),
+        fullDate: format(d, 'dd/MM/yyyy'),
+        receber: Math.round(map[key].receber * 100) / 100,
+        pagar: Math.round(map[key].pagar * 100) / 100,
+      };
+    });
+  }, [payments, payables, dateFrom, dateTo]);
 
   const dateLabel = `${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} ate ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`;
   const isLoading = loadingPayments || loadingPayables;
@@ -571,6 +617,38 @@ const FinancialDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Receber x Pagar Chart */}
+              {chartData.length > 0 && (
+                <div className="mt-8 bg-white rounded-3xl border border-border/20 p-6 premium-shadow">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-display font-bold text-foreground tracking-tight">Receber x Pagar</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mt-1">Fluxo diário no período selecionado</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-gold" /> A receber</div>
+                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-rose-400" /> A pagar</div>
+                    </div>
+                  </div>
+                  <div className="h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={{ stroke: '#e5e5e5' }} />
+                        <YAxis tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: 12, border: '1px solid #e5e5e5', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', fontSize: 12 }}
+                          formatter={(value: number, name: string) => [fmt(value), name === 'receber' ? 'A receber' : 'A pagar']}
+                          labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+                        />
+                        <Bar dataKey="receber" fill="#C5A059" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <Bar dataKey="pagar" fill="#FB7185" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </TabsContent>
