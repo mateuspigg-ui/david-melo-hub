@@ -8,7 +8,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet,
   ArrowRightLeft, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import CalendarTab from '@/components/CalendarTab';
@@ -143,6 +143,33 @@ const FinancialDashboard = () => {
     },
   });
 
+  const { data: allInstallments = [] } = useQuery({
+    queryKey: ['all-installments-monthly', selectedCompany],
+    queryFn: async () => {
+      let query: any = supabase.from('payment_installments').select('amount, due_date, status, paid_at, payment_id');
+      if (selectedCompany !== 'all') {
+        const { data: filteredPayments } = await supabase.from('payments').select('id').eq('company_id', selectedCompany);
+        const ids = (filteredPayments || []).map((p: any) => p.id);
+        if (ids.length === 0) return [];
+        query = query.in('payment_id', ids);
+      }
+      const { data, error } = await query;
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: allPayables = [] } = useQuery({
+    queryKey: ['all-payables-monthly', selectedCompany],
+    queryFn: async () => {
+      let query = (supabase as any).from('accounts_payable').select('amount, due_date, payment_status, paid_at, discount, interest, fine');
+      if (selectedCompany !== 'all') query = query.eq('company_id', selectedCompany);
+      const { data, error } = await query;
+      if (error) return [];
+      return data || [];
+    },
+  });
+
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const stats = useMemo(() => {
@@ -235,6 +262,53 @@ const FinancialDashboard = () => {
       };
     });
   }, [payments, payables, dateFrom, dateTo]);
+
+  const monthlyChartData = useMemo(() => {
+    const from = dateFrom || format(subDays(new Date(), 180), 'yyyy-MM-dd');
+    const to = dateTo || format(new Date(), 'yyyy-MM-dd');
+    const fromMonth = from.substring(0, 7);
+    const toMonth = to.substring(0, 7);
+
+    const months: Record<string, { receita: number; despesa: number }> = {};
+
+    const allMonths: string[] = [];
+    let current = parseISO(fromMonth + '-01');
+    const end = parseISO(toMonth + '-01');
+    while (current <= end) {
+      const key = format(current, 'yyyy-MM');
+      months[key] = { receita: 0, despesa: 0 };
+      allMonths.push(key);
+      current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+    }
+
+    for (const inst of allInstallments) {
+      const due = (inst.due_date as string || '').substring(0, 7);
+      if (months[due] !== undefined) {
+        months[due].receita += Number(inst.amount || 0);
+      }
+    }
+
+    for (const ap of allPayables) {
+      const due = (ap.due_date as string || '').substring(0, 7);
+      if (months[due] !== undefined) {
+        const amount = Number(ap.amount || 0);
+        months[due].despesa += amount - Number(ap.discount || 0) + Number(ap.interest || 0) + Number(ap.fine || 0);
+      }
+    }
+
+    const monthNames = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+    return allMonths.map((m) => {
+      const [y, mon] = m.split('-');
+      const idx = parseInt(mon, 10) - 1;
+      return {
+        month: `${monthNames[idx]}/${y.substring(2)}`,
+        fullMonth: `${monthNames[idx]}/${y}`,
+        receita: Math.round(months[m].receita * 100) / 100,
+        despesa: Math.round(months[m].despesa * 100) / 100,
+      };
+    });
+  }, [allInstallments, allPayables, dateFrom, dateTo]);
 
   const dateLabel = `${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} ate ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`;
   const isLoading = loadingPayments || loadingPayables;
@@ -644,6 +718,43 @@ const FinancialDashboard = () => {
                         />
                         <Bar dataKey="receber" fill="#C5A059" radius={[4, 4, 0, 0]} maxBarSize={40} />
                         <Bar dataKey="pagar" fill="#FB7185" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+
+              {/* Receitas x Despesas Mensal Chart */}
+              {monthlyChartData.length > 0 && (
+                <div className="mt-8 bg-white rounded-3xl border border-border/20 p-6 premium-shadow">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-display font-bold text-foreground tracking-tight">Receitas x Despesas</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mt-1">Totais mensais no período selecionado</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" /> Receita</div>
+                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" /> Despesa</div>
+                    </div>
+                  </div>
+                  <div className="h-[360px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyChartData} margin={{ top: 30, right: 10, left: 10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                        <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }} tickLine={false} axisLine={{ stroke: '#e5e5e5' }} />
+                        <YAxis tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: 12, border: '1px solid #e5e5e5', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', fontSize: 12, padding: '12px 16px' }}
+                          formatter={(value: number, name: string) => [fmt(value), name === 'receita' ? 'Receita' : 'Despesa']}
+                          labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
+                        />
+                        <Bar dataKey="receita" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                          <LabelList dataKey="receita" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#3B82F6', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
+                        </Bar>
+                        <Bar dataKey="despesa" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                          <LabelList dataKey="despesa" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#EF4444', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
+                        </Bar>
+                        <Legend wrapperStyle={{ paddingTop: 16 }} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
