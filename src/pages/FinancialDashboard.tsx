@@ -148,7 +148,7 @@ const FinancialDashboard = () => {
     queryFn: async () => {
       let query: any = supabase.from('payment_installments').select('amount, due_date, status, paid_at, payment_id');
       if (selectedCompany !== 'all') {
-        const { data: filteredPayments } = await supabase.from('payments').select('id').eq('company_id', selectedCompany);
+        const { data: filteredPayments } = await (supabase as any).from('payments').select('id').eq('company_id', selectedCompany);
         const ids = (filteredPayments || []).map((p: any) => p.id);
         if (ids.length === 0) return [];
         query = query.in('payment_id', ids);
@@ -465,9 +465,9 @@ const FinancialDashboard = () => {
               </TabsTrigger>
             </TabsList>
           </div>
-        </Tabs>
 
         <TabsContent value="dashboard" className="space-y-10">
+
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-32 gap-5">
               <div className="relative">
@@ -884,10 +884,10 @@ const FinancialDashboard = () => {
                               labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
                             />
                             <Bar dataKey="receita" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                              <LabelList dataKey="receita" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#3B82F6', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
+                              <LabelList dataKey="receita" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#3B82F6', fontWeight: 700, textAnchor: 'end' } as any} />
                             </Bar>
                             <Bar dataKey="despesa" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                              <LabelList dataKey="despesa" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#EF4444', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
+                              <LabelList dataKey="despesa" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#EF4444', fontWeight: 700, textAnchor: 'end' } as any} />
                             </Bar>
                             <Legend wrapperStyle={{ paddingTop: 16 }} />
                           </BarChart>
@@ -987,6 +987,7 @@ const FinancialDashboard = () => {
         <TabsContent value="calendario" className="mt-8">
           <CalendarTab selectedCompany={selectedCompany} />
         </TabsContent>
+        </Tabs>
 
       <TransferDialog
         open={transferOpen}
