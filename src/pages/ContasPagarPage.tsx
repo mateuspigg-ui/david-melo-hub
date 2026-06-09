@@ -1565,6 +1565,8 @@ export default function ContasPagarPage() {
                               expense_type: "single",
                               recurrence_mode: "repeat",
                               recurrence_months: "2",
+                              recurrence_interval_days: "30",
+                              recurrence_repetitions: "2",
                             });
                             setDialogOpen(true);
                             toast({ title: "Dados carregados para edição" });
