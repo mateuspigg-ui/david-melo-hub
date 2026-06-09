@@ -480,9 +480,9 @@ const FinancialDashboard = () => {
               </TabsTrigger>
             </TabsList>
           </div>
-        </Tabs>
 
         <TabsContent value="dashboard" className="space-y-10">
+
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-32 gap-5">
               <div className="relative">
@@ -1002,8 +1002,10 @@ const FinancialDashboard = () => {
         <TabsContent value="calendario" className="mt-8">
           <CalendarTab selectedCompany={selectedCompany} />
         </TabsContent>
+        </Tabs>
 
       </div>
+
 
       <TransferDialog
         open={transferOpen}
