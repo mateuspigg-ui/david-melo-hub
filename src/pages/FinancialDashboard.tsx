@@ -8,7 +8,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, Eye, EyeOff, FileText, ExternalLink, Loader2, ChevronRight, ArrowRight, Wallet,
   ArrowRightLeft, ArrowUpRight, ArrowDownLeft
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, ReferenceLine } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import CalendarTab from '@/components/CalendarTab';
@@ -170,6 +170,42 @@ const FinancialDashboard = () => {
     },
   });
 
+  const { data: bankTxWithDate = [] } = useQuery({
+    queryKey: ['bank-tx-dated', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('bank_transactions').select('bank_account_id, amount, transaction_date');
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: entryPaymentsDated = [] } = useQuery({
+    queryKey: ['entry-payments-dated', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('payments').select('entry_bank_account_id, entry_paid_amount, entry_amount, entry_paid_at, entry_date').not('entry_bank_account_id', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: installmentPaymentsDated = [] } = useQuery({
+    queryKey: ['installment-payments-dated', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('payment_installments').select('bank_account_id, paid_amount, amount, paid_at, due_date, status').not('bank_account_id', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const { data: payablePaymentsDated = [] } = useQuery({
+    queryKey: ['payable-payments-dated', selectedCompany],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('accounts_payable').select('bank_account_id, paid_amount, amount, payment_status, paid_at, due_date').not('bank_account_id', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const stats = useMemo(() => {
@@ -309,6 +345,75 @@ const FinancialDashboard = () => {
       };
     });
   }, [allInstallments, allPayables, dateFrom, dateTo]);
+
+  const cashFlowChartData = useMemo(() => {
+    const from = dateFrom || format(subDays(new Date(), 7), 'yyyy-MM-dd');
+    const to = dateTo || format(new Date(), 'yyyy-MM-dd');
+    const days = eachDayOfInterval({ start: parseISO(from), end: parseISO(to) });
+
+    const currentBalance = bankAccounts.reduce((sum: number, acc: any) => sum + getBalance(acc.id), 0);
+
+    const dailyFlow: Record<string, number> = {};
+    for (const d of days) dailyFlow[format(d, 'yyyy-MM-dd')] = 0;
+
+    for (const t of bankTxWithDate) {
+      const dt = t.transaction_date as string;
+      if (dailyFlow[dt] !== undefined) dailyFlow[dt] += Number(t.amount || 0);
+    }
+
+    for (const ep of entryPaymentsDated) {
+      if (ep.entry_paid_at) {
+        const dt = ep.entry_paid_at as string;
+        if (dailyFlow[dt] !== undefined) dailyFlow[dt] += Number(ep.entry_paid_amount || ep.entry_amount || 0);
+      }
+    }
+
+    for (const inst of installmentPaymentsDated) {
+      if (inst.paid_at) {
+        const dt = inst.paid_at as string;
+        if (dailyFlow[dt] !== undefined) dailyFlow[dt] += Number(inst.paid_amount || inst.amount || 0);
+      }
+    }
+
+    for (const ap of payablePaymentsDated) {
+      if (ap.payment_status === 'pago' || ap.paid_at) {
+        const dt = (ap.paid_at || ap.due_date) as string;
+        if (dailyFlow[dt] !== undefined) dailyFlow[dt] -= Number(ap.paid_amount || ap.amount || 0);
+      }
+    }
+
+    const allPayments = allInstallments.filter((i: any) => i.status !== 'paid' && !i.paid_at);
+    for (const inst of allPayments) {
+      const dt = (inst.due_date as string || '').substring(0, 10);
+      if (dailyFlow[dt] !== undefined) dailyFlow[dt] += Number(inst.amount || 0);
+    }
+
+    const pendingPayables = allPayables.filter((ap: any) => ap.payment_status !== 'pago' && !ap.paid_at);
+    for (const ap of pendingPayables) {
+      const dt = (ap.due_date as string || '').substring(0, 10);
+      if (dailyFlow[dt] !== undefined) {
+        const amount = Number(ap.amount || 0);
+        dailyFlow[dt] -= amount - Number(ap.discount || 0) + Number(ap.interest || 0) + Number(ap.fine || 0);
+      }
+    }
+
+    let cumulativeFlow = 0;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const startBalance = currentBalance - Object.values(dailyFlow).reduce((s, v) => s + v, 0);
+
+    return days.map((d) => {
+      const key = format(d, 'yyyy-MM-dd');
+      cumulativeFlow += dailyFlow[key];
+      const balance = startBalance + cumulativeFlow;
+      return {
+        date: format(d, 'dd/MM'),
+        fullDate: format(d, 'dd/MM/yyyy'),
+        saldo: Math.round(balance * 100) / 100,
+        isToday: key === todayStr,
+        isPast: key <= todayStr,
+      };
+    });
+  }, [bankAccounts, bankTxWithDate, entryPaymentsDated, installmentPaymentsDated, payablePaymentsDated, allInstallments, allPayables, dateFrom, dateTo]);
 
   const dateLabel = `${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} ate ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`;
   const isLoading = loadingPayments || loadingPayables;
@@ -760,6 +865,81 @@ const FinancialDashboard = () => {
                   </div>
                 </div>
               )}
+
+              {/* Fluxo de Caixa Chart */}
+              {cashFlowChartData.length > 0 && (() => {
+                const todayStr = format(new Date(), 'yyyy-MM-dd');
+                const pastData = cashFlowChartData.map(d => ({ ...d, saldo: d.saldo }));
+                const futureData = cashFlowChartData.map(d => ({ ...d, saldo: d.isPast ? null : d.saldo }));
+                return (
+                  <div className="mt-8 bg-white rounded-3xl border border-border/20 p-6 premium-shadow">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-lg font-display font-bold text-foreground tracking-tight">Fluxo de caixa</h3>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mt-1">Saldo projetado por dia no período selecionado</p>
+                      </div>
+                      <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5"><div className="w-6 h-0.5 bg-[#3B82F6] rounded" /> Saldo real</div>
+                        <div className="flex items-center gap-1.5"><div className="w-6 h-0.5 bg-[#3B82F6] rounded border-dashed" style={{ borderTop: '2px dashed #3B82F6', height: 0 }} /> Projetado</div>
+                      </div>
+                    </div>
+                    <div className="h-[360px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={cashFlowChartData} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                          <XAxis
+                            dataKey="date"
+                            tick={({ x, y, payload }) => {
+                              const item = cashFlowChartData.find(d => d.date === payload.value);
+                              const isToday = item?.isToday;
+                              return (
+                                <text x={x} y={y + 12} textAnchor="middle" style={{ fontSize: 10, fill: isToday ? '#C5A059' : '#999', fontWeight: isToday ? 900 : 400, fontStyle: isToday ? 'italic' : 'normal' }}>
+                                  {isToday ? 'Hoje' : payload.value}
+                                </text>
+                              );
+                            }}
+                            tickLine={false}
+                            axisLine={{ stroke: '#e5e5e5' }}
+                            angle={-35}
+                            textAnchor="end"
+                            height={50}
+                          />
+                          <YAxis tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                          <Tooltip
+                            contentStyle={{ borderRadius: 12, border: '1px solid #e5e5e5', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', fontSize: 12, padding: '12px 16px' }}
+                            formatter={(value: number) => [fmt(value), 'Saldo']}
+                            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="saldo"
+                            stroke="#3B82F6"
+                            strokeWidth={2.5}
+                            dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
+                            activeDot={{ r: 6, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey={(d) => d.isPast ? null : d.saldo}
+                            stroke="#3B82F6"
+                            strokeWidth={2.5}
+                            strokeDasharray="6 4"
+                            dot={false}
+                            activeDot={false}
+                            legendType="none"
+                          />
+                          <ReferenceLine
+                            x={cashFlowChartData.find(d => d.isToday)?.date}
+                            stroke="#C5A059"
+                            strokeWidth={1.5}
+                            strokeDasharray="4 3"
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           )}
         </TabsContent>
