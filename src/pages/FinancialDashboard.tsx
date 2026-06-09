@@ -415,193 +415,282 @@ const FinancialDashboard = () => {
     });
   }, [bankAccounts, bankTxWithDate, entryPaymentsDated, installmentPaymentsDated, payablePaymentsDated, allInstallments, allPayables, dateFrom, dateTo]);
 
-  const dateLabel = `${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} ate ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`;
   const isLoading = loadingPayments || loadingPayables;
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Dashboard Financeiro</h1>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-gold/[0.01] animate-fade-in">
+      <div className="max-w-[1700px] mx-auto px-4 md:px-8 py-10 pb-16">
+
+        {/* Header */}
+        <div className="relative mb-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-gold/5 via-transparent to-gold/5 rounded-3xl blur-3xl pointer-events-none" />
+          <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-xl" />
+                  <div className="relative h-10 w-1.5 bg-gradient-to-b from-gold via-gold/80 to-gold/60 rounded-full" />
+                </div>
+                <div>
+                  <h1 className="text-4xl md:text-[42px] font-display text-foreground tracking-[-0.03em] uppercase leading-none font-black">Dashboard Financeiro</h1>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="h-px flex-1 bg-gradient-to-r from-gold/40 to-transparent max-w-[120px]" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-gold/70">David Melo Produções</p>
+                    <div className="h-px flex-1 bg-gradient-to-l from-gold/40 to-transparent max-w-[120px]" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Controle de Fluxo</p>
         </div>
-      </div>
 
-      {companies.length > 0 && (
-        <div className="px-2">
-          <div className="bg-white rounded-2xl border border-border/30 p-4 max-w-xl">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Empresa / CNPJ</p>
-            <select value={selectedCompany} onChange={(e) => setSelectedCompany(e.target.value)} className="h-11 w-full rounded-xl border border-border/40 px-3 text-sm">
-              <option value="all">Consolidado (todas as empresas)</option>
-              {companies.map((company: any) => (
-                <option key={company.id} value={company.id}>{(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}</option>
-              ))}
-            </select>
+        {/* Company Selector */}
+        {companies.length > 0 && (
+          <div className="mb-8">
+            <div className="relative group max-w-xl">
+              <div className="absolute inset-0 bg-gradient-to-r from-gold/5 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-border/20 p-5 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_50px_-12px_rgba(197,160,89,0.12)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold/10 to-gold/5 flex items-center justify-center border border-gold/10">
+                    <Landmark size={14} className="text-gold/70" />
+                  </div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Empresa / CNPJ</p>
+                </div>
+                <select value={selectedCompany} onChange={(e) => setSelectedCompany(e.target.value)} className="h-12 w-full rounded-xl border border-border/20 px-4 text-sm bg-white/60 focus:ring-2 focus:ring-gold/20 focus:border-gold/30 transition-all font-medium">
+                  <option value="all">Consolidado (todas as empresas)</option>
+                  {companies.map((company: any) => (
+                    <option key={company.id} value={company.id}>{(company.trade_name || company.legal_name || 'Empresa')} {company.cnpj ? `- ${company.cnpj}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <Tabs defaultValue="dashboard" className="px-2">
-        <TabsList className="bg-white rounded-xl border border-border/30 p-1 h-12">
-          <TabsTrigger value="dashboard" className="text-[10px] font-bold uppercase tracking-widest rounded-lg px-6 data-[state=active]:bg-gold data-[state=active]:text-white"><Receipt size={14} className="mr-2" />Dashboard</TabsTrigger>
-          <TabsTrigger value="calendario" className="text-[10px] font-bold uppercase tracking-widest rounded-lg px-6 data-[state=active]:bg-gold data-[state=active]:text-white"><Calendar size={14} className="mr-2" />Calendário</TabsTrigger>
-        </TabsList>
+        {/* Tabs */}
+        <Tabs defaultValue="dashboard" className="mb-10">
+          <div className="relative inline-flex">
+            <div className="absolute inset-0 bg-gold/10 rounded-2xl blur-lg pointer-events-none" />
+            <TabsList className="relative bg-white/90 backdrop-blur-xl rounded-2xl border border-border/15 p-1.5 h-14 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)]">
+              <TabsTrigger value="dashboard" className="text-[10px] font-black uppercase tracking-[0.15em] rounded-xl px-8 h-10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gold data-[state=active]:via-gold/90 data-[state=active]:to-gold/80 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-gold/25 transition-all duration-300">
+                <Receipt size={13} className="mr-2" />Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="calendario" className="text-[10px] font-black uppercase tracking-[0.15em] rounded-xl px-8 h-10 data-[state=active]:bg-gradient-to-r data-[state=active]:from-gold data-[state=active]:via-gold/90 data-[state=active]:to-gold/80 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-gold/25 transition-all duration-300">
+                <Calendar size={13} className="mr-2" />Calendário
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </Tabs>
 
-        <TabsContent value="dashboard" className="mt-8 space-y-8">
+        <TabsContent value="dashboard" className="space-y-10">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="w-10 h-10 text-gold animate-spin" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold animate-pulse">Carregando dados...</p>
+            <div className="flex flex-col items-center justify-center py-32 gap-5">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gold/20 rounded-full blur-xl animate-pulse" />
+                <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-gold via-gold/80 to-gold/60 flex items-center justify-center shadow-xl shadow-gold/20">
+                  <Loader2 className="w-7 h-7 text-white animate-spin" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold animate-pulse">Carregando dados...</p>
+                <p className="text-[9px] text-muted-foreground/40 mt-1.5">Aguarde um momento</p>
+              </div>
             </div>
           ) : (
             <>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Saldo Hoje */}
+                <div className="group relative overflow-hidden rounded-[28px] border border-emerald-200/20 bg-gradient-to-br from-white via-emerald-50/[0.03] to-emerald-50/[0.06] shadow-[0_8px_40px_-12px_rgba(16,185,129,0.1)] hover:shadow-[0_16px_60px_-12px_rgba(16,185,129,0.18)] transition-all duration-500">
+                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-emerald-500/[0.04] to-transparent rounded-full blur-3xl group-hover:from-emerald-500/[0.08] transition-all duration-700 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+                  <div className="relative p-7">
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-emerald-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
+                        <div className="relative w-13 h-13 rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-100/60 to-emerald-50 flex items-center justify-center border border-emerald-200/40 shadow-sm group-hover:scale-105 transition-transform duration-500">
+                          <Landmark size={22} className="text-emerald-600" />
+                        </div>
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-emerald-600/60 bg-emerald-50/80 px-3.5 py-1.5 rounded-xl border border-emerald-200/30">Hoje</span>
+                    </div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2">Saldo Hoje</p>
+                    <p className="text-[28px] font-display font-black tracking-tight text-foreground tabular-nums leading-none">{fmt(stats.saldoHoje)}</p>
+                  </div>
+                </div>
+
+                {/* Movimentações previstas */}
+                <div className="group relative overflow-hidden rounded-[28px] border border-gold/10 bg-gradient-to-br from-white via-gold/[0.01] to-gold/[0.03] shadow-[0_8px_40px_-12px_rgba(197,160,89,0.1)] hover:shadow-[0_16px_60px_-12px_rgba(197,160,89,0.18)] transition-all duration-500">
+                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-gold/[0.04] to-transparent rounded-full blur-3xl group-hover:from-gold/[0.08] transition-all duration-700 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+                  <div className="relative p-7">
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gold/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
+                        <div className="relative w-13 h-13 rounded-2xl bg-gradient-to-br from-gold/10 via-gold/15 to-gold/10 flex items-center justify-center border border-gold/20 shadow-sm group-hover:scale-105 transition-transform duration-500">
+                          <TrendingUp size={22} className="text-gold" />
+                        </div>
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-gold/60 bg-gold/5 px-3.5 py-1.5 rounded-xl border border-gold/15">Previsão</span>
+                    </div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2">Movimentações previstas para hoje</p>
+                    <p className={cn(
+                      "text-[28px] font-display font-black tracking-tight tabular-nums leading-none",
+                      stats.movPrevistasHoje >= 0 ? "text-emerald-600" : "text-red-400"
+                    )}>{fmt(stats.movPrevistasHoje)}</p>
+                  </div>
+                </div>
+
+                {/* Saldo previsto */}
+                <div className="group relative overflow-hidden rounded-[28px] border border-amber-200/20 bg-gradient-to-br from-white via-amber-50/[0.03] to-amber-50/[0.06] shadow-[0_8px_40px_-12px_rgba(245,158,11,0.1)] hover:shadow-[0_16px_60px_-12px_rgba(245,158,11,0.18)] transition-all duration-500">
+                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-amber-500/[0.04] to-transparent rounded-full blur-3xl group-hover:from-amber-500/[0.08] transition-all duration-700 pointer-events-none" />
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+                  <div className="relative p-7">
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-amber-500/10 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500" />
+                        <div className="relative w-13 h-13 rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100/60 to-amber-50 flex items-center justify-center border border-amber-200/40 shadow-sm group-hover:scale-105 transition-transform duration-500">
+                          <DollarSign size={22} className="text-amber-500" />
+                        </div>
+                      </div>
+                      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-amber-600/60 bg-amber-50/80 px-3.5 py-1.5 rounded-xl border border-amber-200/30">Projetado</span>
+                    </div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mb-2">Saldo previsto para hoje</p>
+                    <p className={cn(
+                      "text-[28px] font-display font-black tracking-tight tabular-nums leading-none",
+                      stats.saldoPrevisto >= 0 ? "text-emerald-600" : "text-red-400"
+                    )}>{fmt(stats.saldoPrevisto)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main Grid: Table + Accounts */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left: Pagamentos e Recebimentos */}
                 <div className="lg:col-span-2">
-                  <div className="relative overflow-hidden rounded-3xl border border-gold/10 bg-gradient-to-br from-white via-white to-gold/[0.02] shadow-[0_20px_60px_-15px_rgba(197,160,89,0.12)]">
-                    {/* Decorative elements */}
-                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-gold/8 to-transparent rounded-full blur-2xl" />
-                    <div className="absolute -bottom-16 -left-16 w-32 h-32 bg-gradient-to-tr from-gold/5 to-transparent rounded-full blur-xl" />
+                  <div className="relative overflow-hidden rounded-[28px] border border-border/15 bg-white/80 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)]">
+                    <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-gold/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
 
-                    <div className="relative px-10 pt-8 pb-6">
+                    <div className="relative px-8 pt-8 pb-6">
                       {/* Header */}
-                      <div className="flex items-center justify-between mb-8">
+                      <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                           <div className="relative">
-                            <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-lg" />
-                            <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-gold via-gold/90 to-gold/70 flex items-center justify-center shadow-lg shadow-gold/20">
-                              <Receipt size={20} className="text-white" />
+                            <div className="absolute inset-0 bg-gold/15 rounded-2xl blur-xl" />
+                            <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-gold via-gold/90 to-gold/70 flex items-center justify-center shadow-lg shadow-gold/15">
+                              <Receipt size={18} className="text-white" />
                             </div>
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-foreground tracking-tight">Pagamentos e Recebimentos</h3>
-                            <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-medium">Valores por parcela no período</p>
+                            <h3 className="text-lg font-bold text-foreground tracking-tight">Pagamentos e Recebimentos</h3>
+                            <p className="text-[10px] text-muted-foreground/40 mt-0.5 font-medium">Valores por parcela no período</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2.5 bg-gradient-to-r from-gold/10 via-gold/5 to-transparent border border-gold/15 rounded-2xl px-5 py-2.5 shadow-inner shadow-gold/5">
-                          <Calendar size={14} className="text-gold" />
-                          <span className="text-[12px] text-foreground/80 font-semibold tabular-nums">{dateLabel}</span>
+                        <div className="flex items-center gap-2.5 bg-gradient-to-r from-gold/8 via-gold/4 to-transparent border border-gold/10 rounded-xl px-4 py-2">
+                          <Calendar size={13} className="text-gold/60" />
+                          <span className="text-[11px] text-foreground/60 font-semibold tabular-nums">{`${dateFrom ? format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy') : '?'} — ${dateTo ? format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy') : '?'}`}</span>
                         </div>
                       </div>
 
                       {/* Filters */}
-                      <div className="relative mb-8 p-5 bg-gradient-to-r from-secondary/30 via-secondary/20 to-secondary/30 rounded-2xl border border-border/10 backdrop-blur-sm">
-                        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
+                      <div className="relative mb-6 p-4 bg-secondary/20 rounded-2xl border border-border/10">
+                        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-gold/15 to-transparent" />
                         <div className="flex flex-wrap items-end gap-3">
                           <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Periodo inicial</Label>
-                            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white/80 focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all shadow-sm" />
+                            <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">Periodo inicial</Label>
+                            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-10 rounded-xl border-border/25 text-[13px] px-4 bg-white/70 focus:ring-2 focus:ring-gold/20 focus:border-gold/30 transition-all" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/60">Periodo final</Label>
-                            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/30 text-[13px] px-4 bg-white/80 focus:ring-2 focus:ring-gold/20 focus:border-gold/40 transition-all shadow-sm" />
-                          </div>
-                          <div className="flex items-center gap-5 ml-auto pb-1">
-                          
+                            <Label className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50">Periodo final</Label>
+                            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-10 rounded-xl border-border/25 text-[13px] px-4 bg-white/70 focus:ring-2 focus:ring-gold/20 focus:border-gold/30 transition-all" />
                           </div>
                         </div>
                       </div>
 
                       {/* Table */}
-                      <div className="overflow-hidden rounded-2xl border border-border/15 shadow-lg shadow-black/[0.03]">
+                      <div className="overflow-hidden rounded-2xl border border-border/10">
                         <table className="w-full">
                           <thead>
-                            <tr className="bg-gradient-to-r from-foreground/[0.03] via-foreground/[0.02] to-foreground/[0.03]">
-                              <th className="text-left py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 w-[180px]">Tipo</th>
-                              <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Em Aberto</th>
-                              <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Vencidos</th>
-                              <th className="text-right py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Total</th>
-                              <th className="text-center py-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50 w-[60px]"></th>
+                            <tr className="bg-gradient-to-r from-foreground/[0.02] to-foreground/[0.01]">
+                              <th className="text-left py-3.5 px-5 text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40 w-[180px]">Tipo</th>
+                              <th className="text-right py-3.5 px-5 text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40">Em Aberto</th>
+                              <th className="text-right py-3.5 px-5 text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40">Vencidos</th>
+                              <th className="text-right py-3.5 px-5 text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40">Total</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-border/10">
-                            <tr className="group hover:bg-gradient-to-r hover:from-emerald-50/40 hover:via-emerald-50/20 hover:to-transparent transition-all duration-500">
-                              <td className="py-5 px-6">
-                                <div className="flex items-center gap-3.5">
+                          <tbody className="divide-y divide-border/8">
+                            <tr className="group hover:bg-emerald-50/30 transition-colors duration-300">
+                              <td className="py-4 px-5">
+                                <div className="flex items-center gap-3">
                                   <div className="relative">
-                                    <div className="absolute inset-0 bg-emerald-500/10 rounded-xl blur-md group-hover:blur-lg transition-all" />
-                                    <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-50 via-emerald-100/80 to-emerald-50 flex items-center justify-center border border-emerald-200/50 shadow-sm">
-                                      <ArrowDownCircle size={18} className="text-emerald-600" />
+                                    <div className="absolute inset-0 bg-emerald-500/8 rounded-xl blur-md" />
+                                    <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 flex items-center justify-center border border-emerald-200/40">
+                                      <ArrowDownCircle size={16} className="text-emerald-600" />
                                     </div>
                                   </div>
                                   <div>
-                                    <p className="text-[14px] font-semibold text-foreground">A Receber</p>
-                                    <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">Receitas pendentes</p>
+                                    <p className="text-[13px] font-semibold text-foreground">A Receber</p>
+                                    <p className="text-[9px] text-muted-foreground/40 font-medium">Receitas pendentes</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{fmt(stats.receitaEmAberto)}</span>
+                              <td className="py-4 px-5 text-right">
+                                <span className="font-display text-[14px] tabular-nums text-foreground/60">{fmt(stats.receitaEmAberto)}</span>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="inline-flex items-center gap-1 font-display text-[15px] tabular-nums text-emerald-600 font-medium">
+                              <td className="py-4 px-5 text-right">
+                                <span className="inline-flex items-center gap-1 font-display text-[14px] tabular-nums text-emerald-600 font-medium">
                                   {stats.receitaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                                   {fmt(stats.receitaVencida)}
                                 </span>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.receitaTotal)}</span>
-                              </td>
-                              <td className="py-5 px-6 text-center">
-                                <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-300 hover:shadow-md hover:shadow-gold/10">
-                                  <FileText size={15} className="text-gold/40 group-hover:text-gold transition-colors" />
-                                </button>
+                              <td className="py-4 px-5 text-right">
+                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{fmt(stats.receitaTotal)}</span>
                               </td>
                             </tr>
-                            <tr className="group hover:bg-gradient-to-r hover:from-red-50/40 hover:via-red-50/20 hover:to-transparent transition-all duration-500">
-                              <td className="py-5 px-6">
-                                <div className="flex items-center gap-3.5">
+                            <tr className="group hover:bg-red-50/30 transition-colors duration-300">
+                              <td className="py-4 px-5">
+                                <div className="flex items-center gap-3">
                                   <div className="relative">
-                                    <div className="absolute inset-0 bg-red-500/10 rounded-xl blur-md group-hover:blur-lg transition-all" />
-                                    <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-red-50 via-red-100/80 to-red-50 flex items-center justify-center border border-red-200/50 shadow-sm">
-                                      <ArrowUpCircle size={18} className="text-red-400" />
+                                    <div className="absolute inset-0 bg-red-500/8 rounded-xl blur-md" />
+                                    <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 flex items-center justify-center border border-red-200/40">
+                                      <ArrowUpCircle size={16} className="text-red-400" />
                                     </div>
                                   </div>
                                   <div>
-                                    <p className="text-[14px] font-semibold text-foreground">A Pagar</p>
-                                    <p className="text-[10px] text-muted-foreground/40 font-medium mt-0.5">Despesas pendentes</p>
+                                    <p className="text-[13px] font-semibold text-foreground">A Pagar</p>
+                                    <p className="text-[9px] text-muted-foreground/40 font-medium">Despesas pendentes</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground/70">{fmt(stats.despesaEmAberto)}</span>
+                              <td className="py-4 px-5 text-right">
+                                <span className="font-display text-[14px] tabular-nums text-foreground/60">{fmt(stats.despesaEmAberto)}</span>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="inline-flex items-center gap-1 font-display text-[15px] tabular-nums text-red-400 font-medium">
+                              <td className="py-4 px-5 text-right">
+                                <span className="inline-flex items-center gap-1 font-display text-[14px] tabular-nums text-red-400 font-medium">
                                   {stats.despesaVencida > 0 && <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
                                   {fmt(stats.despesaVencida)}
                                 </span>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.despesaTotal)}</span>
-                              </td>
-                              <td className="py-5 px-6 text-center">
-                                <button className="p-2 rounded-xl hover:bg-gold/10 transition-all opacity-0 group-hover:opacity-100 duration-300 hover:shadow-md hover:shadow-gold/10">
-                                  <FileText size={15} className="text-gold/40 group-hover:text-gold transition-colors" />
-                                </button>
+                              <td className="py-4 px-5 text-right">
+                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{fmt(stats.despesaTotal)}</span>
                               </td>
                             </tr>
-                            <tr className="relative">
-                              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
-                              <td className="py-5 px-6 pl-16">
-                                <p className="text-[14px] font-bold text-foreground">Total</p>
+                            <tr className="bg-gradient-to-r from-gold/[0.03] to-transparent">
+                              <td className="py-4 px-5 pl-14">
+                                <p className="text-[13px] font-bold text-foreground">Total</p>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.receitaEmAberto + stats.despesaEmAberto)}</span>
+                              <td className="py-4 px-5 text-right">
+                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{fmt(stats.receitaEmAberto + stats.despesaEmAberto)}</span>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <span className="font-display text-[15px] tabular-nums text-foreground font-bold">{fmt(stats.receitaVencida + stats.despesaVencida)}</span>
+                              <td className="py-4 px-5 text-right">
+                                <span className="font-display text-[14px] tabular-nums text-foreground font-bold">{fmt(stats.receitaVencida + stats.despesaVencida)}</span>
                               </td>
-                              <td className="py-5 px-6 text-right">
-                                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
-                                  <span className="font-display text-[16px] tabular-nums text-gold font-black">{fmt(stats.receitaTotal + stats.despesaTotal)}</span>
+                              <td className="py-4 px-5 text-right">
+                                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-gold/10 to-gold/5 px-3.5 py-1 rounded-xl border border-gold/15">
+                                  <span className="font-display text-[15px] tabular-nums text-gold font-black">{fmt(stats.receitaTotal + stats.despesaTotal)}</span>
                                 </div>
                               </td>
-                              <td></td>
                             </tr>
                           </tbody>
                         </table>
@@ -612,68 +701,67 @@ const FinancialDashboard = () => {
 
                 {/* Right: Saldo das contas */}
                 <div className="lg:col-span-1">
-                  <div className="relative overflow-hidden rounded-3xl border border-gold/10 bg-gradient-to-br from-white via-white to-gold/[0.02] shadow-[0_20px_60px_-15px_rgba(197,160,89,0.12)] h-full flex flex-col">
-                    {/* Decorative */}
-                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-gold/8 to-transparent rounded-full blur-2xl" />
+                  <div className="relative overflow-hidden rounded-[28px] border border-border/15 bg-white/80 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)] h-full flex flex-col">
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-gold/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
 
-                    <div className="relative px-8 pt-8 pb-6 flex-1 flex flex-col">
+                    <div className="relative px-7 pt-7 pb-5 flex-1 flex flex-col">
                       {/* Header */}
-                      <div className="flex items-center justify-between mb-7">
-                        <div className="flex items-center gap-3.5">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
                           <div className="relative">
-                            <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-lg" />
-                            <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-br from-gold via-gold/90 to-gold/70 flex items-center justify-center shadow-lg shadow-gold/20">
-                              <Wallet size={18} className="text-white" />
+                            <div className="absolute inset-0 bg-gold/15 rounded-2xl blur-xl" />
+                            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-gold via-gold/90 to-gold/70 flex items-center justify-center shadow-lg shadow-gold/15">
+                              <Wallet size={16} className="text-white" />
                             </div>
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-foreground tracking-tight">Saldo das contas</h3>
-                            <p className="text-[11px] text-muted-foreground/50 mt-0.5 font-medium">{format(new Date(), 'dd/MM/yyyy')}</p>
+                            <h3 className="text-[15px] font-bold text-foreground tracking-tight">Saldo das contas</h3>
+                            <p className="text-[10px] text-muted-foreground/40 mt-0.5 font-medium">{format(new Date(), 'dd/MM/yyyy')}</p>
                           </div>
                         </div>
-                        <button onClick={() => setShowValues(!showValues)} className="w-9 h-9 rounded-xl bg-secondary/30 flex items-center justify-center border border-border/15 hover:bg-gold/5 hover:border-gold/20 transition-all duration-200">
-                          {showValues ? <Eye size={15} className="text-muted-foreground/50" /> : <EyeOff size={15} className="text-muted-foreground/50" />}
+                        <button onClick={() => setShowValues(!showValues)} className="w-8 h-8 rounded-xl bg-secondary/30 flex items-center justify-center border border-border/10 hover:bg-gold/5 hover:border-gold/15 transition-all duration-200">
+                          {showValues ? <Eye size={14} className="text-muted-foreground/40" /> : <EyeOff size={14} className="text-muted-foreground/40" />}
                         </button>
                       </div>
 
                       {/* Accounts */}
-                      <div className="flex-1 overflow-y-auto -mx-2 px-2">
-                        <div className="space-y-2">
+                      <div className="flex-1 overflow-y-auto -mx-1 px-1">
+                        <div className="space-y-1.5">
                           {bankAccounts.length === 0 ? (
                             <div className="text-center py-12">
                               <div className="relative inline-block mb-3">
-                                <div className="absolute inset-0 bg-gold/10 rounded-2xl blur-lg" />
-                                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-secondary/50 to-secondary/30 flex items-center justify-center border border-border/15">
-                                  <Landmark size={22} className="text-muted-foreground/25" />
+                                <div className="absolute inset-0 bg-gold/8 rounded-2xl blur-lg" />
+                                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary/40 to-secondary/20 flex items-center justify-center border border-border/10">
+                                  <Landmark size={20} className="text-muted-foreground/20" />
                                 </div>
                               </div>
-                              <p className="text-[13px] text-muted-foreground/40 font-medium">Nenhuma conta</p>
+                              <p className="text-[12px] text-muted-foreground/35 font-medium">Nenhuma conta</p>
                             </div>
                           ) : (
                             bankAccounts.map((acc: any) => {
                               const balance = getBalance(acc.id);
                               const isNegative = balance < -0.01;
                               return (
-                                <div key={acc.id} className="group/item relative p-4 rounded-2xl bg-gradient-to-r from-secondary/10 to-transparent hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 cursor-pointer">
+                                <div key={acc.id} className="group/item relative p-3.5 rounded-xl hover:bg-secondary/20 border border-transparent hover:border-border/10 transition-all duration-300 cursor-pointer">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0 flex-1">
                                       <div className="flex items-center gap-2">
                                         <div className={cn("w-2 h-2 rounded-full", isNegative ? "bg-red-400" : "bg-emerald-500")} />
-                                        <p className="text-[13px] font-semibold text-foreground truncate group-hover/item:text-gold transition-colors">{acc.bank_name || 'Sem banco'}</p>
+                                        <p className="text-[12px] font-semibold text-foreground truncate group-hover/item:text-gold transition-colors">{acc.bank_name || 'Sem banco'}</p>
                                       </div>
-                                      <div className="ml-4 mt-1.5">
+                                      <div className="ml-4 mt-1">
                                         {(acc.agency || acc.account_number) && (
-                                          <p className="text-[10px] text-muted-foreground/40 tabular-nums font-medium">
+                                          <p className="text-[9px] text-muted-foreground/35 tabular-nums font-medium">
                                             {acc.agency && `Ag. ${acc.agency}`}
                                             {acc.agency && acc.account_number && <span className="mx-1 text-border/30">·</span>}
                                             {acc.account_number && `Cc ${acc.account_number}${acc.account_digit || ''}`}
                                           </p>
                                         )}
-                                        {acc.description && <p className="text-[10px] text-muted-foreground/25 mt-0.5 truncate">{acc.description}</p>}
                                       </div>
                                     </div>
                                     <span className={cn(
-                                      "text-[14px] font-display font-bold tabular-nums whitespace-nowrap",
+                                      "text-[13px] font-display font-bold tabular-nums whitespace-nowrap",
                                       isNegative ? "text-red-400" : "text-foreground"
                                     )}>
                                       {showValues ? fmt(balance) : '···'}
@@ -688,15 +776,15 @@ const FinancialDashboard = () => {
 
                       {/* Total */}
                       {bankAccounts.length > 0 && (
-                        <div className="mt-5 pt-5 border-t border-border/10 relative">
-                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+                        <div className="mt-4 pt-4 border-t border-border/10 relative">
+                          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/25 to-transparent" />
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-gold" />
-                              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground/50">Saldo Total</p>
+                              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/40">Saldo Total</p>
                             </div>
-                            <div className="bg-gradient-to-r from-gold/10 to-gold/5 px-4 py-1.5 rounded-xl border border-gold/15">
-                              <p className="text-[16px] font-display font-black tabular-nums text-gold">
+                            <div className="bg-gradient-to-r from-gold/10 to-gold/5 px-3.5 py-1.5 rounded-xl border border-gold/15">
+                              <p className="text-[15px] font-display font-black tabular-nums text-gold">
                                 {showValues ? fmt(stats.saldoHoje) : '···'}
                               </p>
                             </div>
@@ -705,25 +793,25 @@ const FinancialDashboard = () => {
                       )}
 
                       {/* Quick Links */}
-                      <div className="mt-6 space-y-2">
-                        <div className="h-px bg-gradient-to-r from-transparent via-border/20 to-transparent" />
-                        <a href="/conciliacao" className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-gradient-to-r hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 group/link">
+                      <div className="mt-5 space-y-1.5">
+                        <div className="h-px bg-gradient-to-r from-transparent via-border/15 to-transparent" />
+                        <a href="/conciliacao" className="flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 border border-transparent hover:border-border/10 transition-all duration-300 group/link">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold/10 to-gold/5 flex items-center justify-center border border-gold/10">
-                              <ExternalLink size={13} className="text-gold/60" />
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gold/8 to-gold/4 flex items-center justify-center border border-gold/8">
+                              <ExternalLink size={12} className="text-gold/50" />
                             </div>
-                            <span className="text-[12px] text-muted-foreground/60 font-medium group-hover/link:text-gold transition-colors">Conciliação bancária</span>
+                            <span className="text-[11px] text-muted-foreground/50 font-medium group-hover/link:text-gold transition-colors">Conciliação bancária</span>
                           </div>
-                          <ArrowRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
+                          <ArrowRight size={13} className="text-muted-foreground/15 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
                         </a>
-                        <button type="button" onClick={() => setTransferOpen(true)} className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-gradient-to-r hover:from-gold/5 hover:to-transparent border border-transparent hover:border-gold/10 transition-all duration-300 group/link cursor-pointer">
+                        <button type="button" onClick={() => setTransferOpen(true)} className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-secondary/20 border border-transparent hover:border-border/10 transition-all duration-300 group/link cursor-pointer">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gold/10 to-gold/5 flex items-center justify-center border border-gold/10">
-                              <ArrowRightLeft size={13} className="text-gold/60" />
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gold/8 to-gold/4 flex items-center justify-center border border-gold/8">
+                              <ArrowRightLeft size={12} className="text-gold/50" />
                             </div>
-                            <span className="text-[12px] text-muted-foreground/60 font-medium group-hover/link:text-gold transition-colors">Transferência entre contas</span>
+                            <span className="text-[11px] text-muted-foreground/50 font-medium group-hover/link:text-gold transition-colors">Transferência entre contas</span>
                           </div>
-                          <ArrowRight size={14} className="text-muted-foreground/20 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
+                          <ArrowRight size={13} className="text-muted-foreground/15 group-hover/link:text-gold/50 group-hover/link:translate-x-0.5 transition-all" />
                         </button>
                       </div>
                     </div>
@@ -731,215 +819,182 @@ const FinancialDashboard = () => {
                 </div>
               </div>
 
-              {/* Bottom Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {/* Saldo Hoje */}
-                <div className="relative overflow-hidden rounded-3xl border border-emerald-200/30 bg-gradient-to-br from-white via-emerald-50/20 to-emerald-50/40 shadow-[0_20px_60px_-15px_rgba(16,185,129,0.12)] group hover:shadow-[0_25px_70px_-15px_rgba(16,185,129,0.18)] transition-all duration-500">
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-emerald-500/8 to-transparent rounded-full blur-2xl" />
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-emerald-400/40 via-emerald-500 to-emerald-400/40" />
-                  <div className="relative p-7">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-emerald-500/15 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
-                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-100/80 to-emerald-50 flex items-center justify-center border border-emerald-200/50 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                          <Landmark size={20} className="text-emerald-600" />
+              {/* Charts */}
+              <div className="space-y-6">
+                {/* Receber x Pagar */}
+                {chartData.length > 0 && (
+                  <div className="relative overflow-hidden rounded-[28px] border border-border/15 bg-white/80 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)]">
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+                    <div className="px-8 pt-7 pb-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-gold/10 rounded-xl blur-lg" />
+                            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-gold/15 to-gold/5 flex items-center justify-center border border-gold/15">
+                              <Receipt size={15} className="text-gold" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-[15px] font-bold text-foreground tracking-tight">Receber x Pagar</h3>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 mt-0.5">Fluxo diário no período</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-gold" /> A receber</div>
+                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-rose-400" /> A pagar</div>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-600/70 bg-emerald-100/50 px-3 py-1.5 rounded-xl border border-emerald-200/30">Hoje</span>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartData} margin={{ top: 15, right: 10, left: 10, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
+                            <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#aaa' }} tickLine={false} axisLine={{ stroke: '#eee' }} />
+                            <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                            <Tooltip
+                              contentStyle={{ borderRadius: 12, border: '1px solid #eee', boxShadow: '0 8px 30px rgba(0,0,0,0.06)', fontSize: 12 }}
+                              formatter={(value: number, name: string) => [fmt(value), name === 'receber' ? 'A receber' : 'A pagar']}
+                              labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+                            />
+                            <Bar dataKey="receber" fill="#C5A059" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                            <Bar dataKey="pagar" fill="#FB7185" radius={[4, 4, 0, 0]} maxBarSize={36} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1.5">Saldo Hoje</p>
-                    <p className="text-[26px] font-display font-black tracking-tight text-foreground tabular-nums leading-none">{fmt(stats.saldoHoje)}</p>
                   </div>
-                </div>
+                )}
 
-                {/* Movimentações previstas */}
-                <div className="relative overflow-hidden rounded-3xl border border-gold/15 bg-gradient-to-br from-white via-gold/[0.02] to-gold/[0.04] shadow-[0_20px_60px_-15px_rgba(197,160,89,0.12)] group hover:shadow-[0_25px_70px_-15px_rgba(197,160,89,0.18)] transition-all duration-500">
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-gold/8 to-transparent rounded-full blur-2xl" />
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-gold/40 via-gold to-gold/40" />
-                  <div className="relative p-7">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gold/15 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
-                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-gold/10 via-gold/15 to-gold/10 flex items-center justify-center border border-gold/20 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                          <TrendingUp size={20} className="text-gold" />
+                {/* Receitas x Despesas */}
+                {monthlyChartData.length > 0 && (
+                  <div className="relative overflow-hidden rounded-[28px] border border-border/15 bg-white/80 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)]">
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#3B82F6]/30 to-transparent" />
+                    <div className="px-8 pt-7 pb-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-[#3B82F6]/10 rounded-xl blur-lg" />
+                            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#3B82F6]/15 to-[#3B82F6]/5 flex items-center justify-center border border-[#3B82F6]/15">
+                              <TrendingUp size={15} className="text-[#3B82F6]" />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-[15px] font-bold text-foreground tracking-tight">Receitas x Despesas</h3>
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 mt-0.5">Totais mensais no período</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" /> Receita</div>
+                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" /> Despesa</div>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gold/70 bg-gold/10 px-3 py-1.5 rounded-xl border border-gold/15">Previsão</span>
+                      <div className="h-[340px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={monthlyChartData} margin={{ top: 30, right: 10, left: 10, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
+                            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }} tickLine={false} axisLine={{ stroke: '#eee' }} />
+                            <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                            <Tooltip
+                              contentStyle={{ borderRadius: 12, border: '1px solid #eee', boxShadow: '0 8px 30px rgba(0,0,0,0.06)', fontSize: 12, padding: '12px 16px' }}
+                              formatter={(value: number, name: string) => [fmt(value), name === 'receita' ? 'Receita' : 'Despesa']}
+                              labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
+                            />
+                            <Bar dataKey="receita" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                              <LabelList dataKey="receita" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#3B82F6', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
+                            </Bar>
+                            <Bar dataKey="despesa" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={50}>
+                              <LabelList dataKey="despesa" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#EF4444', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
+                            </Bar>
+                            <Legend wrapperStyle={{ paddingTop: 16 }} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1.5">Movimentações previstas para hoje</p>
-                    <p className={cn(
-                      "text-[26px] font-display font-black tracking-tight tabular-nums leading-none",
-                      stats.movPrevistasHoje >= 0 ? "text-emerald-600" : "text-red-400"
-                    )}>{fmt(stats.movPrevistasHoje)}</p>
                   </div>
-                </div>
+                )}
 
-                {/* Saldo previsto */}
-                <div className="relative overflow-hidden rounded-3xl border border-amber-200/30 bg-gradient-to-br from-white via-amber-50/20 to-amber-50/40 shadow-[0_20px_60px_-15px_rgba(245,158,11,0.12)] group hover:shadow-[0_25px_70px_-15px_rgba(245,158,11,0.18)] transition-all duration-500">
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-amber-500/8 to-transparent rounded-full blur-2xl" />
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400/40 via-amber-500 to-amber-400/40" />
-                  <div className="relative p-7">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-amber-500/15 rounded-2xl blur-lg group-hover:blur-xl transition-all" />
-                        <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-50 via-amber-100/80 to-amber-50 flex items-center justify-center border border-amber-200/50 shadow-sm group-hover:scale-110 transition-transform duration-500">
-                          <DollarSign size={20} className="text-amber-500" />
+                {/* Fluxo de Caixa */}
+                {cashFlowChartData.length > 0 && (() => {
+                  return (
+                    <div className="relative overflow-hidden rounded-[28px] border border-border/15 bg-white/80 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)]">
+                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#3B82F6]/30 to-transparent" />
+                      <div className="px-8 pt-7 pb-6">
+                        <div className="flex items-center justify-between mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-[#3B82F6]/10 rounded-xl blur-lg" />
+                              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#3B82F6]/15 to-[#3B82F6]/5 flex items-center justify-center border border-[#3B82F6]/15">
+                                <TrendingUp size={15} className="text-[#3B82F6]" />
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="text-[15px] font-bold text-foreground tracking-tight">Fluxo de caixa</h3>
+                              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/40 mt-0.5">Saldo projetado por dia no período</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
+                            <div className="flex items-center gap-1.5"><div className="w-6 h-[2px] bg-[#3B82F6] rounded" /> Saldo real</div>
+                            <div className="flex items-center gap-1.5"><div className="w-6 h-0 rounded" style={{ borderTop: '2px dashed #3B82F6' }} /> Projetado</div>
+                          </div>
+                        </div>
+                        <div className="h-[340px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={cashFlowChartData} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" vertical={false} />
+                              <XAxis
+                                dataKey="date"
+                                tick={({ x, y, payload }) => {
+                                  const item = cashFlowChartData.find(d => d.date === payload.value);
+                                  const isToday = item?.isToday;
+                                  return (
+                                    <text x={x} y={y + 12} textAnchor="middle" style={{ fontSize: 10, fill: isToday ? '#C5A059' : '#aaa', fontWeight: isToday ? 900 : 400, fontStyle: isToday ? 'italic' : 'normal' }}>
+                                      {isToday ? 'Hoje' : payload.value}
+                                    </text>
+                                  );
+                                }}
+                                tickLine={false}
+                                axisLine={{ stroke: '#eee' }}
+                                angle={-35}
+                                textAnchor="end"
+                                height={50}
+                              />
+                              <YAxis tick={{ fontSize: 10, fill: '#aaa' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
+                              <Tooltip
+                                contentStyle={{ borderRadius: 12, border: '1px solid #eee', boxShadow: '0 8px 30px rgba(0,0,0,0.06)', fontSize: 12, padding: '12px 16px' }}
+                                formatter={(value: number) => [fmt(value), 'Saldo']}
+                                labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey="saldo"
+                                stroke="#3B82F6"
+                                strokeWidth={2.5}
+                                dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
+                                activeDot={{ r: 6, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
+                              />
+                              <Line
+                                type="monotone"
+                                dataKey={(d: any) => d.isPast ? null : d.saldo}
+                                stroke="#3B82F6"
+                                strokeWidth={2.5}
+                                strokeDasharray="6 4"
+                                dot={false}
+                                activeDot={false}
+                                legendType="none"
+                              />
+                              <ReferenceLine
+                                x={cashFlowChartData.find(d => d.isToday)?.date}
+                                stroke="#C5A059"
+                                strokeWidth={1.5}
+                                strokeDasharray="4 3"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
                         </div>
                       </div>
-                      <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-amber-600/70 bg-amber-100/50 px-3 py-1.5 rounded-xl border border-amber-200/30">Projetado</span>
                     </div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/50 mb-1.5">Saldo previsto para hoje</p>
-                    <p className={cn(
-                      "text-[26px] font-display font-black tracking-tight tabular-nums leading-none",
-                      stats.saldoPrevisto >= 0 ? "text-emerald-600" : "text-red-400"
-                    )}>{fmt(stats.saldoPrevisto)}</p>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
-
-              {/* Receber x Pagar Chart */}
-              {chartData.length > 0 && (
-                <div className="mt-8 bg-white rounded-3xl border border-border/20 p-6 premium-shadow">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h3 className="text-lg font-display font-bold text-foreground tracking-tight">Receber x Pagar</h3>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mt-1">Fluxo diário no período selecionado</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-gold" /> A receber</div>
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-rose-400" /> A pagar</div>
-                    </div>
-                  </div>
-                  <div className="h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                        <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={{ stroke: '#e5e5e5' }} />
-                        <YAxis tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                        <Tooltip
-                          contentStyle={{ borderRadius: 12, border: '1px solid #e5e5e5', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', fontSize: 12 }}
-                          formatter={(value: number, name: string) => [fmt(value), name === 'receber' ? 'A receber' : 'A pagar']}
-                          labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
-                        />
-                        <Bar dataKey="receber" fill="#C5A059" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                        <Bar dataKey="pagar" fill="#FB7185" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Receitas x Despesas Mensal Chart */}
-              {monthlyChartData.length > 0 && (
-                <div className="mt-8 bg-white rounded-3xl border border-border/20 p-6 premium-shadow">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h3 className="text-lg font-display font-bold text-foreground tracking-tight">Receitas x Despesas</h3>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mt-1">Totais mensais no período selecionado</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#3B82F6]" /> Receita</div>
-                      <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" /> Despesa</div>
-                    </div>
-                  </div>
-                  <div className="h-[360px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyChartData} margin={{ top: 30, right: 10, left: 10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                        <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#666', fontWeight: 600 }} tickLine={false} axisLine={{ stroke: '#e5e5e5' }} />
-                        <YAxis tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                        <Tooltip
-                          contentStyle={{ borderRadius: 12, border: '1px solid #e5e5e5', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', fontSize: 12, padding: '12px 16px' }}
-                          formatter={(value: number, name: string) => [fmt(value), name === 'receita' ? 'Receita' : 'Despesa']}
-                          labelFormatter={(label, payload) => payload?.[0]?.payload?.fullMonth || label}
-                        />
-                        <Bar dataKey="receita" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                          <LabelList dataKey="receita" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#3B82F6', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
-                        </Bar>
-                        <Bar dataKey="despesa" fill="#EF4444" radius={[4, 4, 0, 0]} maxBarSize={50}>
-                          <LabelList dataKey="despesa" position="top" formatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : fmt(v)} style={{ fontSize: 9, fill: '#EF4444', fontWeight: 700, rotate: -35, textAnchor: 'end' }} />
-                        </Bar>
-                        <Legend wrapperStyle={{ paddingTop: 16 }} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Fluxo de Caixa Chart */}
-              {cashFlowChartData.length > 0 && (() => {
-                const todayStr = format(new Date(), 'yyyy-MM-dd');
-                const pastData = cashFlowChartData.map(d => ({ ...d, saldo: d.saldo }));
-                const futureData = cashFlowChartData.map(d => ({ ...d, saldo: d.isPast ? null : d.saldo }));
-                return (
-                  <div className="mt-8 bg-white rounded-3xl border border-border/20 p-6 premium-shadow">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-lg font-display font-bold text-foreground tracking-tight">Fluxo de caixa</h3>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 mt-1">Saldo projetado por dia no período selecionado</p>
-                      </div>
-                      <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest">
-                        <div className="flex items-center gap-1.5"><div className="w-6 h-0.5 bg-[#3B82F6] rounded" /> Saldo real</div>
-                        <div className="flex items-center gap-1.5"><div className="w-6 h-0.5 bg-[#3B82F6] rounded border-dashed" style={{ borderTop: '2px dashed #3B82F6', height: 0 }} /> Projetado</div>
-                      </div>
-                    </div>
-                    <div className="h-[360px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={cashFlowChartData} margin={{ top: 20, right: 20, left: 20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                          <XAxis
-                            dataKey="date"
-                            tick={({ x, y, payload }) => {
-                              const item = cashFlowChartData.find(d => d.date === payload.value);
-                              const isToday = item?.isToday;
-                              return (
-                                <text x={x} y={y + 12} textAnchor="middle" style={{ fontSize: 10, fill: isToday ? '#C5A059' : '#999', fontWeight: isToday ? 900 : 400, fontStyle: isToday ? 'italic' : 'normal' }}>
-                                  {isToday ? 'Hoje' : payload.value}
-                                </text>
-                              );
-                            }}
-                            tickLine={false}
-                            axisLine={{ stroke: '#e5e5e5' }}
-                            angle={-35}
-                            textAnchor="end"
-                            height={50}
-                          />
-                          <YAxis tick={{ fontSize: 10, fill: '#999' }} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
-                          <Tooltip
-                            contentStyle={{ borderRadius: 12, border: '1px solid #e5e5e5', boxShadow: '0 8px 30px rgba(0,0,0,0.08)', fontSize: 12, padding: '12px 16px' }}
-                            formatter={(value: number) => [fmt(value), 'Saldo']}
-                            labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="saldo"
-                            stroke="#3B82F6"
-                            strokeWidth={2.5}
-                            dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
-                            activeDot={{ r: 6, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey={(d) => d.isPast ? null : d.saldo}
-                            stroke="#3B82F6"
-                            strokeWidth={2.5}
-                            strokeDasharray="6 4"
-                            dot={false}
-                            activeDot={false}
-                            legendType="none"
-                          />
-                          <ReferenceLine
-                            x={cashFlowChartData.find(d => d.isToday)?.date}
-                            stroke="#C5A059"
-                            strokeWidth={1.5}
-                            strokeDasharray="4 3"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-                );
-              })()}
             </>
           )}
         </TabsContent>
@@ -947,7 +1002,8 @@ const FinancialDashboard = () => {
         <TabsContent value="calendario" className="mt-8">
           <CalendarTab selectedCompany={selectedCompany} />
         </TabsContent>
-      </Tabs>
+
+      </div>
 
       <TransferDialog
         open={transferOpen}
@@ -999,81 +1055,84 @@ function TransferDialog({ open, onOpenChange, accounts, getBalance, onSubmit, is
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setFromId(''); setToId(''); setAmount(''); setDescription(''); } }}>
-      <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden max-h-[90vh] flex flex-col">
-        <div className="bg-gradient-to-r from-gold via-gold-light to-gold p-6 text-white shrink-0">
-          <DialogTitle className="text-xl font-display text-white tracking-tight">
-            Transferência entre contas
-          </DialogTitle>
-          <p className="text-white/70 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Movimentação interna de fundos</p>
+      <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden max-h-[90vh] flex flex-col border-border/15 shadow-2xl">
+        <div className="bg-gradient-to-r from-gold via-gold/90 to-gold/80 p-6 text-white shrink-0 relative overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+          <div className="relative">
+            <DialogTitle className="text-xl font-display text-white tracking-tight">
+              Transferência entre contas
+            </DialogTitle>
+            <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.25em] mt-1.5">Movimentação interna de fundos</p>
+          </div>
         </div>
         <div className="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conta origem</Label>
+            <Label className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/50">Conta origem</Label>
             <Select value={fromId} onValueChange={(v) => { setFromId(v); if (v === toId) setToId(''); }}>
-              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Selecionar conta origem" /></SelectTrigger>
+              <SelectTrigger className="h-12 rounded-xl border-border/20"><SelectValue placeholder="Selecionar conta origem" /></SelectTrigger>
               <SelectContent>{accounts.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.bank_name} - {a.account_number}{a.account_digit ? `-${a.account_digit}` : ''}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
           <div className="flex items-center justify-center">
-            <button type="button" onClick={handleSwap} className="w-8 h-8 rounded-full border border-border/30 flex items-center justify-center hover:bg-gold/10 hover:border-gold/30 transition-all">
+            <button type="button" onClick={handleSwap} className="w-8 h-8 rounded-full border border-border/20 flex items-center justify-center hover:bg-gold/10 hover:border-gold/25 transition-all">
               <ArrowRightLeft size={14} className="text-gold rotate-90" />
             </button>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Conta destino</Label>
+            <Label className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/50">Conta destino</Label>
             <Select value={toId} onValueChange={setToId}>
-              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Selecionar conta destino" /></SelectTrigger>
+              <SelectTrigger className="h-12 rounded-xl border-border/20"><SelectValue placeholder="Selecionar conta destino" /></SelectTrigger>
               <SelectContent>{filteredTo.map((a: any) => <SelectItem key={a.id} value={a.id}>{a.bank_name} - {a.account_number}{a.account_digit ? `-${a.account_digit}` : ''}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Data</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-12 rounded-xl" />
+              <Label className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/50">Data</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-12 rounded-xl border-border/20" />
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor</Label>
-              <Input value={amount} onChange={(e) => setAmount(maskCurrencyInput(e.target.value))} className="h-12 rounded-xl font-bold" placeholder="0,00" />
+              <Label className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/50">Valor</Label>
+              <Input value={amount} onChange={(e) => setAmount(maskCurrencyInput(e.target.value))} className="h-12 rounded-xl border-border/20 font-bold" placeholder="0,00" />
             </div>
           </div>
 
           {fromId && (
-            <div className="border border-border/20 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 border-b border-border/10">
+            <div className="border border-border/15 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-2 text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 border-b border-border/10">
                 <div className="py-2 px-4">Conta</div>
                 <div className="py-2 px-4 text-right">Saldo resultante</div>
               </div>
-              <div className="grid grid-cols-2 items-center border-b border-border/10 bg-red-50/30">
+              <div className="grid grid-cols-2 items-center border-b border-border/10 bg-red-50/20">
                 <div className="py-3 px-4 flex items-center gap-2">
-                  <ArrowUpRight size={14} className="text-red-500" />
-                  <span className="font-bold text-sm">{fromAccount?.bank_name} {fromAccount?.account_number}</span>
+                  <ArrowUpRight size={13} className="text-red-500" />
+                  <span className="font-semibold text-[13px]">{fromAccount?.bank_name} {fromAccount?.account_number}</span>
                 </div>
-                <div className="py-3 px-4 text-right font-black text-sm text-red-500 tabular-nums">{fmtLocal(fromResult)}</div>
+                <div className="py-3 px-4 text-right font-black text-[13px] text-red-500 tabular-nums">{fmtLocal(fromResult)}</div>
               </div>
               {toId && (
-                <div className="grid grid-cols-2 items-center bg-emerald-50/30">
+                <div className="grid grid-cols-2 items-center bg-emerald-50/20">
                   <div className="py-3 px-4 flex items-center gap-2">
-                    <ArrowDownLeft size={14} className="text-emerald-500" />
-                    <span className="font-bold text-sm">{toAccount?.bank_name} {toAccount?.account_number}</span>
+                    <ArrowDownLeft size={13} className="text-emerald-500" />
+                    <span className="font-semibold text-[13px]">{toAccount?.bank_name} {toAccount?.account_number}</span>
                   </div>
-                  <div className="py-3 px-4 text-right font-black text-sm text-emerald-600 tabular-nums">{fmtLocal(toResult)}</div>
+                  <div className="py-3 px-4 text-right font-black text-[13px] text-emerald-600 tabular-nums">{fmtLocal(toResult)}</div>
                 </div>
               )}
             </div>
           )}
 
           <div className="space-y-2">
-            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Comentário</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[60px] rounded-xl" placeholder="Comentário sobre esta transferência" />
-            <p className="text-[9px] text-muted-foreground/60 italic">* Comentários são visíveis apenas no extrato consolidado</p>
+            <Label className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground/50">Comentário</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} className="min-h-[60px] rounded-xl border-border/20" placeholder="Comentário sobre esta transferência" />
+            <p className="text-[9px] text-muted-foreground/50 italic">* Comentários são visíveis apenas no extrato consolidado</p>
           </div>
         </div>
         <div className="p-5 pt-0 flex justify-end gap-3 shrink-0">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl uppercase text-[10px] font-bold tracking-widest">Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={isPending || !fromId || !toId || !Number.isFinite(parsedAmount) || parsedAmount <= 0} className="bg-gradient-to-r from-gold to-gold-light text-white font-bold h-11 px-8 rounded-xl uppercase text-[10px] tracking-widest">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl uppercase text-[9px] font-black tracking-[0.15em]">Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={isPending || !fromId || !toId || !Number.isFinite(parsedAmount) || parsedAmount <= 0} className="bg-gradient-to-r from-gold to-gold/80 text-white font-bold h-11 px-8 rounded-xl uppercase text-[9px] tracking-[0.15em] shadow-lg shadow-gold/20 hover:shadow-xl hover:shadow-gold/30 transition-all duration-300">
             {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ArrowRightLeft size={14} className="mr-2" />}
             Transferir
           </Button>
