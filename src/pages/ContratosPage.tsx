@@ -163,18 +163,19 @@ export default function ContratosPage() {
   };
 
   return (
-    <div className="p-2 pb-10 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 px-2">
+    <div className="page-container">
+      {/* Header Section */}
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão de Contratos</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Gestão de Contratos</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Jurídico e Compliance</p>
+          <p className="page-header-subtitle">David Melo Produções • Jurídico e Compliance</p>
         </div>
         <Button 
           onClick={() => { setEditingContract(null); setForm({ title: '', client_id: '', event_id: '', signed_status: 'draft', file_url: '' }); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.2em]"
+          className="page-action-button"
         >
           <Plus size={20} className="mr-3" /> Novo Contrato
         </Button>
@@ -195,8 +196,8 @@ export default function ContratosPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-border/30 rounded-2xl p-4 premium-shadow mx-2">
-        <div className="relative max-w-md">
+      <div className="filter-bar-container mx-2">
+        <div className="relative max-w-md w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Buscar contratos por título..." 

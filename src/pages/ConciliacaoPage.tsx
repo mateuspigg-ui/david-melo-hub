@@ -337,11 +337,14 @@ const ConciliacaoPage = () => {
   const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   return (
-    <div className="p-8 space-y-10 animate-fade-in max-w-[1400px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Conciliação Inteligente</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Auditagem Automatizada David Melo Hub</p>
+    <div className="page-container">
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Conciliação Inteligente</h1>
+          </div>
+          <p className="page-header-subtitle">Auditagem Automatizada David Melo Hub</p>
         </div>
         
         {/* Step Indicator */}

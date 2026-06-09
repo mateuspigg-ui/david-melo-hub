@@ -45,13 +45,15 @@ const MovimentacoesEstoquePage = () => {
   const uniqueCategories = useMemo(() => [...new Set(movements.map((movement) => movement.inventory_items?.category).filter(Boolean))], [movements]);
 
   return (
-    <div className="space-y-10 animate-fade-in max-w-[1700px] mx-auto pb-12">
-      <div className="px-2 space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-1 bg-gold rounded-full" />
-          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Movimentações</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Movimentações</h1>
+          </div>
+          <p className="page-header-subtitle">Histórico completo de entradas e saídas</p>
         </div>
-        <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Histórico completo de entradas e saídas</p>
       </div>
 
       <div className="px-2">

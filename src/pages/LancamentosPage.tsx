@@ -583,15 +583,15 @@ export default function LancamentosPage() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in max-w-[1700px] mx-auto pb-6">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 px-2">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="h-6 w-1 bg-gold rounded-full" />
-            <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-tighter uppercase leading-none">Lancamentos</h1>
+      <div className="page-header">
+        <div>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Lançamentos</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Producoes • Fluxo Financeiro Unificado</p>
+          <span className="page-header-subtitle">David Melo Produções • Fluxo Financeiro Unificado</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={handleExportCsv} disabled={isExporting || isLoading} className="h-9 px-4 rounded-xl uppercase text-[10px] tracking-widest font-bold border-border/40 hover:bg-gold/5 hover:border-gold/30 hover:text-gold transition-all">

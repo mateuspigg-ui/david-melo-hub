@@ -19,14 +19,14 @@ const CalendarioFinanceiroPage = () => {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+    <div className="page-container">
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Calendário Financeiro</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Calendário Financeiro</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">Entradas e Saídas • Fluxo de Caixa Mensal</p>
+          <p className="page-header-subtitle">Entradas e Saídas • Fluxo de Caixa Mensal</p>
         </div>
       </div>
 

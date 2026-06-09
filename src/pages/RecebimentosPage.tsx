@@ -1063,25 +1063,25 @@ export default function RecebimentosPage() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2 pb-10">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 px-2">
+    <div className="page-container">
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Recebimentos</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Recebimentos</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Fluxo de Recebíveis e Contratos</p>
+          <p className="page-header-subtitle">David Melo Produções • Fluxo de Recebíveis e Contratos</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex bg-white/90 border border-border/30 rounded-xl p-1 shadow-sm">
-            <Button type="button" size="sm" variant={viewMode === "bloco" ? "default" : "ghost"} onClick={() => setViewMode("bloco")} className={cn("h-9 px-3", viewMode === "bloco" && "bg-gold text-white hover:bg-gold") }>
+          <div className="view-mode-toggle-container">
+            <Button type="button" size="sm" variant={viewMode === "bloco" ? "default" : "ghost"} onClick={() => setViewMode("bloco")} className={cn("h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all", viewMode === "bloco" && "bg-white text-gold shadow-sm border border-gold/10") }>
               <LayoutGrid className="w-4 h-4 mr-2" /> Blocos
             </Button>
-            <Button type="button" size="sm" variant={viewMode === "lista" ? "default" : "ghost"} onClick={() => setViewMode("lista")} className={cn("h-9 px-3", viewMode === "lista" && "bg-gold text-white hover:bg-gold") }>
+            <Button type="button" size="sm" variant={viewMode === "lista" ? "default" : "ghost"} onClick={() => setViewMode("lista")} className={cn("h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all", viewMode === "lista" && "bg-white text-gold shadow-sm border border-gold/10") }>
               <List className="w-4 h-4 mr-2" /> Lista
             </Button>
           </div>
-          <Button onClick={() => { setEditingPayment(null); setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "", additional_value: "", additional_description: "" }); setInstallmentPlan([]); setContractOpen(true); }} className="h-12 px-6 rounded-xl bg-gradient-gold text-white uppercase text-[11px] tracking-widest font-bold">
+          <Button onClick={() => { setEditingPayment(null); setContractForm({ total_event_value: "", installment_count: "1", has_entry_payment: false, entry_amount: "", entry_date: "", client_id: "", event_id: "", company_id: "", additional_value: "", additional_description: "" }); setInstallmentPlan([]); setContractOpen(true); }} className="page-action-button">
             <Plus className="w-4 h-4 mr-2" /> Novo Contrato
           </Button>
         </div>

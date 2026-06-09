@@ -214,34 +214,54 @@ const BankAccountsPage = () => {
 
   return (
     <>
-    <div className="p-8 space-y-10 animate-fade-in max-w-[1500px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Contas Bancarias</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Gestao e Custodia de Ativos David Melo</p>
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Contas Bancárias</h1>
+          </div>
+          <p className="page-header-subtitle">Gestão e Custódia de Ativos David Melo</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <Button
             onClick={() => setLinkInstallmentsOpen(true)}
             variant="outline"
-            className="border-gold/40 text-gold hover:bg-gold hover:text-white font-black h-12 px-6 rounded-xl uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
+            className="border-gold/45 text-gold hover:bg-gold hover:text-white font-black h-12 px-6 rounded-xl uppercase text-[10px] tracking-[0.15em] transition-all duration-300"
           >
             <Link size={16} className="mr-2" /> Vincular Parcelas
           </Button>
           <Button
             onClick={() => { setEditingAccount(null); resetForm(); setDialogOpen(true); }}
-            className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em] transition-all duration-300"
+            className="page-action-button"
           >
             <Plus size={20} className="mr-3" /> Registrar Conta
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button type="button" variant={viewMode === 'cards' ? 'default' : 'outline'} onClick={() => setViewMode('cards')} className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}>
+      <div className="view-mode-toggle-container mr-auto">
+        <Button 
+          type="button" 
+          variant="ghost" 
+          onClick={() => setViewMode('cards')} 
+          className={cn(
+            "h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all",
+            viewMode === 'cards' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground/60 hover:text-gold hover:bg-gold/5'
+          )}
+        >
           <LayoutGrid size={14} className="mr-2" /> Cards
         </Button>
-        <Button type="button" variant={viewMode === 'list' ? 'default' : 'outline'} onClick={() => setViewMode('list')} className={`h-10 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}>
+        <Button 
+          type="button" 
+          variant="ghost" 
+          onClick={() => setViewMode('list')} 
+          className={cn(
+            "h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all",
+            viewMode === 'list' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground/60 hover:text-gold hover:bg-gold/5'
+          )}
+        >
           <List size={14} className="mr-2" /> Lista
         </Button>
       </div>

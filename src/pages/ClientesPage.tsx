@@ -42,12 +42,44 @@ interface ClosedLead {
   clients: { first_name: string; last_name: string; phone: string | null } | null;
 }
 
+
+interface ClosedLead {
+  id: string;
+  title: string;
+  client_id: string | null;
+  event_date: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  clients: { first_name: string; last_name: string; phone: string | null } | null;
+}
+
 interface ClientLeadEntry {
   client_id: string | null;
   created_at: string;
 }
 
 const emptyForm = { first_name: '', last_name: '', phone: '', email: '', instagram: '', cpf_cnpj: '', address: '', address_number: '', birth_date: '' };
+
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const formatCpfCnpj = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 14);
+  if (digits.length <= 11) {
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+};
 
 const ClientesPage = () => {
   const [search, setSearch] = useState('');
@@ -347,19 +379,19 @@ const ClientesPage = () => {
   };
 
   return (
-    <div className="space-y-12 animate-fade-in max-w-[1700px] mx-auto pb-12">
+    <div className="page-container">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Base de Clientes</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Base de Clientes</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Gestão de Relacionamento Premium</p>
+          <p className="page-header-subtitle">David Melo Produções • Gestão de Relacionamento Premium</p>
         </div>
         <Button
           onClick={() => { setForm(emptyForm); setEditingClient(null); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-10 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="page-action-button"
         >
           <Plus size={20} className="mr-3" /> Novo Cliente
         </Button>
@@ -377,7 +409,7 @@ const ClientesPage = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2 bg-white/30 backdrop-blur-md p-1.5 rounded-2xl border border-border/10 shadow-sm">
+        <div className="view-mode-toggle-container">
           <Button
             type="button"
             variant="ghost"
@@ -403,7 +435,6 @@ const ClientesPage = () => {
         </div>
       </div>
 
-      {/* Content Area */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-2">
           {[1, 2, 3].map((i) => (
@@ -749,22 +780,3 @@ const ClientesPage = () => {
 };
 
 export default ClientesPage;
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 11);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
-
-  const formatCpfCnpj = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 14);
-    if (digits.length <= 11) {
-      if (digits.length <= 3) return digits;
-      if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-      if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-      return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-    }
-    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
-  };

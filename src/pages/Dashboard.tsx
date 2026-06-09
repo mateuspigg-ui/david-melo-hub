@@ -469,14 +469,14 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-10 animate-fade-in max-w-[1700px] mx-auto pb-10">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+    <div className="page-container">
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Painel Executivo</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Painel Executivo</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções & Eventos • Hub de Inteligência</p>
+          <p className="page-header-subtitle">David Melo Produções & Eventos • Hub de Inteligência</p>
         </div>
         <div className="bg-white/50 backdrop-blur-sm border border-border/50 rounded-2xl px-6 py-3 premium-shadow flex items-center gap-6">
           <div className="text-right">

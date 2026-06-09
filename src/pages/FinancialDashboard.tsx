@@ -418,31 +418,16 @@ const FinancialDashboard = () => {
   const isLoading = loadingPayments || loadingPayables;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-gold/[0.01] animate-fade-in">
-      <div className="max-w-[1700px] mx-auto px-4 md:px-8 py-10 pb-16">
-
-        {/* Header */}
-        <div className="relative mb-10">
-          <div className="absolute inset-0 bg-gradient-to-r from-gold/5 via-transparent to-gold/5 rounded-3xl blur-3xl pointer-events-none" />
-          <div className="relative flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-xl" />
-                  <div className="relative h-10 w-1.5 bg-gradient-to-b from-gold via-gold/80 to-gold/60 rounded-full" />
-                </div>
-                <div>
-                  <h1 className="text-4xl md:text-[42px] font-display text-foreground tracking-[-0.03em] uppercase leading-none font-black">Dashboard Financeiro</h1>
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="h-px flex-1 bg-gradient-to-r from-gold/40 to-transparent max-w-[120px]" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-gold/70">David Melo Produções</p>
-                    <div className="h-px flex-1 bg-gradient-to-l from-gold/40 to-transparent max-w-[120px]" />
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div className="page-container">
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Dashboard Financeiro</h1>
           </div>
+          <p className="page-header-subtitle">David Melo Produções</p>
         </div>
+      </div>
 
         {/* Company Selector */}
         {companies.length > 0 && (
@@ -1002,8 +987,6 @@ const FinancialDashboard = () => {
         <TabsContent value="calendario" className="mt-8">
           <CalendarTab selectedCompany={selectedCompany} />
         </TabsContent>
-
-      </div>
 
       <TransferDialog
         open={transferOpen}

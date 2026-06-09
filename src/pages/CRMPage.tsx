@@ -289,25 +289,25 @@ export default function CRMPage() {
   const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1900px] mx-auto pb-4 overflow-x-hidden">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
+    <div className="page-container overflow-x-hidden">
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Gestão Comercial</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Gestão Comercial</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Pipeline de Leads e Oportunidades</p>
+          <p className="page-header-subtitle">David Melo Produções • Pipeline de Leads e Oportunidades</p>
         </div>
         <Button 
           onClick={() => { setEditingLead(null); setIsFormOpen(true); }} 
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-14 px-8 rounded-2xl shadow-gold uppercase text-[11px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="page-action-button"
         >
           <Plus className="w-5 h-5 mr-2" /> Novo Lead
         </Button>
       </div>
 
-      <div className="px-2">
-        <div className="flex flex-col md:flex-row gap-4 p-4 bg-white/50 backdrop-blur-sm border border-border/40 rounded-[24px] premium-shadow">
+      <div className="px-1 md:px-2">
+        <div className="filter-bar-container">
           <div className="relative flex-1 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-gold transition-colors" />
             <Input 

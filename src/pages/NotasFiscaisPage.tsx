@@ -155,13 +155,15 @@ export default function NotasFiscaisPage() {
   }, [invoices, search, statusFilter, companyFilter, paymentById, companyById]);
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1700px] mx-auto p-2 pb-10">
-      <div className="space-y-2 px-2">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-1 bg-gold rounded-full" />
-          <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Notas Fiscais</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Notas Fiscais</h1>
+          </div>
+          <span className="page-header-subtitle">David Melo Produções • Gestão de NFSe</span>
         </div>
-        <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Gestão de NFSe</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(300px,1fr)_220px_240px] gap-3 items-end">

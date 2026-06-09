@@ -261,27 +261,28 @@ const AgendaPage = () => {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase flex items-center gap-3">
-            <CalendarClock className="w-8 h-8 text-gold" /> Agenda
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">Calendario operacional de eventos integrado ao sistema</p>
+    <div className="page-container">
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Agenda</h1>
+          </div>
+          <p className="page-header-subtitle">Calendário Operacional de Eventos</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
           {(['ano', 'mes', 'semana', 'dia'] as ViewMode[]).map((mode) => (
             <Button
               key={mode}
               variant={view === mode ? 'default' : 'outline'}
               onClick={() => setView(mode)}
-              className={cn(view === mode ? 'bg-gradient-gold text-white' : '')}
+              className={cn("h-10 px-4 rounded-xl", view === mode ? 'bg-gradient-gold text-white font-bold' : '')}
             >
               {mode.toUpperCase()}
             </Button>
           ))}
-          <Button className="bg-gradient-gold text-white" onClick={() => openNewEvent(selectedDate)}>
-            <Plus className="w-4 h-4 mr-2" /> Nova Atividade Interna
+          <Button className="page-action-button" onClick={() => openNewEvent(selectedDate)}>
+            <Plus className="w-4 h-4 mr-2" /> Nova Atividade
           </Button>
         </div>
       </div>

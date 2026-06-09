@@ -296,28 +296,28 @@ export default function EmpresasPage() {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 px-2">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Empresas</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Empresas</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Cadastro de CPF/CNPJ</p>
+          <span className="page-header-subtitle">David Melo Produções • Cadastro de CPF/CNPJ</span>
         </div>
         <Button
           onClick={() => {
             resetForm();
             setDialogOpen(true);
           }}
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest"
+          className="page-action-button"
         >
           <Plus className="w-4 h-4 mr-2" /> Nova Empresa
         </Button>
       </div>
 
-      <div className="relative flex-1 max-w-xl px-2">
-        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+      <div className="relative max-w-xl">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por nome ou CNPJ..."
           value={search}

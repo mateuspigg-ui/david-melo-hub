@@ -1232,17 +1232,17 @@ export default function ContasPagarPage() {
     .reduce((s, i) => s + i.amount, 0);
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-[1600px] mx-auto p-2 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 px-2">
+    <div className="page-container">
+      <div className="page-header">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Contas a Pagar</h1>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Contas a Pagar</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">David Melo Produções • Controle de Despesas</p>
+          <p className="page-header-subtitle">David Melo Produções • Controle de Despesas</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => { setEditingItem(null); setModalTab("dados"); setDialogOpen(true); }} className="bg-gradient-gold hover:opacity-90 text-white font-bold h-12 px-8 rounded-xl shadow-gold uppercase text-[11px] tracking-widest">
+          <Button onClick={() => { setEditingItem(null); setModalTab("dados"); setDialogOpen(true); }} className="page-action-button">
             <Plus className="w-4 h-4 mr-2" /> Programar Despesa
           </Button>
           <DropdownMenu>

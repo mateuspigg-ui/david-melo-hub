@@ -98,43 +98,43 @@ export default function FornecedoresPage() {
   }, [suppliers, search]);
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-[1700px] mx-auto pb-8">
+    <div className="page-container">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 px-2">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <div className="h-6 w-1 bg-gold rounded-full" />
-            <h1 className="text-3xl md:text-4xl font-display text-foreground tracking-tighter uppercase leading-none">Rede de Parceiros</h1>
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Rede de Parceiros</h1>
           </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gold/80 pl-4">Gestão de Fornecedores Estratégicos</p>
+          <p className="page-header-subtitle">Gestão de Fornecedores Estratégicos</p>
         </div>
         <Button
           onClick={() => { setEditingSupplier(null); resetForm(); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-90 text-white font-bold h-10 px-6 rounded-xl shadow-gold uppercase text-[10px] tracking-[0.15em]"
+          className="page-action-button"
         >
           <Plus size={16} className="mr-2" /> Novo Parceiro
         </Button>
       </div>
 
       {/* Search + View Toggle */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 px-2">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-2">
         <div className="relative flex-1 max-w-md">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
           <Input
             placeholder="Buscar parceiro..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-9 rounded-lg bg-white border-border/40 focus:border-gold/50 text-xs"
+            className="pl-10 h-11 rounded-xl bg-white border-border/40 focus:border-gold/50 text-xs"
           />
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-muted-foreground mr-1">{filtered.length} parceiro{filtered.length !== 1 ? 's' : ''}</span>
+        <div className="view-mode-toggle-container">
+          <span className="text-[10px] font-bold text-muted-foreground mr-2">{filtered.length} parceiro{filtered.length !== 1 ? 's' : ''}</span>
           <Button type="button" variant="ghost" size="sm" onClick={() => setViewMode('cards')}
-            className={cn("h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest", viewMode === 'cards' ? 'bg-gold/10 text-gold border border-gold/20' : 'text-muted-foreground hover:text-gold')}>
+            className={cn("h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest", viewMode === 'cards' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground hover:text-gold')}>
             <LayoutGrid size={13} className="mr-1.5" /> Cards
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => setViewMode('list')}
-            className={cn("h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest", viewMode === 'list' ? 'bg-gold/10 text-gold border border-gold/20' : 'text-muted-foreground hover:text-gold')}>
+            className={cn("h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest", viewMode === 'list' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground hover:text-gold')}>
             <List size={13} className="mr-1.5" /> Lista
           </Button>
         </div>

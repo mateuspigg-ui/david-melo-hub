@@ -82,14 +82,14 @@ const AlmoxarifadoDashboardPage = () => {
   ];
 
   return (
-    <div className="space-y-12 animate-fade-in max-w-[1700px] mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Almoxarifado / Controle de Estoque</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Almoxarifado</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Dashboard do Estoque • Visão Integrada</p>
+          <span className="page-header-subtitle">Dashboard do Estoque • Visão Integrada</span>
         </div>
       </div>
 

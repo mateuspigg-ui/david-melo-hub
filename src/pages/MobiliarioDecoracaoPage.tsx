@@ -176,25 +176,25 @@ const MobiliarioDecoracaoPage = () => {
   };
 
   return (
-    <div className="space-y-10 animate-fade-in max-w-[1700px] mx-auto pb-12">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 px-2">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gold rounded-full" />
-            <h1 className="text-4xl md:text-5xl font-display text-foreground tracking-tighter uppercase leading-none">Mobiliário e Decoração</h1>
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Mobiliário e Decoração</h1>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-[0.35em] text-gold/80 pl-4">Acervo visual e controle físico</p>
+          <span className="page-header-subtitle">Acervo visual e controle físico</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 p-1 rounded-xl bg-white border border-border/50">
             <Button variant="ghost" size="sm" className={viewMode === 'gallery' ? 'bg-gold/10 text-gold' : ''} onClick={() => setViewMode('gallery')}><LayoutGrid size={15} className="mr-2" />Galeria</Button>
             <Button variant="ghost" size="sm" className={viewMode === 'table' ? 'bg-gold/10 text-gold' : ''} onClick={() => setViewMode('table')}><Table2 size={15} className="mr-2" />Tabela</Button>
           </div>
-          <Button onClick={() => openForm()} className="h-12 rounded-2xl bg-gradient-gold text-white font-bold uppercase text-[11px] tracking-[0.14em]"><Plus size={16} className="mr-2" />Novo item</Button>
+          <Button onClick={() => openForm()} className="page-action-button"><Plus size={16} className="mr-2" />Novo item</Button>
         </div>
       </div>
 
-      <div className="px-2">
+      <div>
         <div className="bg-white rounded-[28px] border border-border/30 p-5 premium-shadow grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative md:col-span-2"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input className="pl-10 h-11 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, SKU, material..." /></div>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas categorias</SelectItem>{FURNITURE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent></Select>

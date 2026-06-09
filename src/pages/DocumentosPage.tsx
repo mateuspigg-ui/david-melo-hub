@@ -201,22 +201,26 @@ export default function DocumentosPage() {
   }, [documents, search, categoryFilter]);
 
   return (
-    <div className="p-8 space-y-10 animate-fade-in max-w-[1600px] mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/10 pb-10">
-        <div>
-          <h1 className="text-4xl font-display text-foreground tracking-tighter uppercase">Repositório de Documentos</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gold mt-2 opacity-80">Gestão de Conhecimento David Melo Hub</p>
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div className="space-y-2">
+          <div className="page-header-title-container">
+            <div className="page-header-bar" />
+            <h1 className="page-header-title">Repositório de Documentos</h1>
+          </div>
+          <p className="page-header-subtitle">Gestão de Conhecimento David Melo Hub</p>
         </div>
         <Button 
           onClick={() => { setEditingDoc(null); resetForm(); setDialogOpen(true); }}
-          className="bg-gradient-gold hover:opacity-95 text-white font-black h-12 px-10 rounded-xl shadow-gold uppercase text-[11px] tracking-[0.25em]"
+          className="page-action-button"
         >
           <Plus size={20} className="mr-3" /> Adicionar Arquivo
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="relative flex-1">
+      <div className="flex flex-col md:flex-row gap-6 items-center px-1 md:px-2">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Buscar por título..." 
@@ -236,20 +240,26 @@ export default function DocumentosPage() {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex items-center gap-2">
+        <div className="view-mode-toggle-container">
           <Button
             type="button"
-            variant={viewMode === 'cards' ? 'default' : 'outline'}
+            variant="ghost"
             onClick={() => setViewMode('cards')}
-            className={`h-12 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'cards' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+            className={cn(
+              "h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all",
+              viewMode === 'cards' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground/60 hover:text-gold hover:bg-gold/5'
+            )}
           >
             <LayoutGrid size={14} className="mr-2" /> Cards
           </Button>
           <Button
             type="button"
-            variant={viewMode === 'list' ? 'default' : 'outline'}
+            variant="ghost"
             onClick={() => setViewMode('list')}
-            className={`h-12 px-4 rounded-xl font-bold uppercase text-[10px] tracking-widest ${viewMode === 'list' ? 'bg-gradient-gold text-white' : 'border-border/30'}`}
+            className={cn(
+              "h-10 px-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all",
+              viewMode === 'list' ? 'bg-white text-gold shadow-sm border border-gold/10' : 'text-muted-foreground/60 hover:text-gold hover:bg-gold/5'
+            )}
           >
             <List size={14} className="mr-2" /> Lista
           </Button>
