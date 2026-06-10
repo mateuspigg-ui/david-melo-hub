@@ -64,6 +64,7 @@ const FloralPage = () => {
   const [form, setForm] = useState<any>(emptyForm);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [autoSku, setAutoSku] = useState(true);
+  const [previewItem, setPreviewItem] = useState<InventoryItem | null>(null);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['inventory_floral_items'],
@@ -206,7 +207,7 @@ const FloralPage = () => {
         <div className="px-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {!isLoading && filteredItems.map((item) => (
             <div key={item.id} className="bg-white border border-border/30 rounded-[26px] premium-shadow overflow-hidden group">
-              <div className="aspect-[4/3] bg-secondary/20 relative">
+              <div className="aspect-[4/3] bg-secondary/20 relative cursor-pointer" onClick={() => setPreviewItem(item)}>
                 {item.inventory_item_photos?.[0]?.photo_url ? (
                   <img src={item.inventory_item_photos[0].photo_url} className="w-full h-full object-cover" />
                 ) : (
@@ -323,6 +324,34 @@ const FloralPage = () => {
           <div className="border-t border-border/20 bg-white px-6 py-4 flex justify-end gap-3">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!form.name || saveMutation.isPending}>{saveMutation.isPending ? 'Salvando...' : 'Salvar item'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
+        <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden">
+          <div className="aspect-square bg-secondary/20">
+            {previewItem?.inventory_item_photos?.[0]?.photo_url ? (
+              <img src={previewItem.inventory_item_photos[0].photo_url} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground"><ImageIcon size={48} /></div>
+            )}
+          </div>
+          <div className="p-5 space-y-3">
+            <h2 className="text-xl font-bold">{previewItem?.name}</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-muted-foreground">Categoria:</span> <span className="font-medium">{previewItem ? categoryLabel(previewItem.category) : '-'}</span></div>
+              <div><span className="text-muted-foreground">SKU:</span> <span className="font-medium">{previewItem?.sku || '-'}</span></div>
+              <div><span className="text-muted-foreground">Total:</span> <span className="font-medium">{previewItem ? Number(previewItem.total_quantity) : 0}</span></div>
+              <div><span className="text-muted-foreground">Disponível:</span> <span className="font-semibold text-green-600">{previewItem ? Number(previewItem.available_quantity) : 0}</span></div>
+              <div><span className="text-muted-foreground">Reservado:</span> <span className="font-medium">{previewItem ? Number(previewItem.reserved_quantity) : 0}</span></div>
+              <div><span className="text-muted-foreground">Status:</span> <span className="font-medium">{previewItem ? statusLabel(previewItem.status) : '-'}</span></div>
+              {previewItem?.material && <div className="col-span-2"><span className="text-muted-foreground">Material:</span> <span className="font-medium">{previewItem.material}</span></div>}
+              {previewItem?.color && <div className="col-span-2"><span className="text-muted-foreground">Cor:</span> <span className="font-medium">{previewItem.color}</span></div>}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button size="sm" variant="outline" onClick={() => { setPreviewItem(null); openForm(previewItem!); }}><Pencil size={14} className="mr-1" />Editar</Button>
+              <Button size="sm" variant="ghost" onClick={() => setPreviewItem(null)}>Fechar</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
