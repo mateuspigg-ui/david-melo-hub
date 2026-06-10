@@ -328,7 +328,7 @@ const FloralPage = () => {
         </DialogContent>
       </Dialog>
       <Dialog open={!!previewItem} onOpenChange={() => setPreviewItem(null)}>
-        <DialogContent className="max-w-lg rounded-[28px] p-0 overflow-hidden">
+        <DialogContent className="max-w-sm rounded-[28px] p-0 overflow-hidden">
           <div className="aspect-square bg-secondary/20">
             {previewItem?.inventory_item_photos?.[0]?.photo_url ? (
               <img src={previewItem.inventory_item_photos[0].photo_url} className="w-full h-full object-cover" />
