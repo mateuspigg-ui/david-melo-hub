@@ -531,7 +531,7 @@ const SelecaoFestaPage = () => {
 
     const normalizedModel = itemForm.model.trim();
 
-    if (modelOptions.length > 0 && !normalizedModel) {
+    if (selectedType !== 'floral' && modelOptions.length > 0 && !normalizedModel) {
       toast({ title: 'Selecione o modelo', variant: 'destructive' });
       return;
     }
@@ -830,6 +830,7 @@ const SelecaoFestaPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            {selectedType !== 'floral' && (
             <div className="md:col-span-2 space-y-2">
               <Label>Modelo</Label>
               <Select
@@ -846,6 +847,7 @@ const SelecaoFestaPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            )}
             <div className="space-y-2"><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={(e) => setItemForm((p) => ({ ...p, quantity: Number(e.target.value || 1) }))} /></div>
             <div className="md:col-span-3 space-y-2"><Label>Observações</Label><Textarea value={itemForm.notes} onChange={(e) => setItemForm((p) => ({ ...p, notes: e.target.value }))} /></div>
           </div>
