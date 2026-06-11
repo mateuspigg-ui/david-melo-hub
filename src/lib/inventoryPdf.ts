@@ -28,7 +28,8 @@ export const openReservationPdfPrint = ({
   guestCount?: number | null;
 }) => {
   const foodItems = (reservation.event_inventory_items || []).filter((item) => item.inventory_items?.type === 'food');
-  const furnitureItems = (reservation.event_inventory_items || []).filter((item) => item.inventory_items?.type === 'furniture');
+  const floralItems = (reservation.event_inventory_items || []).filter((item) => item.inventory_items?.category === 'floral');
+  const furnitureItems = (reservation.event_inventory_items || []).filter((item) => item.inventory_items?.type === 'furniture' && item.inventory_items?.category !== 'floral');
   const event = reservation.events;
   const client = event?.clients;
 
@@ -116,6 +117,23 @@ export const openReservationPdfPrint = ({
     </tbody>
   </table>
 
+  <h2>Itens Florais</h2>
+  <table>
+    <thead><tr><th>Foto</th><th>Item</th><th>Categoria</th><th>Qtd.</th><th>Cor</th><th>Local</th><th>Observações</th></tr></thead>
+    <tbody>
+      ${floralItems.length === 0 ? '<tr><td colspan="7">Nenhum item selecionado.</td></tr>' : floralItems.map((item) => `
+        <tr>
+          <td style="width:100px">${item.inventory_items?.inventory_item_photos?.[0]?.photo_url ? `<img class="thumb" src="${item.inventory_items.inventory_item_photos[0].photo_url}" style="width:80px;height:80px;" />` : '-'}</td>
+          <td>${escapeHtml(item.inventory_items?.name)}</td>
+          <td>${escapeHtml(categoryLabel(item.inventory_items?.category || ''))}</td>
+          <td>${item.quantity}</td>
+          <td>${escapeHtml(item.inventory_items?.color)}</td>
+          <td>${escapeHtml(item.inventory_items?.storage_location)}</td>
+          <td class="furniture-notes">${escapeHtml(item.notes)}</td>
+        </tr>`).join('')}
+    </tbody>
+  </table>
+
   <h2>Mobiliário e Decoração</h2>
   <table class="furniture-table">
     <thead><tr><th>Foto</th><th>Item</th><th>Categoria</th><th>Qtd.</th><th>Cor</th><th>Dimensões</th><th>Local</th><th>Observações</th></tr></thead>
@@ -136,8 +154,9 @@ export const openReservationPdfPrint = ({
 
   <div class="summary">
     <strong>Resumo</strong>
-    <div style="margin-top:6px;font-size:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+    <div style="margin-top:6px;font-size:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
       <div>Total de itens de alimentação: <b>${foodItems.length}</b></div>
+      <div>Total de itens florais: <b>${floralItems.length}</b></div>
       <div>Total de itens mobiliário/decoração: <b>${furnitureItems.length}</b></div>
       <div>Status da reserva: <b>${escapeHtml(statusLabel(reservation.reservation_status))}</b></div>
     </div>
