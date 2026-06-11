@@ -304,6 +304,26 @@ export const addReservationItem = async (payload: {
   rental_supplier?: string | null;
   rental_item_name?: string | null;
 }) => {
+  if (payload.inventory_item_id && !payload.is_rental) {
+    const { data: existing } = await sb
+      .from('event_inventory_items')
+      .select('id, quantity')
+      .eq('reservation_id', payload.inventory_item_id ? payload.reservation_id : '')
+      .eq('inventory_item_id', payload.inventory_item_id)
+      .maybeSingle();
+
+    if (existing) {
+      const { data, error } = await sb
+        .from('event_inventory_items')
+        .update({ quantity: Number(existing.quantity) + Number(payload.quantity), notes: payload.notes || null })
+        .eq('id', existing.id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return data as EventInventoryItem;
+    }
+  }
+
   const { data, error } = await sb
     .from('event_inventory_items')
     .insert({
