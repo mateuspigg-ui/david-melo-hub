@@ -530,8 +530,9 @@ const SelecaoFestaPage = () => {
     }
 
     const normalizedModel = itemForm.model.trim();
+    const isFloralItem = selectedType === 'floral' || inventoryItem.category === 'floral';
 
-    if (selectedType !== 'floral' && modelOptions.length > 0 && !normalizedModel) {
+    if (!isFloralItem && modelOptions.length > 0 && !normalizedModel) {
       toast({ title: 'Selecione o modelo', variant: 'destructive' });
       return;
     }
