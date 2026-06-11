@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export type InventoryType = 'food' | 'furniture';
+export type InventoryType = 'food' | 'furniture' | 'floral';
 
 export type InventoryStatus =
   | 'available'
@@ -21,7 +21,7 @@ export const FOOD_CATEGORIES = [
   'bebidas',
 ];
 
-export const FURNITURE_CATEGORIES = ['mobiliario', 'cozinha', 'tecidos', 'espelhos', 'pecas_mesa_frios_cozinha'];
+export const FURNITURE_CATEGORIES = ['mobiliario', 'cozinha', 'tecidos', 'espelhos', 'pecas_mesa_frios_cozinha', 'floral'];
 
 export const UNITS = ['kg', 'g', 'litro', 'ml', 'unidade', 'caixa', 'pacote', 'garrafa', 'lata', 'bandeja', 'fardo'];
 
@@ -172,6 +172,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   tecidos: 'tecidos',
   espelhos: 'espelhos',
   mobiliario: 'mobiliário',
+  floral: 'floral',
 };
 
 export const categoryLabel = (category: string) => CATEGORY_LABELS[category] || category.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());

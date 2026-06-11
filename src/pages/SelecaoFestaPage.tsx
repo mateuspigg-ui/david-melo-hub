@@ -145,6 +145,35 @@ const CATEGORY_BY_ITEM_NAME: Record<string, string> = {
   'espelho md moldura prata': 'espelhos',
   'tampo de espelho m. convidado': 'espelhos',
   'tampo de espelho m. buffet': 'espelhos',
+
+  // floral
+  'alcachofra': 'floral',
+  'aste': 'floral',
+  'boca de leao': 'floral',
+  'bougainville': 'floral',
+  'bougaville': 'floral',
+  'bromelia': 'floral',
+  'camelia': 'floral',
+  'cerejeira': 'floral',
+  'cinbidium': 'floral',
+  'cinbindium': 'floral',
+  'copo de leite': 'floral',
+  'costela de adao': 'floral',
+  'dalia': 'floral',
+  'eucalipto': 'floral',
+  'faleanopolis': 'floral',
+  'filodendro': 'floral',
+  'hortencia': 'floral',
+  'hortensia': 'floral',
+  'lirio': 'floral',
+  'litros': 'floral',
+  'macieira': 'floral',
+  'magnolia': 'floral',
+  'pessegueiro': 'floral',
+  'proteia': 'floral',
+  'rosa': 'floral',
+  'samambaia': 'floral',
+  'suculenta': 'floral',
 };
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
@@ -154,9 +183,12 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   tecidos: ['toalha', 'sobrepor', 'guardanapo', 'sacolao', 'pano', 'fundo de mesa'],
   velas_carticais_lustres: ['vela', 'lustre', 'cupula', 'lampada', 'abajour', 'adereco', 'cartical', 'castical'],
   espelhos: ['espelho', 'tampo de espelho'],
+  floral: ['flor', 'aste', 'boca de leao', 'bougainville', 'bougaville', 'bromelia', 'camelia', 'cerejeira', 'cinbidium', 'cinbindium', 'copo de leite', 'costela de adao', 'dalia', 'eucalipto', 'faleanopolis', 'filodendro', 'hortencia', 'hortensia', 'lirio', 'litros', 'macieira', 'magnolia', 'pessegueiro', 'proteia', 'rosa', 'samambaia', 'suculenta', 'alcachofra'],
 };
 
 const resolveCategory = (item: { name: string; category: string; type?: string }) => {
+  if (item.category === 'floral') return 'floral';
+
   const normalizedName = normalizeModelKey(item.name);
   const mapped = CATEGORY_BY_ITEM_NAME[normalizedName];
   if (mapped) return mapped;
@@ -167,8 +199,7 @@ const resolveCategory = (item: { name: string; category: string; type?: string }
     }
   }
 
-  if (item.type === 'furniture') return 'mobiliario';
-  return item.category;
+  return item.category || (item.type === 'furniture' ? 'mobiliario' : item.category);
 };
 
 const SelecaoFestaPage = () => {
@@ -176,9 +207,9 @@ const SelecaoFestaPage = () => {
   const queryClient = useQueryClient();
   const [selectedReservationId, setSelectedReservationId] = useState<string>('');
   const [searchItems, setSearchItems] = useState('');
-  const [selectedType, setSelectedType] = useState<'all' | 'food' | 'furniture'>('all');
+  const [selectedType, setSelectedType] = useState<'all' | 'food' | 'furniture' | 'floral'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [reservationTypeFilter, setReservationTypeFilter] = useState<'all' | 'food' | 'furniture'>('all');
+  const [reservationTypeFilter, setReservationTypeFilter] = useState<'all' | 'food' | 'furniture' | 'floral'>('all');
   const [addOpen, setAddOpen] = useState(false);
   const [itemSource, setItemSource] = useState<'inventory' | 'rental'>('inventory');
   const [editOpen, setEditOpen] = useState(false);
@@ -219,7 +250,8 @@ const SelecaoFestaPage = () => {
 
   const availableCategories = useMemo(() => {
     if (selectedType === 'food') return FOOD_CATEGORIES;
-    if (selectedType === 'furniture') return FURNITURE_CATEGORIES;
+    if (selectedType === 'furniture') return FURNITURE_CATEGORIES.filter((c) => c !== 'floral');
+    if (selectedType === 'floral') return ['floral'];
     return Array.from(new Set([...FOOD_CATEGORIES, ...FURNITURE_CATEGORIES]));
   }, [selectedType]);
 
@@ -227,7 +259,11 @@ const SelecaoFestaPage = () => {
     const text = searchItems.toLowerCase();
     return items
       .filter((item) => item.available_quantity > 0)
-      .filter((item) => (selectedType === 'all' ? true : item.type === selectedType))
+      .filter((item) => {
+        if (selectedType === 'all') return true;
+        if (selectedType === 'floral') return item.category === 'floral';
+        return item.type === selectedType;
+      })
       .filter((item) => (selectedCategory === 'all' ? true : resolveCategory(item) === selectedCategory))
       .filter((item) => (item.status === 'maintenance' || item.status === 'damaged' || item.status === 'expired' ? false : true))
       .filter((item) => item.name.toLowerCase().includes(text) || categoryLabel(resolveCategory(item)).toLowerCase().includes(text));
@@ -238,6 +274,7 @@ const SelecaoFestaPage = () => {
     if (reservationTypeFilter === 'all') return reservationItems;
     return reservationItems.filter((item) => {
       if (item.is_rental) return reservationTypeFilter === 'furniture';
+      if (reservationTypeFilter === 'floral') return item.inventory_items?.category === 'floral';
       return item.inventory_items?.type === reservationTypeFilter;
     });
   }, [selectedReservation, reservationTypeFilter]);
@@ -609,6 +646,7 @@ const SelecaoFestaPage = () => {
                       <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="food">Alimentação</SelectItem>
                       <SelectItem value="furniture">Mobiliário</SelectItem>
+                      <SelectItem value="floral">Floral</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -642,6 +680,8 @@ const SelecaoFestaPage = () => {
                           <p className="text-xs text-muted-foreground">
                             {item.is_rental
                               ? `Mobiliário (Aluguel) • ${item.rental_supplier || 'Fornecedor não informado'}`
+                              : item.inventory_items?.category === 'floral'
+                              ? 'Floral'
                               : item.inventory_items?.type === 'food'
                               ? 'Alimentação'
                               : 'Mobiliário'}
@@ -702,7 +742,7 @@ const SelecaoFestaPage = () => {
                 }
               }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="all">Todas categorias</SelectItem><SelectItem value="food">Alimentação</SelectItem><SelectItem value="furniture">Mobiliário</SelectItem></SelectContent>
+                <SelectContent><SelectItem value="all">Todas categorias</SelectItem><SelectItem value="food">Alimentação</SelectItem><SelectItem value="furniture">Mobiliário</SelectItem><SelectItem value="floral">Floral</SelectItem></SelectContent>
               </Select>
             </div>
             {selectedType === 'furniture' && (

@@ -13,7 +13,7 @@ import { formatCurrencyInput, maskCurrencyInput, parseCurrencyInput } from '@/li
 
 const emptyForm = {
   name: '',
-  category: 'other',
+  category: 'floral',
   description: '',
   total_quantity: 0,
   minimum_stock: 0,
@@ -68,7 +68,7 @@ const FloralPage = () => {
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['inventory_floral_items'],
-    queryFn: () => fetchInventoryItems('furniture'),
+    queryFn: () => fetchInventoryItems('floral'),
   });
 
   const filteredItems = useMemo(() => {
@@ -101,7 +101,7 @@ const FloralPage = () => {
       const payload = {
         id: editing?.id,
         name: form.name,
-        type: 'furniture' as const,
+        type: 'floral' as const,
         category: form.category,
         description: form.description || null,
         unit: 'unit',
@@ -198,7 +198,7 @@ const FloralPage = () => {
       <div className="px-2">
         <div className="bg-white rounded-[28px] border border-border/30 p-5 premium-shadow grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative md:col-span-2"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input className="pl-10 h-11 rounded-xl" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, SKU, material..." /></div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas categorias</SelectItem>{FURNITURE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent></Select>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todas categorias</SelectItem><SelectItem value="floral">{categoryLabel('floral')}</SelectItem></SelectContent></Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos status</SelectItem><SelectItem value="available">Disponível</SelectItem><SelectItem value="reserved">Reservado</SelectItem><SelectItem value="maintenance">Manutenção</SelectItem><SelectItem value="damaged">Danificado</SelectItem><SelectItem value="out_of_stock">Sem estoque</SelectItem></SelectContent></Select>
         </div>
       </div>
@@ -261,7 +261,7 @@ const FloralPage = () => {
           <div className="flex-1 overflow-y-auto px-6 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2 space-y-2"><Label>Nome do item</Label><Input value={form.name} onChange={(e) => setForm((p: any) => ({ ...p, name: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Categoria</Label><Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{FURNITURE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{categoryLabel(c)}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Categoria</Label><Select value={form.category} onValueChange={(v) => setForm((p: any) => ({ ...p, category: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="floral">{categoryLabel('floral')}</SelectItem></SelectContent></Select></div>
               <div className="space-y-2">
                 <Label>SKU interno</Label>
                 <div className="flex gap-2">
