@@ -476,7 +476,7 @@ export default function PagamentosPage() {
     togglePaidMutation.mutate({
       id: pendingInstallmentToPay.id,
       currentStatus: pendingInstallmentToPay.status,
-      bankAccountId: selectedBankAccountId || null,
+      bankAccountId: selectedBankAccountId === '__cash__' ? null : selectedBankAccountId || null,
     });
     setAccountPickerOpen(false);
     setPendingInstallmentToPay(null);
@@ -1112,6 +1112,7 @@ export default function PagamentosPage() {
                 <SelectValue placeholder={bankAccounts.length ? "Escolher conta" : "Nenhuma conta ativa cadastrada"} />
               </SelectTrigger>
               <SelectContent className="bg-white shadow-2xl border-border/40">
+                <SelectItem value="__cash__" className="font-bold text-xs uppercase">Espécie (Dinheiro)</SelectItem>
                 {bankAccounts.map((acc: any) => (
                   <SelectItem key={acc.id} value={acc.id} className="font-bold text-xs uppercase">
                     {acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}
@@ -1124,7 +1125,7 @@ export default function PagamentosPage() {
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)} className="font-bold uppercase text-[10px] tracking-widest">Cancelar</Button>
             <Button
               onClick={confirmInstallmentPayment}
-              disabled={togglePaidMutation.isPending || (bankAccounts.length > 0 && !selectedBankAccountId)}
+              disabled={togglePaidMutation.isPending || (bankAccounts.length > 0 && selectedBankAccountId !== '__cash__' && !selectedBankAccountId)}
               className="bg-gold hover:bg-gold-light text-white font-bold uppercase text-[11px] tracking-widest"
             >
               Confirmar Baixa

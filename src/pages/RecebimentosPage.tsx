@@ -1525,6 +1525,7 @@ export default function RecebimentosPage() {
               <Select value={selectedBankAccountId} onValueChange={setSelectedBankAccountId}>
                 <SelectTrigger className={cn("h-11", selectedBankAccountId ? "border-emerald-300 bg-emerald-50/50" : "")}><SelectValue placeholder="Escolher conta para vincular" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__cash__">Espécie (Dinheiro)</SelectItem>
                   {bankAccounts.map((acc: any) => (
                     <SelectItem key={acc.id} value={acc.id}>{acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}</SelectItem>
                   ))}
@@ -1554,12 +1555,12 @@ export default function RecebimentosPage() {
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingInstallment || !selectedInstallmentPaidDate || parseCurrencyInput(selectedInstallmentPaidAmount) <= 0 || !selectedInstallmentPaymentMethod || (bankAccounts.length > 0 && !selectedBankAccountId)}
+              disabled={!pendingInstallment || !selectedInstallmentPaidDate || parseCurrencyInput(selectedInstallmentPaidAmount) <= 0 || !selectedInstallmentPaymentMethod || (bankAccounts.length > 0 && selectedBankAccountId !== '__cash__' && !selectedBankAccountId)}
               onClick={() => {
                 if (!pendingInstallment) return;
                 toggleInstallmentMutation.mutate({
                   installment: pendingInstallment,
-                  bankAccountId: selectedBankAccountId || null,
+                  bankAccountId: selectedBankAccountId === '__cash__' ? null : selectedBankAccountId || null,
                   paidDate: selectedInstallmentPaidDate,
                   paidAmount: parseCurrencyInput(selectedInstallmentPaidAmount),
                   paymentMethod: selectedInstallmentPaymentMethod,
@@ -1595,6 +1596,7 @@ export default function RecebimentosPage() {
             <Select value={selectedEntryBankAccountId} onValueChange={setSelectedEntryBankAccountId}>
               <SelectTrigger><SelectValue placeholder="Escolher conta" /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="__cash__">Espécie (Dinheiro)</SelectItem>
                 {bankAccounts.map((acc: any) => (
                   <SelectItem key={acc.id} value={acc.id}>{acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}</SelectItem>
                 ))}
@@ -1623,13 +1625,13 @@ export default function RecebimentosPage() {
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setEntryAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingEntryPayment || !selectedEntryPaidDate || parseCurrencyInput(selectedEntryPaidAmount) <= 0 || !selectedEntryPaymentMethod || (bankAccounts.length > 0 && !selectedEntryBankAccountId)}
+              disabled={!pendingEntryPayment || !selectedEntryPaidDate || parseCurrencyInput(selectedEntryPaidAmount) <= 0 || !selectedEntryPaymentMethod || (bankAccounts.length > 0 && selectedEntryBankAccountId !== '__cash__' && !selectedEntryBankAccountId)}
               onClick={() => {
                 if (!pendingEntryPayment) return;
                 toggleEntryMutation.mutate({
                   paymentId: pendingEntryPayment.id,
                   currentPaidAt: pendingEntryPayment.entry_paid_at,
-                  bankAccountId: selectedEntryBankAccountId || null,
+                  bankAccountId: selectedEntryBankAccountId === '__cash__' ? null : selectedEntryBankAccountId || null,
                   paidDate: selectedEntryPaidDate,
                   paidAmount: parseCurrencyInput(selectedEntryPaidAmount),
                   paymentMethod: selectedEntryPaymentMethod,
