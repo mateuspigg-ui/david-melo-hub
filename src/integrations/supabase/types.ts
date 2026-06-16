@@ -415,6 +415,36 @@ export type Database = {
           },
         ]
       }
+      kanban_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id: string
+          is_default?: boolean
+          label: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           assigned_to: string | null

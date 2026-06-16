@@ -2,25 +2,35 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, MouseSensor, pointerWithin, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Columns3 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import KanbanColumn from '@/components/crm/KanbanColumn';
 import LeadCard from '@/components/crm/LeadCard';
 import LeadFormDialog from '@/components/crm/LeadFormDialog';
 import LeadDetailDialog from '@/components/crm/LeadDetailDialog';
+import ColumnFormDialog from '@/components/crm/ColumnFormDialog';
 import { publishLeadAlert } from '@/lib/leadAlerts';
 
-const STAGES = [
-  { id: 'novo_contato', label: 'Novo Contato', color: 'hsl(var(--gold))' },
-  { id: 'orcamento_enviado', label: 'Orçamento Enviado', color: 'hsl(210 60% 50%)' },
-  { id: 'cliente_em_contato', label: 'Cliente em Contato', color: 'hsl(48 95% 52%)' },
-  { id: 'em_negociacao', label: 'Em Negociação', color: 'hsl(35 80% 55%)' },
-  { id: 'fechados', label: 'Fechados', color: 'hsl(142 60% 45%)' },
-  { id: 'perdidos', label: 'Perdidos', color: 'hsl(0 60% 50%)' },
+const DEFAULT_STAGES = [
+  { id: 'novo_contato', label: 'Novo Contato', color: 'hsl(var(--gold))', position: 0, is_default: true },
+  { id: 'orcamento_enviado', label: 'Orçamento Enviado', color: 'hsl(210 60% 50%)', position: 1, is_default: true },
+  { id: 'cliente_em_contato', label: 'Cliente em Contato', color: 'hsl(48 95% 52%)', position: 2, is_default: true },
+  { id: 'em_negociacao', label: 'Em Negociação', color: 'hsl(35 80% 55%)', position: 3, is_default: true },
+  { id: 'fechados', label: 'Fechados', color: 'hsl(142 60% 45%)', position: 4, is_default: true },
+  { id: 'perdidos', label: 'Perdidos', color: 'hsl(0 60% 50%)', position: 5, is_default: true },
 ];
+
+export type KanbanStage = {
+  id: string;
+  label: string;
+  color: string;
+  position: number;
+  is_default?: boolean;
+};
 
 const EVENT_TYPES = [
   { value: 'casamento', label: 'Casamento' },
@@ -64,6 +74,8 @@ export default function CRMPage() {
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [completingLeadId, setCompletingLeadId] = useState<string | null>(null);
+  const [columnFormOpen, setColumnFormOpen] = useState(false);
+  const [editingColumn, setEditingColumn] = useState<KanbanStage | null>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 3 } }),
@@ -75,6 +87,107 @@ export default function CRMPage() {
     if (pointerIntersections.length > 0) return pointerIntersections;
     return closestCorners(args);
   };
+
+  // Fetch kanban stages from DB
+  const { data: stages = DEFAULT_STAGES, isLoading: isLoadingStages } = useQuery({
+    queryKey: ['kanban_stages'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('kanban_stages')
+          .select('*')
+          .order('position', { ascending: true });
+        if (error || !data?.length) return DEFAULT_STAGES;
+        return data as KanbanStage[];
+      } catch {
+        return DEFAULT_STAGES;
+      }
+    },
+    retry: false,
+  });
+
+  // Create stage mutation
+  const createStageMutation = useMutation({
+    mutationFn: async ({ label, color }: { label: string; color: string }) => {
+      const maxPos = stages.reduce((max, s) => Math.max(max, s.position), -1);
+      const id = `custom_${Date.now()}`;
+      const { error } = await supabase.from('kanban_stages').insert({
+        id,
+        label,
+        color,
+        position: maxPos + 1,
+        is_default: false,
+      });
+      if (error) throw error;
+      return { id, label, color, position: maxPos + 1, is_default: false };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
+      toast({ title: 'Coluna criada com sucesso!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao criar coluna', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
+  // Update stage mutation
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ id, label, color }: { id: string; label: string; color: string }) => {
+      const { error } = await supabase.from('kanban_stages').update({ label, color }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
+      toast({ title: 'Coluna atualizada!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar coluna', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
+  // Delete stage mutation
+  const deleteStageMutation = useMutation({
+    mutationFn: async (stageId: string) => {
+      const leadsInStage = leads.filter(l => l.stage === stageId);
+      if (leadsInStage.length > 0) {
+        throw new Error('Não é possível excluir uma coluna que contém leads. Mova os leads para outra coluna primeiro.');
+      }
+      const { error } = await supabase.from('kanban_stages').delete().eq('id', stageId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
+      toast({ title: 'Coluna excluída!' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao excluir coluna', description: error?.message || 'Tente novamente.', variant: 'destructive' });
+    },
+  });
+
+  // Reorder stages mutation
+  const reorderStagesMutation = useMutation({
+    mutationFn: async (orderedStages: KanbanStage[]) => {
+      const updates = orderedStages.map((s, i) =>
+        supabase.from('kanban_stages').update({ position: i }).eq('id', s.id)
+      );
+      await Promise.all(updates);
+    },
+    onMutate: async (orderedStages) => {
+      await queryClient.cancelQueries({ queryKey: ['kanban_stages'] });
+      const previousStages = queryClient.getQueryData<KanbanStage[]>(['kanban_stages']) || DEFAULT_STAGES;
+      queryClient.setQueryData<KanbanStage[]>(['kanban_stages'], orderedStages);
+      return { previousStages };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousStages) {
+        queryClient.setQueryData(['kanban_stages'], context.previousStages);
+      }
+      toast({ title: 'Erro ao reordenar colunas', variant: 'destructive' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
+    },
+  });
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -143,7 +256,6 @@ export default function CRMPage() {
     },
   });
 
-  // Busca leads com tarefas pendentes vencidas — falha silenciosamente se o banco não suportar
   const { data: overdueLeadIds = new Set<string>() } = useQuery({
     queryKey: ['overdue_leads'],
     queryFn: async () => {
@@ -155,17 +267,17 @@ export default function CRMPage() {
           .neq('status', 'done')
           .lt('due_date', today)
           .not('due_date', 'is', null);
-        if (error) return new Set<string>(); // falha silenciosa
+        if (error) return new Set<string>();
         return new Set((data ?? []).map(t => t.lead_id as string));
       } catch {
         return new Set<string>();
       }
     },
     refetchInterval: 60_000,
-    retry: false, // não retentar em caso de erro
+    retry: false,
   });
 
-  const updateStageMutation = useMutation({
+  const updateLeadStageMutation = useMutation({
     mutationFn: async ({ id, stage, previousStage }: { id: string; stage: string; previousStage: string }) => {
       const { error } = await supabase.from('leads').update({ stage }).eq('id', id);
       if (error) throw error;
@@ -233,7 +345,7 @@ export default function CRMPage() {
       const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
       const leadTitle = (lead.title || '').toLowerCase();
       const searchText = search.toLowerCase();
-      const matchesSearch = !search || 
+      const matchesSearch = !search ||
         leadTitle.includes(searchText) ||
         (lead.clients && `${lead.clients.first_name} ${lead.clients.last_name}`.toLowerCase().includes(searchText)) ||
         (lead.event_location && lead.event_location.toLowerCase().includes(searchText)) ||
@@ -247,15 +359,24 @@ export default function CRMPage() {
 
   const leadsByStage = useMemo(() => {
     const map: Record<string, Lead[]> = {};
-    STAGES.forEach(s => { map[s.id] = []; });
+    stages.forEach(s => { map[s.id] = []; });
     filteredLeads.forEach(lead => {
       if (map[lead.stage]) map[lead.stage].push(lead);
+      else {
+        map[lead.stage] = [lead];
+      }
     });
     return map;
-  }, [filteredLeads]);
+  }, [filteredLeads, stages]);
 
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveDragId(event.active.id as string);
+    const { active } = event;
+    const activeData = active.data.current;
+    if (activeData?.type === 'column') {
+      setActiveDragId(null);
+    } else {
+      setActiveDragId(active.id as string);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -263,18 +384,34 @@ export default function CRMPage() {
     const { active, over } = event;
     if (!over) return;
 
+    const activeData = active.data.current;
+    const overData = over.data.current;
+
+    // Column reorder
+    if (activeData?.type === 'column' && overData?.type === 'column') {
+      const activeStage = activeData.stage as KanbanStage;
+      const overStage = overData.stage as KanbanStage;
+      if (activeStage.id === overStage.id) return;
+
+      const oldIndex = stages.findIndex(s => s.id === activeStage.id);
+      const newIndex = stages.findIndex(s => s.id === overStage.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(stages, oldIndex, newIndex).map((s, i) => ({ ...s, position: i }));
+      reorderStagesMutation.mutate(reordered);
+      return;
+    }
+
+    // Card drag
     const leadId = active.id as string;
     const overId = over.id as string;
 
-    // over.id can be a stage ID (dropped on empty column area)
-    // or a card ID (dropped on top of another card) – resolve to stage either way
-    const isStage = STAGES.some(s => s.id === overId);
+    const isStage = stages.some(s => s.id === overId);
     let newStage: string;
 
     if (isStage) {
       newStage = overId;
     } else {
-      // overId is a lead id – find which stage that lead belongs to
       const targetLead = leads.find(l => l.id === overId);
       if (!targetLead) return;
       newStage = targetLead.stage;
@@ -282,11 +419,30 @@ export default function CRMPage() {
 
     const lead = leads.find(l => l.id === leadId);
     if (lead && lead.stage !== newStage) {
-      updateStageMutation.mutate({ id: leadId, stage: newStage, previousStage: lead.stage });
+      updateLeadStageMutation.mutate({ id: leadId, stage: newStage, previousStage: lead.stage });
     }
   };
 
   const activeLead = activeDragId ? leads.find(l => l.id === activeDragId) : null;
+
+  const handleSaveColumn = (label: string, color: string) => {
+    if (editingColumn) {
+      updateStageMutation.mutate({ id: editingColumn.id, label, color });
+    } else {
+      createStageMutation.mutate({ label, color });
+    }
+    setEditingColumn(null);
+  };
+
+  const handleDeleteColumn = (stage: KanbanStage) => {
+    if (window.confirm(`Excluir a coluna "${stage.label}"? Leads nela serão movidos para "Novo Contato".`)) {
+      const leadsInStage = leads.filter(l => l.stage === stage.id);
+      leadsInStage.forEach(lead => {
+        updateLeadStageMutation.mutate({ id: lead.id, stage: 'novo_contato', previousStage: lead.id });
+      });
+      deleteStageMutation.mutate(stage.id);
+    }
+  };
 
   return (
     <div className="page-container overflow-x-hidden">
@@ -298,23 +454,32 @@ export default function CRMPage() {
           </div>
           <p className="page-header-subtitle">David Melo Produções • Pipeline de Leads e Oportunidades</p>
         </div>
-        <Button 
-          onClick={() => { setEditingLead(null); setIsFormOpen(true); }} 
-          className="page-action-button"
-        >
-          <Plus className="w-5 h-5 mr-2" /> Novo Lead
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => { setEditingColumn(null); setColumnFormOpen(true); }}
+            variant="outline"
+            className="h-11 px-5 rounded-xl border-gold/30 text-gold hover:bg-gold hover:text-white font-black uppercase text-[10px] tracking-widest transition-all"
+          >
+            <Columns3 className="w-4 h-4 mr-2" /> Nova Coluna
+          </Button>
+          <Button
+            onClick={() => { setEditingLead(null); setIsFormOpen(true); }}
+            className="page-action-button"
+          >
+            <Plus className="w-5 h-5 mr-2" /> Novo Lead
+          </Button>
+        </div>
       </div>
 
       <div className="px-1 md:px-2">
         <div className="filter-bar-container">
           <div className="relative flex-1 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-gold transition-colors" />
-            <Input 
-              placeholder="Buscar por título, cliente ou local..." 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
-              className="pl-12 bg-white/50 border-border/30 focus:border-gold/50 h-14 rounded-2xl transition-all focus:ring-4 focus:ring-gold/5" 
+            <Input
+              placeholder="Buscar por título, cliente ou local..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-12 bg-white/50 border-border/30 focus:border-gold/50 h-14 rounded-2xl transition-all focus:ring-4 focus:ring-gold/5"
             />
           </div>
           <div className="flex items-center gap-3 bg-white/50 border border-border/30 rounded-2xl px-4 h-14 group focus-within:border-gold/50 transition-all">
@@ -347,11 +512,11 @@ export default function CRMPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || isLoadingStages ? (
         <div className="px-2">
             <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-4 h-[calc(100vh-260px)] min-h-[520px]">
               <div className="flex gap-5 overflow-x-auto overflow-y-hidden pb-2 h-full">
-              {STAGES.map(s => (
+              {DEFAULT_STAGES.map(s => (
                 <div key={s.id} className="min-w-[340px] flex-1 bg-white/40 rounded-[28px] p-6 border border-border/20 animate-pulse h-[600px] shadow-sm" />
               ))}
             </div>
@@ -363,7 +528,7 @@ export default function CRMPage() {
             <div className="rounded-[32px] border border-border/30 bg-secondary/10 p-4 relative overflow-hidden group h-[calc(100vh-260px)] min-h-[520px]">
               <div className="absolute inset-0 bg-gradient-to-br from-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
               <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-2 h-full relative z-10">
-                {STAGES.map(stage => (
+                {stages.map(stage => (
                   <KanbanColumn
                     key={stage.id}
                     stage={stage}
@@ -373,8 +538,19 @@ export default function CRMPage() {
                     completingLeadId={completingLeadId}
                     overdueLeadIds={overdueLeadIds}
                     leadTaskMeta={leadTaskMeta}
+                    onEditColumn={(s) => { setEditingColumn(s); setColumnFormOpen(true); }}
+                    onDeleteColumn={handleDeleteColumn}
                   />
                 ))}
+
+                <button
+                  type="button"
+                  onClick={() => { setEditingColumn(null); setColumnFormOpen(true); }}
+                  className="min-w-[340px] shrink-0 rounded-[28px] border-2 border-dashed border-border/30 flex flex-col items-center justify-center gap-3 text-muted-foreground/40 hover:border-gold/50 hover:text-gold hover:bg-gold/[0.02] transition-all cursor-pointer h-[200px] self-start mt-4"
+                >
+                  <Plus className="w-8 h-8" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Nova Coluna</p>
+                </button>
               </div>
             </div>
           </div>
@@ -390,7 +566,7 @@ export default function CRMPage() {
         lead={editingLead}
         clients={clients}
         teamMembers={teamMembers}
-        stages={STAGES}
+        stages={stages}
         eventTypes={EVENT_TYPES}
       />
 
@@ -401,8 +577,17 @@ export default function CRMPage() {
         onEdit={(lead) => { setDetailLead(null); setEditingLead(lead); setIsFormOpen(true); }}
         clients={clients}
         teamMembers={teamMembers}
-        stages={STAGES}
+        stages={stages}
         eventTypes={EVENT_TYPES}
+      />
+
+      <ColumnFormDialog
+        open={columnFormOpen}
+        onOpenChange={(open) => { setColumnFormOpen(open); if (!open) setEditingColumn(null); }}
+        initialLabel={editingColumn?.label}
+        initialColor={editingColumn?.color}
+        title={editingColumn ? 'Editar Coluna' : 'Nova Coluna'}
+        onSave={handleSaveColumn}
       />
     </div>
   );
