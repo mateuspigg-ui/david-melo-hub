@@ -37,6 +37,10 @@ type Payment = {
   company_id?: string | null;
   additional_value?: number | null;
   additional_description?: string | null;
+  additional_paid_at?: string | null;
+  additional_bank_account_id?: string | null;
+  additional_paid_amount?: number | null;
+  additional_payment_method?: string | null;
   clients?: { first_name: string; last_name: string } | null;
   events?: { title: string } | null;
 };
@@ -129,6 +133,12 @@ export default function RecebimentosPage() {
   const [selectedEntryPaidDate, setSelectedEntryPaidDate] = useState("");
   const [selectedEntryPaidAmount, setSelectedEntryPaidAmount] = useState("");
   const [selectedEntryPaymentMethod, setSelectedEntryPaymentMethod] = useState("");
+  const [additionalAccountPickerOpen, setAdditionalAccountPickerOpen] = useState(false);
+  const [pendingAdditionalPayment, setPendingAdditionalPayment] = useState<Payment | null>(null);
+  const [selectedAdditionalBankAccountId, setSelectedAdditionalBankAccountId] = useState("");
+  const [selectedAdditionalPaidDate, setSelectedAdditionalPaidDate] = useState("");
+  const [selectedAdditionalPaidAmount, setSelectedAdditionalPaidAmount] = useState("");
+  const [selectedAdditionalPaymentMethod, setSelectedAdditionalPaymentMethod] = useState("");
   const [installmentPlan, setInstallmentPlan] = useState<InstallmentPlanItem[]>([]);
   const [supportsEntryPaidAt, setSupportsEntryPaidAt] = useState(true);
 
@@ -485,7 +495,15 @@ export default function RecebimentosPage() {
       if (p.has_entry_payment && !p.entry_paid_at && p.entry_amount) return s + Number(p.entry_amount);
       return s;
     }, 0);
-    return { pending: pending + entryPending, received: received + entryReceived, contracts: selectedClientGroup.payments.length };
+    const additionalReceived = selectedClientGroup.payments.reduce((s, p) => {
+      if (p.additional_paid_at && Number(p.additional_value || 0) > 0) return s + Number(p.additional_paid_amount ?? p.additional_value ?? 0);
+      return s;
+    }, 0);
+    const additionalPending = selectedClientGroup.payments.reduce((s, p) => {
+      if (!p.additional_paid_at && Number(p.additional_value || 0) > 0) return s + Number(p.additional_value);
+      return s;
+    }, 0);
+    return { pending: pending + entryPending + additionalPending, received: received + entryReceived + additionalReceived, contracts: selectedClientGroup.payments.length };
   }, [selectedClientGroup, installmentsByPayment]);
 
   const hasActiveFilters = search.trim() || statusFilter !== "all" || dateFilterMode !== "all" || dateFrom || dateTo || companyFilter !== "all";
@@ -511,6 +529,12 @@ export default function RecebimentosPage() {
       if (!p.has_entry_payment || !p.entry_amount) continue;
       if (p.entry_paid_at) received += Number(p.entry_paid_amount ?? p.entry_amount ?? 0);
       else pending += p.entry_amount;
+    }
+    for (const p of filteredPayments) {
+      const additionalValue = Number(p.additional_value || 0);
+      if (additionalValue <= 0) continue;
+      if (p.additional_paid_at) received += Number(p.additional_paid_amount ?? additionalValue ?? 0);
+      else pending += additionalValue;
     }
     return { pending, received };
   }, [filteredPayments, installments]);
@@ -1048,6 +1072,32 @@ export default function RecebimentosPage() {
     },
   });
 
+  const toggleAdditionalMutation = useMutation({
+    mutationFn: async ({ payment, bankAccountId, paidDate, paidAmount, paymentMethod }: { payment: Payment; bankAccountId?: string | null; paidDate?: string; paidAmount?: number | null; paymentMethod?: string | null }) => {
+      const paidAt = toIsoFromDateInput(paidDate);
+      const isPaid = !!payment.additional_paid_at;
+      const payload = isPaid
+        ? { additional_paid_at: null, additional_bank_account_id: null, additional_paid_amount: null, additional_payment_method: null }
+        : { additional_paid_at: paidAt, additional_bank_account_id: bankAccountId || null, additional_paid_amount: paidAmount ?? null, additional_payment_method: paymentMethod || null };
+
+      let { error } = await (supabase as any)
+        .from("payments")
+        .update(payload)
+        .eq("id", payment.id);
+
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_kpis"] });
+      qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
+      toast({ title: "Aditivo atualizado com sucesso" });
+    },
+    onError: (e: any) => {
+      toast({ title: "Erro ao atualizar aditivo", description: e?.message || "Tente novamente.", variant: "destructive" });
+    },
+  });
+
   const eventsByClient = useMemo(() => {
     if (!contractForm.client_id) return events;
     return events.filter((evt: any) => evt.client_id === contractForm.client_id);
@@ -1060,6 +1110,15 @@ export default function RecebimentosPage() {
     setSelectedEntryPaidAmount(formatCurrencyInput(payment.entry_paid_amount ?? payment.entry_amount ?? 0));
     setSelectedEntryPaymentMethod(payment.entry_payment_method || "");
     setEntryAccountPickerOpen(true);
+  };
+
+  const openAdditionalAccountPicker = (payment: Payment) => {
+    setPendingAdditionalPayment(payment);
+    setSelectedAdditionalBankAccountId(payment.additional_bank_account_id || "");
+    setSelectedAdditionalPaidDate(toDateInputValue(payment.additional_paid_at));
+    setSelectedAdditionalPaidAmount(formatCurrencyInput(payment.additional_paid_amount ?? payment.additional_value ?? 0));
+    setSelectedAdditionalPaymentMethod(payment.additional_payment_method || "");
+    setAdditionalAccountPickerOpen(true);
   };
 
   return (
@@ -1219,8 +1278,16 @@ export default function RecebimentosPage() {
               if (p.has_entry_payment && Number(p.entry_amount || 0) > 0 && p.entry_paid_at) return s + Number(p.entry_paid_amount ?? p.entry_amount ?? 0);
               return s;
             }, 0);
-            const clientPending = clientPendingInstallments + clientPendingEntry;
-            const clientReceived = clientReceivedInstallments + clientReceivedEntry;
+            const clientPendingAdditional = group.payments.reduce((s, p) => {
+              if (!p.additional_paid_at && Number(p.additional_value || 0) > 0) return s + Number(p.additional_value);
+              return s;
+            }, 0);
+            const clientReceivedAdditional = group.payments.reduce((s, p) => {
+              if (p.additional_paid_at && Number(p.additional_value || 0) > 0) return s + Number(p.additional_paid_amount ?? p.additional_value ?? 0);
+              return s;
+            }, 0);
+            const clientPending = clientPendingInstallments + clientPendingEntry + clientPendingAdditional;
+            const clientReceived = clientReceivedInstallments + clientReceivedEntry + clientReceivedAdditional;
             const clientTotal = clientPending + clientReceived;
             const receivedPct = clientTotal > 0 ? Math.min(100, (clientReceived / clientTotal) * 100) : 0;
             return (
@@ -1312,7 +1379,7 @@ export default function RecebimentosPage() {
                   >
                     <div>
                       <p className="text-sm font-bold uppercase">{payment.events?.title || "Evento sem título"}</p>
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Total {currencyFmt(payment.total_event_value)}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">Total {currencyFmt(payment.total_event_value)}{Number(payment.additional_value || 0) > 0 && <span className="text-purple-600 font-bold"> + Aditivo {currencyFmt(Number(payment.additional_value || 0))} = {currencyFmt(payment.total_event_value + Number(payment.additional_value || 0))}</span>}</p>
                       <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] uppercase tracking-wider font-black", getInvoiceStatusClass(invoice?.status))}>
                           <FileText className="w-3 h-3 mr-1" /> NF {getInvoiceStatusLabel(invoice?.status)}
@@ -1355,6 +1422,31 @@ export default function RecebimentosPage() {
                           </div>
                         );
                       })}
+
+                      {Number(payment.additional_value || 0) > 0 && (() => {
+                        const additionalPaid = !!payment.additional_paid_at;
+                        return (
+                          <div className={cn("relative flex items-center justify-between p-4 rounded-xl border pl-8", additionalPaid ? "border-purple-200 bg-purple-50/50" : "border-purple-200 bg-purple-50/30")}>
+                            <div className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full", additionalPaid ? "bg-purple-500" : "bg-purple-300")} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Aditivo de Valor</p>
+                                <span className="text-[9px] font-bold uppercase tracking-wider bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full border border-purple-200">Aditivo</span>
+                              </div>
+                              {payment.additional_description && <p className="text-xs text-muted-foreground mt-1">{payment.additional_description}</p>}
+                              {additionalPaid && payment.additional_paid_at && <p className="text-[11px] text-purple-700 font-semibold mt-1">Baixado em {format(new Date(payment.additional_paid_at), "dd/MM/yyyy")}</p>}
+                              {additionalPaid && (() => { const accId = (payment as any).additional_bank_account_id; if (accId) { const acc = bankAccounts.find((b: any) => b.id === accId); return acc ? <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1"><Landmark size={10} className="text-gold shrink-0" />{acc.bank_name} {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ''}</p> : null; } return <p className="text-[10px] text-amber-600 mt-1 font-semibold cursor-pointer hover:underline" onClick={() => setLinkInstallmentsOpen(true)}>Conta nao vinculada</p>; })()}
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <p className="font-display text-purple-700">{currencyFmt(payment.additional_paid_amount ? payment.additional_paid_amount : Number(payment.additional_value || 0))}</p>
+                              <Button size="sm" variant="outline" className={cn("h-8 border-none font-black uppercase text-[9px] tracking-[0.15em] rounded-xl transition-all shadow-sm", additionalPaid ? "bg-purple-600 text-white hover:bg-purple-700" : "bg-white text-purple-700 hover:bg-purple-50 border-purple-200")} onClick={() => { if (additionalPaid) { toggleAdditionalMutation.mutate({ payment, bankAccountId: null, paidDate: undefined, paidAmount: null, paymentMethod: null }); return; } openAdditionalAccountPicker(payment); }}>
+                                {additionalPaid ? "Baixado" : <><Check className="w-3 h-3 mr-1" /> Baixar</>}
+                              </Button>
+                              {additionalPaid && <button type="button" className="text-[9px] text-destructive/60 hover:text-destructive font-bold uppercase tracking-wider cursor-pointer" onClick={() => toggleAdditionalMutation.mutate({ payment, bankAccountId: null, paidDate: undefined, paidAmount: null, paymentMethod: null })}>Desfazer</button>}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -1642,6 +1734,76 @@ export default function RecebimentosPage() {
                 setSelectedEntryPaidDate("");
                 setSelectedEntryPaidAmount("");
                 setSelectedEntryPaymentMethod("");
+              }}
+            >
+              Confirmar baixa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={additionalAccountPickerOpen} onOpenChange={(open) => {
+        setAdditionalAccountPickerOpen(open);
+        if (!open) {
+          setPendingAdditionalPayment(null);
+          setSelectedAdditionalBankAccountId("");
+          setSelectedAdditionalPaidDate("");
+          setSelectedAdditionalPaidAmount("");
+          setSelectedAdditionalPaymentMethod("");
+        }
+      }}>
+        <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader><DialogTitle>Conta de recebimento do aditivo</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>Conta bancária</Label>
+            <Select value={selectedAdditionalBankAccountId} onValueChange={setSelectedAdditionalBankAccountId}>
+              <SelectTrigger><SelectValue placeholder="Escolher conta" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__cash__">Espécie (Dinheiro)</SelectItem>
+                {bankAccounts.map((acc: any) => (
+                  <SelectItem key={acc.id} value={acc.id}>{acc.bank_name} • Ag {acc.agency} • Cc {acc.account_number}{acc.account_digit ? `-${acc.account_digit}` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="space-y-1 pt-2">
+              <Label>Data do pagamento</Label>
+              <Input type="date" value={selectedAdditionalPaidDate} onChange={(e) => setSelectedAdditionalPaidDate(e.target.value)} />
+            </div>
+            <div className="space-y-1 pt-2">
+              <Label>Valor pago</Label>
+              <Input value={selectedAdditionalPaidAmount} onChange={(e) => setSelectedAdditionalPaidAmount(maskCurrencyInput(e.target.value))} placeholder="0,00" inputMode="numeric" />
+            </div>
+            <div className="space-y-1 pt-2">
+              <Label>Forma de pagamento</Label>
+              <Select value={selectedAdditionalPaymentMethod} onValueChange={setSelectedAdditionalPaymentMethod}>
+                <SelectTrigger><SelectValue placeholder="Escolher forma" /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHOD_OPTIONS.map((method) => (
+                    <SelectItem key={method} value={method}>{PAYMENT_METHOD_LABEL[method]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <Button variant="ghost" onClick={() => setAdditionalAccountPickerOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={!pendingAdditionalPayment || !selectedAdditionalPaidDate || parseCurrencyInput(selectedAdditionalPaidAmount) <= 0 || !selectedAdditionalPaymentMethod || (bankAccounts.length > 0 && selectedAdditionalBankAccountId !== '__cash__' && !selectedAdditionalBankAccountId)}
+              onClick={() => {
+                if (!pendingAdditionalPayment) return;
+                toggleAdditionalMutation.mutate({
+                  payment: pendingAdditionalPayment,
+                  bankAccountId: selectedAdditionalBankAccountId === '__cash__' ? null : selectedAdditionalBankAccountId || null,
+                  paidDate: selectedAdditionalPaidDate,
+                  paidAmount: parseCurrencyInput(selectedAdditionalPaidAmount),
+                  paymentMethod: selectedAdditionalPaymentMethod,
+                });
+                setAdditionalAccountPickerOpen(false);
+                setPendingAdditionalPayment(null);
+                setSelectedAdditionalBankAccountId("");
+                setSelectedAdditionalPaidDate("");
+                setSelectedAdditionalPaidAmount("");
+                setSelectedAdditionalPaymentMethod("");
               }}
             >
               Confirmar baixa
