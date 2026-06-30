@@ -165,6 +165,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
   });
 
   const accountLabel = (id: string) => {
+    if (id === '__cash__') return 'Espécie (Dinheiro)';
     const acc = bankAccounts.find((a: any) => a.id === id);
     if (!acc) return id;
     return `${acc.bank_name} ${acc.account_number}${acc.account_digit ? '-' + acc.account_digit : ''}`;
@@ -200,6 +201,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                     <SelectValue placeholder="Selecionar conta para todas..." />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__cash__">Espécie (Dinheiro)</SelectItem>
                     {bankAccounts.map((acc: any) => (
                       <SelectItem key={acc.id} value={acc.id}>
                         {acc.bank_name} {acc.account_number}{acc.account_digit ? '-' + acc.account_digit : ''}
@@ -266,6 +268,7 @@ export const LinkInstallmentsDialog = ({ open, onOpenChange }: Props) => {
                                 <SelectValue placeholder="Selecionar..." />
                               </SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="__cash__" className="text-[11px]">Espécie (Dinheiro)</SelectItem>
                                 {bankAccounts.map((acc: any) => (
                                   <SelectItem key={acc.id} value={acc.id} className="text-[11px]">
                                     {acc.bank_name} {acc.account_number}{acc.account_digit ? '-' + acc.account_digit : ''}
