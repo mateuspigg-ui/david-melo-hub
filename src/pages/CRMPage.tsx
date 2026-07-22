@@ -50,6 +50,7 @@ export type Lead = {
   client_id: string | null;
   stage: string;
   event_type: string | null;
+  service_type: string | null;
   event_location: string | null;
   event_date: string | null;
   event_time: string | null;

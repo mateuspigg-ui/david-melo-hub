@@ -34,6 +34,7 @@ interface FormData {
   client_id: string;
   stage: string;
   event_type: string;
+  service_type: string;
   event_location: string;
   event_date: string;
   event_time: string;
@@ -76,6 +77,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
           client_id: lead.client_id || '',
           stage: lead.stage,
           event_type: lead.event_type || '',
+          service_type: lead.service_type || '',
           event_location: lead.event_location || '',
           event_date: lead.event_date || '',
           event_time: lead.event_time || '',
@@ -85,7 +87,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
           assigned_to: lead.assigned_to || '',
         });
       } else {
-        reset({ title: '', lead_entry_date: todayDate, first_name: '', last_name: '', phone: '', client_id: '', stage: 'novo_contato', event_type: '', event_location: '', event_date: '', event_time: '', guest_count: '', total_budget: '', notes: '', assigned_to: '' });
+        reset({ title: '', lead_entry_date: todayDate, first_name: '', last_name: '', phone: '', client_id: '', stage: 'novo_contato', event_type: '', service_type: '', event_location: '', event_date: '', event_time: '', guest_count: '', total_budget: '', notes: '', assigned_to: '' });
       }
     }
   }, [open, lead, reset, todayDate]);
@@ -101,6 +103,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
         client_id: data.client_id || null,
         stage: resolvedStage,
         event_type: data.event_type || null,
+        service_type: data.service_type || null,
         event_location: data.event_location || null,
         event_date: data.event_date || null,
         event_time: data.event_time || null,
@@ -329,6 +332,21 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
                         {t.label}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Serviço</Label>
+                <Select value={watch('service_type') || ""} onValueChange={v => setValue('service_type', v)}>
+                  <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground shadow-sm">
+                    <SelectValue placeholder="Selecionar serviço" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
+                    <SelectItem value="buffet_e_decoracao" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet e Decoração</SelectItem>
+                    <SelectItem value="buffet" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet</SelectItem>
+                    <SelectItem value="servico" className="font-bold text-[10px] uppercase tracking-widest py-3">Serviço</SelectItem>
+                    <SelectItem value="somente_decoracao" className="font-bold text-[10px] uppercase tracking-widest py-3">Somente Decoração</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
