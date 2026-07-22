@@ -457,6 +457,7 @@ export type Database = {
           guest_count: number | null
           id: string
           notes: string | null
+          service_type: string | null
           stage: string
           title: string
           total_budget: number | null
@@ -473,6 +474,7 @@ export type Database = {
           guest_count?: number | null
           id?: string
           notes?: string | null
+          service_type?: string | null
           stage?: string
           title: string
           total_budget?: number | null
@@ -489,6 +491,7 @@ export type Database = {
           guest_count?: number | null
           id?: string
           notes?: string | null
+          service_type?: string | null
           stage?: string
           title?: string
           total_budget?: number | null
