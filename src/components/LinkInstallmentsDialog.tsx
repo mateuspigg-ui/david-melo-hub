@@ -36,6 +36,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   dinheiro: 'Dinheiro',
   cartao_credito: 'Cartao',
   transferencia: 'Transferencia',
+  boleto: 'Boleto',
 };
 
 const PAYMENT_METHOD_BADGE: Record<string, string> = {
@@ -43,6 +44,7 @@ const PAYMENT_METHOD_BADGE: Record<string, string> = {
   dinheiro: 'bg-amber-50 text-amber-700 border-amber-200',
   cartao_credito: 'bg-purple-50 text-purple-600 border-purple-200',
   transferencia: 'bg-slate-100 text-slate-600 border-slate-200',
+  boleto: 'bg-orange-50 text-orange-600 border-orange-200',
 };
 
 

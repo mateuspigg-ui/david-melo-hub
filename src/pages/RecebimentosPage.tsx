@@ -58,12 +58,13 @@ type Installment = {
   payment_method?: string | null;
 };
 
-const PAYMENT_METHOD_OPTIONS = ["pix", "dinheiro", "cartao_credito", "transferencia"] as const;
+const PAYMENT_METHOD_OPTIONS = ["pix", "dinheiro", "cartao_credito", "transferencia", "boleto"] as const;
 const PAYMENT_METHOD_LABEL: Record<(typeof PAYMENT_METHOD_OPTIONS)[number], string> = {
   pix: "Pix",
   dinheiro: "Dinheiro",
   cartao_credito: "Cartao de credito",
   transferencia: "Transferencia",
+  boleto: "Boleto",
 };
 
 const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
@@ -71,6 +72,7 @@ const PAYMENT_METHOD_BADGE_CLASS: Record<string, string> = {
   dinheiro: "bg-amber-50 text-amber-700 border-amber-200",
   cartao_credito: "bg-purple-50 text-purple-600 border-purple-200",
   transferencia: "bg-slate-50 text-slate-600 border-slate-200",
+  boleto: "bg-orange-50 text-orange-600 border-orange-200",
 };
 
 const getInitials = (name: string) =>
