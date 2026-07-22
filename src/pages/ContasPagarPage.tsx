@@ -575,7 +575,8 @@ export default function ContasPagarPage() {
       qc.invalidateQueries({ queryKey: ["accounts_payable"] });
       qc.invalidateQueries({ queryKey: ["dashboard_metrics"] });
       const isReversal = isAccountPaid(variables.currentStatus) || isAccountPartial(variables.currentStatus);
-      const isPartial = !isReversal && variables.paidAmount != null && (variables.totalAmount || 0) > 0 && variables.paidAmount < variables.totalAmount;
+      const effectiveTotal = (variables.totalAmount || 0) - (variables.discount || 0) + (variables.interest || 0) + (variables.fine || 0);
+      const isPartial = !isReversal && variables.paidAmount != null && effectiveTotal > 0 && variables.paidAmount < effectiveTotal;
       toast({ title: isReversal ? 'Baixa desfeita com sucesso' : isPartial ? 'Pagamento parcial registrado' : 'Conta marcada como paga' });
       if (!isReversal && editingItem) {
         const acc = bankAccounts.find((b: any) => b.id === variables.bankAccountId);
@@ -2096,9 +2097,9 @@ export default function ContasPagarPage() {
                           className="bg-secondary/50 border-border/40 focus:border-gold focus:ring-gold h-12 rounded-xl font-bold text-lg text-gold transition-all hover:border-gold/40"
                           placeholder="0,00"
                         />
-                        {editingItem && paymentPaidAmount && safeNum(paymentPaidAmount) < safeNum(editingItem.amount) && (
+                        {editingItem && paymentPaidAmount && safeNum(paymentPaidAmount) < (safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine)) && (
                           <p className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">
-                            Pagamento parcial: restante de {currencyFmt(safeNum(editingItem.amount) - safeNum(paymentPaidAmount))}
+                            Pagamento parcial: restante de {currencyFmt(safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine) - safeNum(paymentPaidAmount))}
                           </p>
                         )}
                       </div>
@@ -2182,16 +2183,19 @@ export default function ContasPagarPage() {
                         </div>
                       </div>
 
-                      {editingItem && (
-                        <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 flex items-center justify-between">
-                          <span className="text-xs font-bold uppercase tracking-widest text-gold">
-                            {paymentPaidAmount && safeNum(paymentPaidAmount) < safeNum(editingItem.amount) ? "Valor pago:" : "Total liquido da baixa:"}
-                          </span>
-                          <span className="text-xl font-bold text-gold">
-                            {currencyFmt(paymentPaidAmount ? safeNum(paymentPaidAmount) : safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine))}
-                          </span>
-                        </div>
-                      )}
+                      {editingItem && (() => {
+                        const effectiveTotal = safeNum(editingItem.amount) - safeNum(paymentDiscount) + safeNum(paymentInterest) + safeNum(paymentFine);
+                        return (
+                          <div className="bg-gold/5 border border-gold/20 rounded-xl p-4 flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-widest text-gold">
+                              {paymentPaidAmount && safeNum(paymentPaidAmount) < effectiveTotal ? "Valor pago:" : "Total liquido da baixa:"}
+                            </span>
+                            <span className="text-xl font-bold text-gold">
+                              {currencyFmt(effectiveTotal)}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-border/10">
