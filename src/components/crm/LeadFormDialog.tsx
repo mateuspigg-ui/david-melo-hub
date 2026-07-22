@@ -344,8 +344,7 @@ export default function LeadFormDialog({ open, onOpenChange, lead, onLeadClosedC
                   </SelectTrigger>
                   <SelectContent className="bg-white border-border/40 shadow-2xl rounded-xl">
                     <SelectItem value="buffet_e_decoracao" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet e Decoração</SelectItem>
-                    <SelectItem value="buffet" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet</SelectItem>
-                    <SelectItem value="servico" className="font-bold text-[10px] uppercase tracking-widest py-3">Serviço</SelectItem>
+                    <SelectItem value="buffet_e_servico" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet e Serviço</SelectItem>
                     <SelectItem value="somente_decoracao" className="font-bold text-[10px] uppercase tracking-widest py-3">Somente Decoração</SelectItem>
                   </SelectContent>
                 </Select>
