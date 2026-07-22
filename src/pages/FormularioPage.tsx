@@ -30,6 +30,7 @@ type FormState = {
   last_name: string;
   phone: string;
   event_type: string;
+  service_type: string;
   event_location: string;
   event_date: string;
   event_time: string;
@@ -43,6 +44,7 @@ const initialState: FormState = {
   last_name: '',
   phone: '',
   event_type: '',
+  service_type: '',
   event_location: '',
   event_date: '',
   event_time: '',
@@ -108,6 +110,7 @@ export default function FormularioPage({ publicView = false }: Props) {
         last_name: lastName,
         phone,
         event_type: eventType,
+        service_type: form.service_type || null,
         event_location: eventLocation,
         event_date: eventDate,
         event_time: eventTime,
@@ -127,6 +130,7 @@ export default function FormularioPage({ publicView = false }: Props) {
           p_last_name: payload.last_name,
           p_phone: payload.phone,
           p_event_type: payload.event_type,
+          p_service_type: form.service_type || null,
           p_event_location: payload.event_location,
           p_event_date: payload.event_date,
           p_event_time: payload.event_time,
@@ -319,6 +323,20 @@ export default function FormularioPage({ publicView = false }: Props) {
                     {item.label}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Serviço</Label>
+            <Select value={form.service_type} onValueChange={(value) => updateField('service_type', value)}>
+              <SelectTrigger className="h-11 bg-secondary/20 border-border/10 focus:ring-gold rounded-xl font-bold uppercase text-[10px] tracking-widest text-foreground">
+                <SelectValue placeholder="Selecione (opcional)" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border-border/40 rounded-xl">
+                <SelectItem value="buffet_e_decoracao" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet e Decoração</SelectItem>
+                <SelectItem value="buffet_e_servico" className="font-bold text-[10px] uppercase tracking-widest py-3">Buffet e Serviço</SelectItem>
+                <SelectItem value="somente_decoracao" className="font-bold text-[10px] uppercase tracking-widest py-3">Somente Decoração</SelectItem>
               </SelectContent>
             </Select>
           </div>
