@@ -206,12 +206,34 @@ export default function CRMPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('*, clients(first_name, last_name), profiles:assigned_to(full_name), lead_files(id, file_name, file_url, file_type, file_size, created_at)')
+        .select('*, clients(first_name, last_name), profiles:assigned_to(full_name)')
         .order('updated_at', { ascending: false });
       if (error) return [];
       return (data || []) as Lead[];
     },
   });
+
+  const { data: allLeadFiles = [] } = useQuery({
+    queryKey: ['lead_files'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('lead_files')
+        .select('id, lead_id, file_name, file_url, file_type, file_size, created_at');
+      if (error) return [];
+      return (data || []) as LeadFile[];
+    },
+  });
+
+  const leadsWithFiles = useMemo(() => {
+    if (allLeadFiles.length === 0) return leads;
+    const filesByLead = new Map<string, LeadFile[]>();
+    for (const f of allLeadFiles) {
+      const arr = filesByLead.get(f.lead_id) || [];
+      arr.push(f);
+      filesByLead.set(f.lead_id, arr);
+    }
+    return leads.map(l => ({ ...l, lead_files: filesByLead.get(l.id) || [] }));
+  }, [leads, allLeadFiles]);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -353,7 +375,7 @@ export default function CRMPage() {
   });
 
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
+    return leadsWithFiles.filter(lead => {
       const leadName = `${lead.first_name || ''} ${lead.last_name || ''}`.trim();
       const leadTitle = (lead.title || '').toLowerCase();
       const searchText = search.toLowerCase();
@@ -367,7 +389,7 @@ export default function CRMPage() {
       const matchesEventDate = !filterEventDate || lead.event_date === filterEventDate;
       return matchesSearch && matchesType && matchesEventDate;
     });
-  }, [leads, search, filterType, filterEventDate]);
+  }, [leadsWithFiles, search, filterType, filterEventDate]);
 
   const leadsByStage = useMemo(() => {
     const map: Record<string, Lead[]> = {};
