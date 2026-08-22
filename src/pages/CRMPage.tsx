@@ -41,6 +41,16 @@ const EVENT_TYPES = [
   { value: 'corporativo', label: 'Corporativo' },
 ];
 
+export type LeadFile = {
+  id: string;
+  lead_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string | null;
+  file_size: number | null;
+  created_at: string;
+};
+
 export type Lead = {
   id: string;
   title: string;
@@ -62,6 +72,7 @@ export type Lead = {
   updated_at: string;
   clients?: { first_name: string; last_name: string } | null;
   profiles?: { full_name: string } | null;
+  lead_files?: LeadFile[];
 };
 
 export default function CRMPage() {
@@ -195,7 +206,7 @@ export default function CRMPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('*, clients(first_name, last_name), profiles:assigned_to(full_name)')
+        .select('*, clients(first_name, last_name), profiles:assigned_to(full_name), lead_files(id, file_name, file_url, file_type, file_size, created_at)')
         .order('updated_at', { ascending: false });
       if (error) return [];
       return (data || []) as Lead[];

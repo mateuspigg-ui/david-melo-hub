@@ -1,9 +1,9 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Users, DollarSign, Clock, AlertTriangle, CheckCircle2, Loader2, Paperclip } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Lead } from '@/pages/CRMPage';
+import type { Lead, LeadFile } from '@/pages/CRMPage';
 import { cn } from '@/lib/utils';
 import { formatSafeEventDate } from '@/lib/dateUtils';
 
@@ -153,6 +153,31 @@ export default function LeadCard({ lead, onClick, onCompleteTasks, isCompleting 
             <p className="text-[10px] font-bold text-muted-foreground/50 tracking-tight">{lead.phone}</p>
           )}
         </div>
+
+        {/* Reference images */}
+        {lead.lead_files && lead.lead_files.length > 0 && (
+          <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex -space-x-1.5">
+              {lead.lead_files.filter(f => f.file_type?.startsWith('image/')).slice(0, 3).map((file) => (
+                <img
+                  key={file.id}
+                  src={file.file_url}
+                  alt={file.file_name}
+                  className="w-7 h-7 rounded-lg object-cover border-2 border-white shadow-sm"
+                  loading="lazy"
+                />
+              ))}
+              {lead.lead_files.filter(f => f.file_type?.startsWith('image/')).length === 0 && (
+                <div className="w-7 h-7 rounded-lg bg-gold/10 border-2 border-white shadow-sm flex items-center justify-center">
+                  <Paperclip className="w-3 h-3 text-gold/60" />
+                </div>
+              )}
+            </div>
+            <span className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-wider">
+              {lead.lead_files.length} {lead.lead_files.length === 1 ? 'arquivo' : 'arquivos'}
+            </span>
+          </div>
+        )}
 
         <div className="h-px w-full bg-gradient-to-r from-border/40 to-transparent" />
 

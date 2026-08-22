@@ -9,11 +9,24 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, ClipboardList, Copy, MessageCircle, Send } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Copy, ImagePlus, MessageCircle, Send, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
 import { publishLeadAlert } from '@/lib/leadAlerts';
 import { buildClientChatUrl, clientChatExampleLink } from '@/lib/clientChatLink';
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
+
+const sanitizeStorageFileName = (name: string) => {
+  const normalized = String(name || 'arquivo')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^[-.]+|[-.]+$/g, '');
+  return (normalized || 'arquivo').slice(0, 120);
+};
 
 const EVENT_TYPES = [
   { value: 'casamento', label: 'Casamento' },
@@ -64,6 +77,7 @@ export default function FormularioPage({ publicView = false }: Props) {
   const [form, setForm] = useState<FormState>(initialState);
   const [submissionCompleted, setSubmissionCompleted] = useState(false);
   const [submittedChatLink, setSubmittedChatLink] = useState<string | null>(null);
+  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const publicFormUrl = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -178,6 +192,34 @@ export default function FormularioPage({ publicView = false }: Props) {
         }
       }
 
+      if (createdLeadId && referenceFiles.length > 0) {
+        try {
+          for (const file of referenceFiles) {
+            const safeName = sanitizeStorageFileName(file.name);
+            const filePath = `${createdLeadId}/${Date.now()}-${Math.random().toString(16).slice(2)}-${safeName}`;
+
+            const { error: uploadError } = await (db as any).storage.from('lead-files').upload(filePath, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+            if (uploadError) throw uploadError;
+
+            const { data: publicData } = (db as any).storage.from('lead-files').getPublicUrl(filePath);
+            const fileUrl = publicData?.publicUrl || null;
+
+            await (db as any).from('lead_files').insert({
+              lead_id: createdLeadId,
+              file_name: file.name,
+              file_url: fileUrl,
+              file_type: file.type || null,
+              file_size: file.size || null,
+            });
+          }
+        } catch {
+          // Files are optional — don't block form submission on upload errors
+        }
+      }
+
       return {
         id: createdLeadId,
         chatToken,
@@ -186,6 +228,7 @@ export default function FormularioPage({ publicView = false }: Props) {
     onSuccess: (createdLead?: { id?: string; chatToken?: string }) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       setForm(initialState);
+      setReferenceFiles([]);
       publishLeadAlert('new', createdLead?.id);
       if (publicView) {
         setSubmissionCompleted(true);
@@ -359,6 +402,47 @@ export default function FormularioPage({ publicView = false }: Props) {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Quantidade de Convidados *</Label>
             <Input required type="number" min="1" value={form.guest_count} onChange={(e) => updateField('guest_count', e.target.value)} placeholder="Ex: 150" className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold" />
+          </div>
+
+          <div className="md:col-span-2 space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-gold/80 ml-1">Fotos de Referência</Label>
+            <div className="relative">
+              <Input
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                onChange={(e) => {
+                  const selected = Array.from(e.target.files || []);
+                  const valid = selected.filter((f) => f.size <= MAX_FILE_SIZE);
+                  if (valid.length < selected.length) {
+                    toast({ title: 'Arquivo ignorado', description: 'Arquivos acima de 10MB foram excluídos.', variant: 'destructive' });
+                  }
+                  setReferenceFiles((prev) => [...prev, ...valid]);
+                  e.target.value = '';
+                }}
+                className="h-11 bg-secondary/20 border-border/10 focus:border-gold rounded-xl font-bold file:mr-3 file:rounded-lg file:border-0 file:bg-gold/10 file:px-3 file:py-1 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:text-gold"
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground/70 font-bold ml-1">
+              Envie fotos de inspiração, decoração ou referência do evento (imagens ou PDF, máx. 10MB cada).
+            </p>
+            {referenceFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {referenceFiles.map((file, idx) => (
+                  <div key={`${file.name}-${idx}`} className="flex items-center gap-2 bg-gold/5 border border-gold/20 rounded-lg px-3 py-1.5 text-xs font-bold text-foreground">
+                    <ImagePlus className="w-3.5 h-3.5 text-gold shrink-0" />
+                    <span className="max-w-[140px] truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setReferenceFiles((prev) => prev.filter((_, i) => i !== idx))}
+                      className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="md:col-span-2 space-y-2">
