@@ -129,6 +129,8 @@ export default function RecebimentosPage() {
   const [selectedInstallmentPaidDate, setSelectedInstallmentPaidDate] = useState("");
   const [selectedInstallmentPaidAmount, setSelectedInstallmentPaidAmount] = useState("");
   const [selectedInstallmentPaymentMethod, setSelectedInstallmentPaymentMethod] = useState("");
+  const [createRemainderInstallment, setCreateRemainderInstallment] = useState(true);
+  const [remainderDueDate, setRemainderDueDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split("T")[0]; });
   const [entryAccountPickerOpen, setEntryAccountPickerOpen] = useState(false);
   const [pendingEntryPayment, setPendingEntryPayment] = useState<Payment | null>(null);
   const [selectedEntryBankAccountId, setSelectedEntryBankAccountId] = useState("");
@@ -991,7 +993,7 @@ export default function RecebimentosPage() {
             .from("payment_installments")
             .update({ status: fallbackStatus, paid_at: paidAt } as any)
             .eq("id", installment.id);
-          if (!error) return;
+          if (!error) { await afterPaid(); return; }
           lastError = error;
         }
       }
