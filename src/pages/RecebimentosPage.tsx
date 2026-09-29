@@ -1637,8 +1637,8 @@ export default function RecebimentosPage() {
         }
       }}>
         <DialogContent className="max-w-md rounded-2xl max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Check size={18} className="text-gold" /> Baixar Parcela</DialogTitle><p className="text-xs text-muted-foreground mt-1">Selecione a conta bancaria para vincular o recebimento automaticamente.</p></DialogHeader>
-          <div className="space-y-3">
+          <DialogHeader className="shrink-0"><DialogTitle className="flex items-center gap-2"><Check size={18} className="text-gold" /> Baixar Parcela</DialogTitle><p className="text-xs text-muted-foreground mt-1">Selecione a conta bancaria para vincular o recebimento automaticamente.</p></DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-3 pr-1">
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Conta bancaria</Label>
               <Select value={selectedBankAccountId} onValueChange={setSelectedBankAccountId}>
