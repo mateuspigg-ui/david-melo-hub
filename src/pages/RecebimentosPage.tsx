@@ -129,6 +129,8 @@ export default function RecebimentosPage() {
   const [selectedInstallmentPaidDate, setSelectedInstallmentPaidDate] = useState("");
   const [selectedInstallmentPaidAmount, setSelectedInstallmentPaidAmount] = useState("");
   const [selectedInstallmentPaymentMethod, setSelectedInstallmentPaymentMethod] = useState("");
+  const [createRemainderInstallment, setCreateRemainderInstallment] = useState(true);
+  const [remainderDueDate, setRemainderDueDate] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().split("T")[0]; });
   const [entryAccountPickerOpen, setEntryAccountPickerOpen] = useState(false);
   const [pendingEntryPayment, setPendingEntryPayment] = useState<Payment | null>(null);
   const [selectedEntryBankAccountId, setSelectedEntryBankAccountId] = useState("");
@@ -916,7 +918,7 @@ export default function RecebimentosPage() {
   });
 
   const toggleInstallmentMutation = useMutation({
-    mutationFn: async ({ installment, bankAccountId, paidDate, paidAmount, paymentMethod }: { installment: Installment; bankAccountId?: string | null; paidDate?: string; paidAmount?: number | null; paymentMethod?: string | null }) => {
+    mutationFn: async ({ installment, bankAccountId, paidDate, paidAmount, paymentMethod, remainderDueDate }: { installment: Installment; bankAccountId?: string | null; paidDate?: string; paidAmount?: number | null; paymentMethod?: string | null; remainderDueDate?: string | null }) => {
       const currentlyPaid = isInstallmentPaid(installment.status, installment.paid_at);
       const paidAt = toIsoFromDateInput(paidDate);
 
@@ -950,6 +952,29 @@ export default function RecebimentosPage() {
         return;
       }
 
+      const remainingCents = Math.round(Number(installment.amount || 0) * 100) - Math.round(Number(paidAmount ?? installment.amount ?? 0) * 100);
+      const afterPaid = async () => {
+        if (remainingCents > 0 && remainderDueDate) {
+          const { data: existing } = await supabase
+            .from("payment_installments")
+            .select("installment_number")
+            .eq("payment_id", installment.payment_id)
+            .order("installment_number", { ascending: false })
+            .limit(1);
+          const nextNumber = Number((existing as any)?.[0]?.installment_number || 0) + 1;
+          const { error: insErr } = await supabase.from("payment_installments").insert({
+            payment_id: installment.payment_id,
+            installment_number: nextNumber,
+            due_date: remainderDueDate,
+            amount: remainingCents / 100,
+            status: "pending",
+          } as any);
+          if (insErr) throw insErr;
+          return;
+        }
+        await recalculateOpenInstallments(installment.payment_id);
+      };
+
       let lastError: any = null;
       for (const fallbackStatus of PAID_STATUS_VALUES) {
         const { error } = await supabase
@@ -957,7 +982,7 @@ export default function RecebimentosPage() {
           .update({ status: fallbackStatus, paid_at: paidAt, bank_account_id: bankAccountId || null, paid_amount: paidAmount ?? null, payment_method: paymentMethod || null } as any)
           .eq("id", installment.id);
         if (!error) {
-          await recalculateOpenInstallments(installment.payment_id);
+          await afterPaid();
           return;
         }
         lastError = error;
@@ -968,7 +993,7 @@ export default function RecebimentosPage() {
             .from("payment_installments")
             .update({ status: fallbackStatus, paid_at: paidAt } as any)
             .eq("id", installment.id);
-          if (!error) return;
+          if (!error) { await afterPaid(); return; }
           lastError = error;
         }
       }
@@ -1634,6 +1659,29 @@ export default function RecebimentosPage() {
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Valor pago</Label>
               <Input value={selectedInstallmentPaidAmount} onChange={(e) => setSelectedInstallmentPaidAmount(maskCurrencyInput(e.target.value))} placeholder="0,00" inputMode="numeric" className="h-10" />
             </div>
+            {(() => {
+              if (!pendingInstallment || isInstallmentPaid(pendingInstallment.status, pendingInstallment.paid_at)) return null;
+              const paidVal = parseCurrencyInput(selectedInstallmentPaidAmount);
+              const remaining = Math.round((Number(pendingInstallment.amount || 0) - (Number.isFinite(paidVal) ? paidVal : 0)) * 100) / 100;
+              if (!(remaining > 0) || !(paidVal > 0)) return null;
+              return (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">Saldo devedor restante</p>
+                  <p className="text-lg font-display text-amber-800">{currencyFmt(remaining)}</p>
+                  <label className="flex items-center gap-2 text-xs text-amber-900 cursor-pointer">
+                    <input type="checkbox" checked={createRemainderInstallment} onChange={(e) => setCreateRemainderInstallment(e.target.checked)} />
+                    Lançar o restante como nova parcela
+                  </label>
+                  {createRemainderInstallment && (
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-amber-700">Vencimento da nova parcela</Label>
+                      <Input type="date" value={remainderDueDate} onChange={(e) => setRemainderDueDate(e.target.value)} className="h-10 bg-background" />
+                    </div>
+                  )}
+                  {!createRemainderInstallment && <p className="text-[11px] text-amber-800">O restante será distribuído entre as próximas parcelas em aberto.</p>}
+                </div>
+              );
+            })()}
             <div className="space-y-1">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Forma de pagamento</Label>
               <Select value={selectedInstallmentPaymentMethod} onValueChange={setSelectedInstallmentPaymentMethod}>
@@ -1649,7 +1697,7 @@ export default function RecebimentosPage() {
           <DialogFooter className="sticky bottom-0 z-10 pt-3 border-t border-border/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <Button variant="ghost" onClick={() => setAccountPickerOpen(false)}>Cancelar</Button>
             <Button
-              disabled={!pendingInstallment || !selectedInstallmentPaidDate || parseCurrencyInput(selectedInstallmentPaidAmount) <= 0 || !selectedInstallmentPaymentMethod || (bankAccounts.length > 0 && selectedBankAccountId !== '__cash__' && !selectedBankAccountId)}
+              disabled={!pendingInstallment || !selectedInstallmentPaidDate || parseCurrencyInput(selectedInstallmentPaidAmount) <= 0 || !selectedInstallmentPaymentMethod || (bankAccounts.length > 0 && selectedBankAccountId !== '__cash__' && !selectedBankAccountId) || (createRemainderInstallment && !remainderDueDate && pendingInstallment && parseCurrencyInput(selectedInstallmentPaidAmount) < Number(pendingInstallment.amount || 0))}
               onClick={() => {
                 if (!pendingInstallment) return;
                 toggleInstallmentMutation.mutate({
@@ -1658,6 +1706,7 @@ export default function RecebimentosPage() {
                   paidDate: selectedInstallmentPaidDate,
                   paidAmount: parseCurrencyInput(selectedInstallmentPaidAmount),
                   paymentMethod: selectedInstallmentPaymentMethod,
+                  remainderDueDate: createRemainderInstallment ? remainderDueDate : null,
                 });
                 setAccountPickerOpen(false);
                 setPendingInstallment(null);
