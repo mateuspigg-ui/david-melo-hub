@@ -265,7 +265,7 @@ export default function ContasPagarPage() {
   const { data: suppliers = [] } = useQuery({
     queryKey: ["suppliers-select"],
     queryFn: async () => {
-      const { data } = await supabase.from("suppliers").select("id, company_name").order("company_name");
+      const { data } = await supabase.from("suppliers").select("id, company_name, pix_details").order("company_name");
       if (!data) return [];
       const seen = new Map<string, typeof data[0]>();
       for (const s of data) {
@@ -903,6 +903,11 @@ export default function ContasPagarPage() {
   const handlePrintPayable = async (item: AccountPayable) => {
     const supplierName = item.suppliers?.company_name || "Sem fornecedor";
     const supplierDoc = item.suppliers?.cpf_cnpj || "-";
+    let supplierPix = item.suppliers?.pix_details?.trim() || "";
+    if (!supplierPix && item.supplier_id) {
+      const { data: supplierData } = await supabase.from("suppliers").select("pix_details").eq("id", item.supplier_id).maybeSingle();
+      supplierPix = supplierData?.pix_details?.trim() || "";
+    }
     const categoryName = item.accounts_payable_categories?.name || "Sem categoria";
     const costCenterName = item.accounts_payable_cost_centers?.name || "Sem centro de custo";
     const dueDate = item.due_date ? format(new Date(`${item.due_date}T12:00:00`), "dd/MM/yyyy") : "-";
@@ -984,20 +989,23 @@ export default function ContasPagarPage() {
           <div class="title">Lancamento</div>
 
           <div class="block">
-            <div class="label">Dados do titulo:</div>
+            <div class="label">Dados do PIX:</div>
             <div class="row">
               <div><span class="label">Numero do titulo:</span> ${titleNumber}</div>
               <div><span class="label">Data emissao:</span> ${issueDate}</div>
             </div>
             <div class="row">
-              <div><span class="label">Pessoa:</span> ${supplierName}</div>
+              <div><span class="label">Favorecido:</span> ${supplierName}</div>
               <div><span class="label">Data vencimento:</span> ${dueDate}</div>
             </div>
             <div class="row">
               <div><span class="label">CPF/CNPJ:</span> ${supplierDoc}</div>
               <div><span class="label">Categoria / Centro de Custo:</span> ${categoryName} / ${costCenterName}</div>
             </div>
-            <div style="margin-top: 8px;"><span class="label">Valor do titulo:</span> ${currencyFmt(Number(item.amount || 0))}</div>
+            <div class="row">
+              <div><span class="label">Chave PIX:</span> ${supplierPix || "-"}</div>
+              <div><span class="label">Valor do titulo:</span> ${currencyFmt(Number(item.amount || 0))}</div>
+            </div>
           </div>
 
           <div class="block obs">
@@ -1731,6 +1739,21 @@ export default function ContasPagarPage() {
                     </Select>
                   </div>
                 )}
+                {(() => {
+                  const selectedSupplier = suppliers.find((s) => s.id === form.supplier_id);
+                  if (!selectedSupplier) return null;
+                  return (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Dados PIX do Fornecedor</Label>
+                      <div className="flex items-center gap-3 h-12 px-4 rounded-xl bg-gold/5 border border-gold/20">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gold">PIX</span>
+                        <span className="text-sm font-bold uppercase tracking-wide text-foreground truncate">
+                          {selectedSupplier.pix_details || "Fornecedor sem PIX cadastrado"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
